@@ -1,7 +1,8 @@
 import { query, transaction, type Tx } from "@/lib/db";
 import { ErrorNegocio } from "@/lib/errores";
+import { abiertasActivas, MENSAJE_ABIERTAS_APAGADAS, sqlSinAbiertas } from "@/lib/preguntas/abiertas";
 import type { FilaPregunta } from "@/lib/preguntas/entrada";
-import type { PreguntaPublica, PreguntaStaff } from "@/lib/preguntas/tipos";
+import type { PreguntaPublica, PreguntaStaff, TipoPregunta } from "@/lib/preguntas/tipos";
 import { unirVariantes, type entradaVariantesSchema } from "@/lib/preguntas/variantes";
 import type { z } from "zod";
 
@@ -24,12 +25,13 @@ export async function listarPreguntas(evaluacionId: number): Promise<PreguntaSta
   return rows;
 }
 
-// Exactamente lo que recibirá el estudiante (vista sin respuestas).
+// Exactamente lo que recibirá el estudiante (vista sin respuestas; sin las
+// abiertas si están apagadas, lib/preguntas/abiertas.ts).
 export async function listarPublicas(evaluacionId: number): Promise<PreguntaPublica[]> {
   const { rows } = await query<PreguntaPublica>(
     `SELECT id, orden, seccion, tipo, enunciado, pista, opciones, espacios
        FROM v_preguntas_publicas
-      WHERE evaluacion_id = $1
+      WHERE evaluacion_id = $1 AND ${sqlSinAbiertas()}
       ORDER BY orden`,
     [evaluacionId],
   );
@@ -47,7 +49,13 @@ async function bloquearEvaluacion(tx: Tx, evaluacionId: number) {
 
 const SIGUIENTE_ORDEN = `(SELECT COALESCE(max(orden), 0) + 1 FROM preguntas WHERE evaluacion_id = $1)`;
 
+// Con las abiertas apagadas no se crea ninguna (tampoco cambiando el tipo de otra).
+function rechazarAbiertaApagada(tipo: TipoPregunta) {
+  if (tipo === "open" && !abiertasActivas()) throw new ErrorNegocio(MENSAJE_ABIERTAS_APAGADAS, "tipo");
+}
+
 export async function crearPregunta(evaluacionId: number, f: FilaPregunta): Promise<number> {
+  rechazarAbiertaApagada(f.tipo);
   return transaction(async (tx) => {
     await bloquearEvaluacion(tx, evaluacionId);
     const { rows } = await tx.query<{ id: number }>(
@@ -66,6 +74,7 @@ export async function crearPregunta(evaluacionId: number, f: FilaPregunta): Prom
 
 // Edición completa: solo si la pregunta NO tiene respuestas (regla 7).
 export async function actualizarPregunta(id: number, f: FilaPregunta): Promise<void> {
+  rechazarAbiertaApagada(f.tipo);
   await transaction(async (tx) => {
     const { rows } = await tx.query<{ respuestas: number }>(
       `SELECT (SELECT count(*)::int FROM respuestas r WHERE r.pregunta_id = p.id) AS respuestas
@@ -126,11 +135,12 @@ export async function eliminarPregunta(id: number): Promise<void> {
 // Copia editable al final de la misma evaluación (activa, sin respuestas).
 export async function duplicarPregunta(id: number): Promise<number> {
   return transaction(async (tx) => {
-    const { rows: origen } = await tx.query<{ evaluacion_id: number }>(
-      `SELECT evaluacion_id FROM preguntas WHERE id = $1`,
+    const { rows: origen } = await tx.query<{ evaluacion_id: number; tipo: TipoPregunta }>(
+      `SELECT evaluacion_id, tipo FROM preguntas WHERE id = $1`,
       [id],
     );
     if (!origen[0]) throw new ErrorNegocio("La pregunta no existe.");
+    rechazarAbiertaApagada(origen[0].tipo);
     const evaluacionId = origen[0].evaluacion_id;
     await bloquearEvaluacion(tx, evaluacionId);
     const { rows } = await tx.query<{ id: number }>(
@@ -177,11 +187,18 @@ export async function reordenarPreguntas(evaluacionId: number, idsActivas: numbe
   });
 }
 
-// clonar_preguntas exige que el destino esté vacío; su error se traduce.
+// clonar_preguntas exige que el destino esté vacío; su error se traduce. Con
+// las abiertas apagadas, las copias de abiertas se quitan en la misma transacción.
 export async function clonarPreguntas(origenId: number, destinoId: number): Promise<number> {
-  const { rows } = await query<{ copiadas: number }>(
-    `SELECT clonar_preguntas($1, $2) AS copiadas`,
-    [origenId, destinoId],
-  );
-  return rows[0].copiadas;
+  return transaction(async (tx) => {
+    const { rows } = await tx.query<{ copiadas: number }>(
+      `SELECT clonar_preguntas($1, $2) AS copiadas`,
+      [origenId, destinoId],
+    );
+    if (abiertasActivas()) return rows[0].copiadas;
+    const { rowCount } = await tx.query(`DELETE FROM preguntas WHERE evaluacion_id = $1 AND tipo = 'open'`, [
+      destinoId,
+    ]);
+    return rows[0].copiadas - (rowCount ?? 0);
+  });
 }

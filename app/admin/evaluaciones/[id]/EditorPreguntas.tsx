@@ -16,16 +16,22 @@ export default function EditorPreguntas({
   evaluacionId,
   preguntas,
   candidatasClonar,
+  abiertasActivas,
 }: {
   evaluacionId: number;
   preguntas: PreguntaStaff[];
   candidatasClonar: CandidataClonar[];
+  /** PREGUNTAS_ABIERTAS_ACTIVAS: apagadas, no se crean y el estudiante no ve las que haya. */
+  abiertasActivas: boolean;
 }) {
   const [edicion, setEdicion] = useState<Edicion>(null);
   const activas = preguntas.filter((p) => p.activa);
   const desactivadas = preguntas.filter((p) => !p.activa);
   const secciones = [...new Set(preguntas.map((p) => p.seccion).filter((s): s is string => !!s))];
-  const puntos = activas.reduce((s, p) => s + p.puntaje, 0);
+  // Lo que vale la evaluación para el estudiante (sin las abiertas si están apagadas).
+  const puntos = activas
+    .filter((p) => abiertasActivas || p.tipo !== "open")
+    .reduce((s, p) => s + p.puntaje, 0);
   // Una pregunta nueva sugiere la sección de la última.
   const seccionSugerida = activas.at(-1)?.seccion ?? "";
   // Si cambian los datos del servidor (orden, altas, bajas), la lista arranca de nuevo.
@@ -70,6 +76,7 @@ export default function EditorPreguntas({
           evaluacionId={evaluacionId}
           activas={activas}
           desactivadas={desactivadas}
+          abiertasActivas={abiertasActivas}
           onEditar={(p) => setEdicion({ pregunta: p })}
         />
       )}
@@ -86,6 +93,7 @@ export default function EditorPreguntas({
             pregunta={edicion.pregunta}
             secciones={secciones}
             seccionSugerida={seccionSugerida}
+            abiertasActivas={abiertasActivas}
             onListo={() => setEdicion(null)}
             onCancelar={() => setEdicion(null)}
           />

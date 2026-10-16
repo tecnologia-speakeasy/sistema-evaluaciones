@@ -53,6 +53,7 @@ export default function FormPregunta({
   pregunta,
   secciones,
   seccionSugerida,
+  abiertasActivas,
   onListo,
   onCancelar,
 }: {
@@ -61,11 +62,15 @@ export default function FormPregunta({
   pregunta: PreguntaStaff | null;
   secciones: string[];
   seccionSugerida: string;
+  /** Apagadas: "Abierta" no se ofrece (el servidor también la rechaza). */
+  abiertasActivas: boolean;
   onListo: () => void;
   onCancelar: () => void;
 }) {
   // Regla 7: con respuestas de estudiantes solo se agregan variantes aceptadas.
   const soloAgregar = (pregunta?.respuestas ?? 0) > 0;
+  // Una abierta que ya existe se sigue viendo como tal; nuevas, solo si están activas.
+  const tipos = TIPOS_PREGUNTA.filter((t) => t !== "open" || abiertasActivas || pregunta?.tipo === "open");
   const [original] = useState(() => estadoInicial(pregunta, seccionSugerida));
   const [e, setE] = useState<EstadoFormulario>(original);
   const [error, setError] = useState<{ mensaje: string; campo?: string } | null>(null);
@@ -160,8 +165,8 @@ export default function FormPregunta({
             color de fondo (hover): el degradado cambia de golpe y, si el texto
             se animara, por un instante quedaría oscuro sobre el degradado. */}
         <Campo etiqueta="Tipo de pregunta" error={errorDe("tipo")}>
-          <div role="radiogroup" aria-label="Tipo de pregunta" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {TIPOS_PREGUNTA.map((t) => (
+          <div role="radiogroup" aria-label="Tipo de pregunta" className={`grid grid-cols-2 gap-2 ${tipos.length === 4 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+            {tipos.map((t) => (
               <button
                 key={t}
                 type="button"

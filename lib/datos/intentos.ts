@@ -11,6 +11,7 @@ import {
 } from "@/lib/grading/calificar";
 import { MAX_FALLOS_AUTOMATICOS } from "@/lib/ia/procesar";
 import { GRACIA_S } from "@/lib/intentos/reloj";
+import { sqlSinAbiertas } from "@/lib/preguntas/abiertas";
 import type { PreguntaPublica, TipoPregunta } from "@/lib/preguntas/tipos";
 import type { TipoEvaluacion } from "@/lib/tipos";
 
@@ -51,7 +52,8 @@ export type EvaluacionEstudiante = {
   ultimo_numero: number | null;
 };
 
-const COLUMNAS_EVALUACION = `
+// Función (no constante): lee PREGUNTAS_ABIERTAS_ACTIVAS al consultar.
+const columnasEvaluacion = () => `
   e.id, e.slug, e.titulo, e.descripcion, e.tipo, e.numero,
   ${sqlALocal("e.fecha_apertura")} AS apertura,
   ${sqlALocal("e.fecha_cierre")} AS cierre,
@@ -59,7 +61,8 @@ const COLUMNAS_EVALUACION = `
   CASE WHEN e.fecha_apertura IS NOT NULL AND e.fecha_apertura > now() THEN 'programada'
        WHEN e.fecha_cierre   IS NOT NULL AND e.fecha_cierre   < now() THEN 'cerrada'
        ELSE 'abierta' END AS estado,
-  (SELECT count(*)::int FROM preguntas p WHERE p.evaluacion_id = e.id AND p.activa) AS preguntas,
+  (SELECT count(*)::int FROM preguntas p
+    WHERE p.evaluacion_id = e.id AND p.activa AND ${sqlSinAbiertas("p.tipo")}) AS preguntas,
   count(i.id)::int AS intentos_usados,
   coalesce(bool_or(i.estado = 'en_progreso'), false) AS en_curso,
   max(i.puntaje_total)::int AS mejor_puntaje,
@@ -70,7 +73,7 @@ export async function evaluacionesDelEstudiante(
   generacionId: number,
 ): Promise<EvaluacionEstudiante[]> {
   const { rows } = await query<EvaluacionEstudiante>(
-    `SELECT ${COLUMNAS_EVALUACION}
+    `SELECT ${columnasEvaluacion()}
        FROM evaluaciones e
        LEFT JOIN intentos i ON i.evaluacion_id = e.id AND i.estudiante_id = $1
       WHERE e.generacion_id = $2 AND e.publicada
@@ -119,7 +122,7 @@ export async function evaluacionParaPresentar(
   generacionId: number,
 ): Promise<DatosPresentar | null> {
   const { rows } = await query<EvaluacionEstudiante>(
-    `SELECT ${COLUMNAS_EVALUACION}
+    `SELECT ${columnasEvaluacion()}
        FROM evaluaciones e
        LEFT JOIN intentos i ON i.evaluacion_id = e.id AND i.estudiante_id = $2
       WHERE e.slug = $1 AND e.generacion_id = $3 AND e.publicada
@@ -132,7 +135,7 @@ export async function evaluacionParaPresentar(
   const [preguntas, enCurso] = await Promise.all([
     query<PreguntaPublica>(
       `SELECT id, orden, seccion, tipo, enunciado, pista, opciones, espacios
-         FROM v_preguntas_publicas WHERE evaluacion_id = $1 ORDER BY orden`,
+         FROM v_preguntas_publicas WHERE evaluacion_id = $1 AND ${sqlSinAbiertas()} ORDER BY orden`,
       [evaluacion.id],
     ),
     query<FilaEnCurso>(`SELECT ${COLUMNAS_EN_CURSO} FROM intentos i
@@ -317,7 +320,7 @@ async function finalizar(
 
   const { rows: preguntas } = await tx.query<PreguntaParaCalificar>(
     `SELECT id, tipo, categoria, puntaje::float8 AS puntaje, respuestas_aceptadas
-       FROM preguntas WHERE evaluacion_id = $1 AND activa ORDER BY orden`,
+       FROM preguntas WHERE evaluacion_id = $1 AND activa AND ${sqlSinAbiertas()} ORDER BY orden`,
     [evaluacion_id],
   );
   const calificadas = preguntas.map((pregunta) => ({

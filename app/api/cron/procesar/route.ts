@@ -3,10 +3,12 @@ import { reprocesarPendientes } from "@/lib/ia/procesar";
 
 // Reproceso de lo que quedó sin terminar: intentos 'pendiente' / 'error' /
 // 'calificando' atascados (hasta 10 fallos; después solo el staff) y correos o
-// WhatsApp sin enviar. Es una red de seguridad: casi todo lo resuelven el
-// after() del envío y la pantalla que espera.
-// Protegido con Authorization: Bearer CRON_SECRET (lo manda solo el Cron de
-// Vercel; desde n8n, un HTTP Request con ese encabezado). Ver CLAUDE.md.
+// WhatsApp sin enviar. OPCIONAL y hoy SIN PROGRAMAR: como a2, lo resuelven el
+// after() del envío, la pantalla que espera (relanza la IA) y el staff
+// ("Reintentar IA" / "Reintentar envío"). Queda lista por si algún día se
+// programa (Cron de Vercel o n8n, ver CLAUDE.md).
+// Protegido con Authorization: Bearer CRON_SECRET. Sin CRON_SECRET la app
+// funciona igual y esta ruta solo responde 401.
 
 export const maxDuration = 300;
 

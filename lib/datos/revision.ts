@@ -5,6 +5,8 @@ import type { EstadoIntento } from "./intentos";
 
 // Intentos que necesitan que el staff los mire (Fase 5): la IA falló varias
 // veces ('error'), lleva más de 10 min sin terminar, o el correo no salió.
+// Sin reproceso programado (como a2), el staff es quien los destraba con
+// "Reintentar IA" / "Reintentar envío" (/admin/resultados).
 // Sin autorización: la hace la página / la acción con requireStaff().
 
 export type IntentoPorRevisar = {
@@ -30,6 +32,10 @@ export type IntentoPorRevisar = {
 const PROBLEMA_IA = `(i.estado = 'error'
    OR (i.estado IN ('pendiente', 'calificando') AND i.completed_at < now() - interval '10 minutes'))`;
 
+const POR_REVISAR = `(${PROBLEMA_IA}
+   OR (i.estado = 'listo' AND i.feedback IS NOT NULL AND NOT i.email_enviado
+       AND i.completed_at < now() - interval '10 minutes'))`;
+
 export async function intentosPorRevisar(): Promise<IntentoPorRevisar[]> {
   const { rows } = await query<IntentoPorRevisar>(
     `SELECT i.id, i.nombre, s.email, g.codigo AS generacion, e.titulo, e.tipo, e.numero AS eval_numero,
@@ -39,16 +45,15 @@ export async function intentosPorRevisar(): Promise<IntentoPorRevisar[]> {
        JOIN estudiantes s  ON s.id = i.estudiante_id
        JOIN evaluaciones e ON e.id = i.evaluacion_id
        JOIN generaciones g ON g.id = e.generacion_id
-      WHERE ${PROBLEMA_IA}
-         OR (i.estado = 'listo' AND i.feedback IS NOT NULL AND NOT i.email_enviado
-             AND i.completed_at < now() - interval '10 minutes')
+      WHERE ${POR_REVISAR}
       ORDER BY i.completed_at DESC
       LIMIT 100`,
   );
   return rows;
 }
 
-export async function contarIntentosConError(): Promise<number> {
-  const { rows } = await query<{ n: number }>(`SELECT count(*)::int AS n FROM intentos WHERE estado = 'error'`);
+// Para el aviso del inicio del staff.
+export async function contarIntentosPorRevisar(): Promise<number> {
+  const { rows } = await query<{ n: number }>(`SELECT count(*)::int AS n FROM intentos i WHERE ${POR_REVISAR}`);
   return rows[0]?.n ?? 0;
 }

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { staffParaPagina } from "@/lib/auth/guards";
 import { candidatasParaClonar, obtenerEvaluacion } from "@/lib/datos/evaluaciones";
 import { listarPreguntas } from "@/lib/datos/preguntas";
+import { abiertasActivas } from "@/lib/preguntas/abiertas";
 import { idUrlSchema } from "@/lib/validacion";
 import { Aviso } from "@/app/components/ui/Aviso";
 import { BotonEnlace } from "@/app/components/ui/Boton";
@@ -98,6 +99,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         evaluacionId={evaluacion.id}
         preguntas={preguntas}
         candidatasClonar={candidatas}
+        abiertasActivas={abiertasActivas()}
       />
     </>
   );

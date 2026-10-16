@@ -47,11 +47,13 @@ export default function ListaPreguntas({
   evaluacionId,
   activas,
   desactivadas,
+  abiertasActivas,
   onEditar,
 }: {
   evaluacionId: number;
   activas: PreguntaStaff[];
   desactivadas: PreguntaStaff[];
+  abiertasActivas: boolean;
   onEditar: (p: PreguntaStaff) => void;
 }) {
   const [orden, setOrden] = useState(activas);
@@ -91,7 +93,10 @@ export default function ListaPreguntas({
     );
   }
 
+  // Abiertas apagadas: las que ya existen no las ve el estudiante ni se duplican.
+  const oculta = (p: PreguntaStaff) => p.tipo === "open" && !abiertasActivas;
   const acciones = (p: PreguntaStaff) => ({
+    oculta: oculta(p),
     editar: () => onEditar(p),
     duplicar: () => ejecutar(() => duplicarPreguntaAction(p.id)),
     desactivar: () => ejecutar(() => cambiarActivaAction(p.id, false)),
@@ -172,6 +177,8 @@ export default function ListaPreguntas({
 }
 
 type Acciones = {
+  /** Abierta con las abiertas apagadas. */
+  oculta: boolean;
   editar: () => void;
   duplicar: () => void;
   desactivar: () => void;
@@ -248,7 +255,12 @@ function Fila({
   const conRespuestas = p.respuestas > 0;
   // Visible solo la acción principal; el resto en "⋯" (Eliminar al final, en rojo).
   const masAcciones: ItemMenu[] = [
-    { texto: "Duplicar", onSelect: acciones.duplicar },
+    {
+      texto: "Duplicar",
+      onSelect: acciones.duplicar,
+      deshabilitado: acciones.oculta,
+      detalle: acciones.oculta ? "Las abiertas están desactivadas" : undefined,
+    },
     ...(p.activa ? [{ texto: "Desactivar", onSelect: acciones.desactivar }] : []),
     {
       texto: "Eliminar",
@@ -274,6 +286,7 @@ function Fila({
               {p.respuestas} {p.respuestas === 1 ? "respuesta" : "respuestas"}
             </Insignia>
           )}
+          {acciones.oculta && <Insignia tono="rojo">No la ven los estudiantes</Insignia>}
           {p.seccion && <span className="text-[13px] font-semibold text-gris">{p.seccion}</span>}
         </div>
         <p className="line-clamp-2 text-[15px] leading-snug font-semibold text-tinta">

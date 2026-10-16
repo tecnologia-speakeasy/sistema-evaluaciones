@@ -4,6 +4,7 @@ import { correoResultado } from "@/lib/email/correo-resultado";
 import { enviarCorreo, smtpConfigurado } from "@/lib/email/enviar";
 import { resumirIntento } from "@/lib/grading/calificar";
 import { enviarWhatsApp, manychatConfigurado } from "@/lib/manychat";
+import { abiertasActivas } from "@/lib/preguntas/abiertas";
 import type { TipoPregunta } from "@/lib/preguntas/tipos";
 import { urlBase, urlPublica } from "@/lib/url";
 import { llamarOpenAI } from "./openai";
@@ -18,19 +19,22 @@ import {
 } from "./prompts";
 
 // Fase 5: después de enviar (fuera de cualquier transacción) la IA califica las
-// abiertas y escribe el feedback; luego salen el correo y el WhatsApp.
+// abiertas (solo con PREGUNTAS_ABIERTAS_ACTIVAS) y escribe el feedback; luego
+// salen el correo y el WhatsApp. Con las abiertas apagadas (por defecto): una
+// sola llamada a OpenAI por intento, como a2.
 //
 //   pendiente ──tomar──▶ calificando ──▶ listo ──▶ correo / WhatsApp (una vez cada uno)
 //                             │
 //                             └─ falla ─▶ pendiente (ia_intentos + 1) ─ al 3.º ─▶ error
 //
-// Lo lanzan: el envío (after()), la pantalla que espera (/estado), el reproceso
-// (/api/cron/procesar) y el staff ("Reintentar IA"). El candado
+// Lo lanzan: el envío (after()), la pantalla que espera (/estado, que lo
+// relanza mientras el estudiante espera, como a2), el staff ("Reintentar IA")
+// y el reproceso opcional (/api/cron/procesar, hoy sin programar). El candado
 // (procesando_hasta) garantiza que solo uno llama a la IA por intento.
 
 /** Al 3.er fallo el intento pasa a 'error' (lo ve el staff). */
 export const FALLOS_PARA_ERROR = 3;
-/** El reproceso automático se detiene aquí; después, solo el staff. */
+/** Relanzar solo (pantalla que espera o reproceso) se detiene aquí; después, solo el staff. */
 export const MAX_FALLOS_AUTOMATICOS = 10;
 /** Vence después del maxDuration de las rutas (300 s): si el proceso murió, otro lo retoma. */
 const CANDADO_MIN = 6;
@@ -82,9 +86,11 @@ export async function procesarIntento(
       [intentoId],
     );
 
-    // 1. Abiertas sin calificar: una sola llamada con la rúbrica de cada una. Se
-    //    guarda de una vez (si después falla el feedback, no se paga dos veces).
-    const abiertas = filas.filter((f) => f.tipo === "open" && f.es_correcta === null);
+    // 1. Abiertas sin calificar (solo con PREGUNTAS_ABIERTAS_ACTIVAS): una sola
+    //    llamada con la rúbrica de cada una. Se guarda de una vez (si después
+    //    falla el feedback, no se paga dos veces).
+    const conAbiertas = abiertasActivas();
+    const abiertas = conAbiertas ? filas.filter((f) => f.tipo === "open" && f.es_correcta === null) : [];
     if (abiertas.length) {
       const notas = leerNotasAbiertas(
         await llamarOpenAI(
@@ -118,8 +124,12 @@ export async function procesarIntento(
       });
     }
 
+    // Apagadas, una abierta sin nota (de antes de apagarlas) no se califica ni
+    // cuenta: el intento queda con lo demás y la IA solo escribe el feedback.
+    const cuentan = conAbiertas ? filas : filas.filter((f) => !(f.tipo === "open" && f.es_correcta === null));
+
     // 2. Feedback general (como a2), saludando con el nombre que escribió.
-    const resumen = puntajes(filas);
+    const resumen = puntajes(cuentan);
     const feedback =
       intento.feedback ??
       leerFeedback(
@@ -128,7 +138,7 @@ export async function procesarIntento(
             intento.nombre,
             intento.titulo,
             resumirParaFeedback(
-              filas.map((f) => ({
+              cuentan.map((f) => ({
                 ...f,
                 nota: f.tipo === "open" && f.puntaje !== null ? Math.round((f.puntaje / f.puntaje_pregunta) * 10) : null,
               })),
@@ -183,7 +193,8 @@ async function guardarPuntajes(tx: Tx, intentoId: number, filas: Fila[]) {
 // ---------------------------------------------------------------------------
 // Correo y WhatsApp: solo con el intento 'listo' y una sola vez cada uno. Se
 // marca antes de enviar (dos procesos a la vez no mandan dos) y, si falla, se
-// desmarca para que el reproceso lo intente de nuevo.
+// desmarca (queda envio_error) para reintentarlo: "Reintentar envío" del staff
+// o el reproceso opcional.
 // ---------------------------------------------------------------------------
 
 export type ResultadoEnvio = "enviado" | "no_aplica" | "fallo";

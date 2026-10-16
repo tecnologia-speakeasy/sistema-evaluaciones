@@ -56,7 +56,12 @@ Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amig
 | multiple_choice | `["were","was","is","be"]` | `["was"]` (1+ correctas) | exacta normalizada |
 | fill_blank | NULL | `[["is going to","'s going to"], ...]` una lista de variantes por cada `___` | todos los espacios deben coincidir |
 | translation | NULL | `["I was at home yesterday.", ...]` | coincide con alguna variante |
-| open | NULL | NULL (usa `rubrica`) | IA 0–10 |
+| open | NULL | NULL (usa `rubrica`) | IA 0–10 (**apagada por defecto**, ver abajo) |
+
+**Preguntas abiertas: desactivadas.** No existían en a2 y por ahora no se usan. `PREGUNTAS_ABIERTAS_ACTIVAS` (por defecto `false`; `lib/preguntas/abiertas.ts`) las enciende sin tocar código. Apagadas:
+- El editor no ofrece el tipo "Abierta". El servidor (`lib/datos/preguntas.ts`) rechaza crear una, cambiar otra a abierta y duplicarla; clonar una evaluación no copia sus abiertas.
+- Las que ya existan en la BD se quedan (en el editor dicen "No la ven los estudiantes"), pero el estudiante no las ve ni cuentan en el puntaje (filtro `sqlSinAbiertas()` al presentar, al calificar y en la vista previa).
+- Nunca se llama a calificar abiertas: **una sola llamada a OpenAI por intento** (el feedback general), como a2. Si un intento trae una abierta sin nota de antes de apagarlas, no se califica ni cuenta.
 
 `categoria` (grammar | writing) alimenta `grammar_score` / `writing_score`. `puntaje_total` va de 0 a 100 = suma de puntajes obtenidos / suma de puntajes posibles × 100.
 
@@ -85,7 +90,7 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 ## Rutas previstas
 - Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (intro + presentar), `/evaluacion/[slug]/intentos/[n]` (resultado del intento + "Tus intentos"), `/evaluacion/[slug]/intentos/[n]/respuestas` (revisión pregunta por pregunta), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público, solo resumen).
 - API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar), `GET /api/intentos/[id]/estado` (la pantalla espera a la IA).
-- Reproceso: `GET /api/cron/procesar` (con `CRON_SECRET`, ver "IA, correo y WhatsApp").
+- Reproceso: `GET /api/cron/procesar` (opcional y **sin programar**, ver "IA, correo y WhatsApp").
 - Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 16 evaluaciones), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados`, `/admin/estudiantes` y `/admin/staff` (solo admin).
 
 ## Reglas del examen del estudiante (Fase 4)
@@ -96,7 +101,7 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
   - `cierre_automatico = true`: al llegar a 0 se envía sola.
 - **Plazo en el servidor**: `limite_at` = el primero entre `started_at + duracion_min` (si `cierre_automatico`) y `fecha_cierre`. Se aceptan respuestas hasta `limite_at` + **2 min de gracia**; después se rechazan y, al enviar o al volver, se califica lo que quedó guardado. La fecha de cierre corta también los intentos en curso.
 - **"Siguiente" bloqueado** hasta responder la pregunta actual, igual que a2.
-- **Calificación** en el servidor al enviar (`lib/grading/`): selección múltiple, completar y traducción con `normalize()`. El intento queda `pendiente` y la IA califica las **abiertas** y escribe el feedback (ver "IA, correo y WhatsApp").
+- **Calificación** en el servidor al enviar (`lib/grading/`): selección múltiple, completar y traducción con `normalize()`. El intento queda `pendiente` y la IA escribe el feedback (y califica las **abiertas**, solo si están encendidas; ver "IA, correo y WhatsApp").
 - **Resultado** (con sesión, `/evaluacion/[slug]/intentos/[n]`): insignia por rango como a2 (`lib/celebracion.ts`), puntaje, Grammar X/N y Writing X/N (aciertos), "Revisa tu feedback" (como a2), selector "Ver intento N" y revisión pregunta por pregunta (acertó/falló; en las abiertas, "Nota de la IA: X/10" y su comentario). Con `mostrar_correctas`, en las que falló se ve la correcta solo cuando ya no le quedan intentos o la evaluación cerró (ver regla de seguridad 1).
 - **`/resultado/[token]`** (público, para el enlace de WhatsApp): solo resumen, como a2. Nunca el detalle por pregunta.
 - **Calificando**: Spiky (también en celular) al menos 2,5 s.
@@ -107,17 +112,17 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA, luego correo/WhatsApp; nunca perder respuestas.
 - **Flujo**: `POST /api/intentos/[id]/enviar` califica lo automático, guarda (`pendiente`) y responde. Después, con `after()` y fuera de cualquier transacción, `procesarIntento()` (`lib/ia/procesar.ts`):
   1. Toma el candado: `calificando`, `procesando_hasta` = ahora + 6 min. Dos procesos a la vez: el segundo ve "ocupado" y no llama a la IA.
-  2. Califica las abiertas con su `rubrica`, todas en una llamada, y guarda notas y puntaje recalculado en una transacción corta. Las que ya tienen nota no se vuelven a pagar.
-  3. Escribe el feedback general en otra llamada (prompt de a2 sin el párrafo de "gracias por intentarlo"; saluda con el primer nombre de `intentos.nombre`).
+  2. Solo con `PREGUNTAS_ABIERTAS_ACTIVAS=true`: califica las abiertas con su `rubrica`, todas en una llamada, y guarda notas y puntaje recalculado en una transacción corta. Las que ya tienen nota no se vuelven a pagar. Apagadas (por defecto) este paso no existe.
+  3. Escribe el feedback general (prompt de a2 sin el párrafo de "gracias por intentarlo"; saluda con el primer nombre de `intentos.nombre`). Con las abiertas apagadas es la **única** llamada a OpenAI del intento.
   4. Pasa a `listo` y llama a `notificarIntento()`: correo y WhatsApp.
-- **Abiertas**: nota 0–10 de la IA → puntaje = nota/10 × `preguntas.puntaje`. Cuentan como acierto (Writing X/N) con nota ≥ 6. El comentario va en `respuestas.feedback`.
+- **Abiertas** (si se encienden): nota 0–10 de la IA → puntaje = nota/10 × `preguntas.puntaje`. Cuentan como acierto (Writing X/N) con nota ≥ 6. El comentario va en `respuestas.feedback`.
 - **Prompts** en `lib/ia/prompts.ts` (puro, con tests): las respuestas del estudiante van entre `<respuesta>` (no son instrucciones) y la salida se valida con zod.
 - **Cliente** `lib/ia/openai.ts`: `OPENAI_MODEL` (por defecto gpt-4.1-mini), JSON, 3 intentos de 40 s, respeta `Retry-After` en 429/5xx; otros 4xx no se reintentan.
-- **Fallos**: cada fallo suma `ia_intentos` y guarda `ia_error`. El intento vuelve a `pendiente`; al 3.er fallo pasa a `error`. El reproceso automático lo intenta hasta 10 fallos y después solo el staff.
-- **Pantalla del estudiante**:
-  - Spiky consulta `GET /api/intentos/[id]/estado` cada 4 s (si el intento quedó suelto, la consulta lo relanza).
-  - A los 45 s avisa "Está tardando un poco más…" con "Ver mi intento".
-  - La página del intento dice "Tu retroalimentación está en camino" y se actualiza sola al quedar listo.
+- **Sin reproceso programado (como a2)**: no hay Cron de Vercel ni n8n. Lo que no termina lo reintentan:
+  1. La pantalla de calificando. Spiky consulta `GET /api/intentos/[id]/estado` cada 4 s y, si el intento quedó suelto (sin candado, enviado hace más de 20 s), la consulta relanza la IA hasta tener el feedback. A los 45 s avisa "Está tardando un poco más…" con "Ver mi intento".
+  2. La página del intento ("Tu retroalimentación está en camino"), que hace lo mismo cada 5 s y se actualiza sola al quedar listo.
+  3. El staff, si el estudiante cerró la página: el intento aparece en `/admin` ("Hay N intentos por revisar") y en `/admin/resultados` → "Reintentar IA" o "Reintentar envío".
+- **Fallos**: cada fallo suma `ia_intentos` y guarda `ia_error`. El intento vuelve a `pendiente`; al 3.er fallo pasa a `error` (la pantalla lo sigue relanzando). Relanzar solo se detiene a los 10 fallos; después, solo el staff.
 - **Correo** (`lib/email/correo-resultado.ts`):
   - Plantilla de la Fase 3: nombre, puntaje, insignia, Grammar/Writing, feedback y botón "Ver mi resultado" → `APP_URL/resultado/[token]`.
   - Solo con el intento `listo` y feedback, y una sola vez: `email_enviado` se marca antes de enviar y se desmarca si falla (queda `envio_error`).
@@ -126,20 +131,19 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
   - Campos `se_puntaje` = `puntaje_total` y `feedback` = token, y luego el flow.
   - `whatsapp_enviado` funciona igual que el correo.
 - **Staff**:
-  - `/admin` avisa si hay intentos en `error`.
-  - `/admin/resultados` lista los intentos por revisar (`lib/datos/revision.ts`): `error`, pendientes de más de 10 min y correos sin enviar.
+  - `/admin` avisa "Hay N intentos por revisar" (la IA o el correo no terminaron).
+  - `/admin/resultados` los lista (`lib/datos/revision.ts`): `error`, pendientes de más de 10 min y correos sin enviar.
   - "Reintentar IA" ignora el tope de 10 fallos; "Reintentar envío" vuelve a mandar correo/WhatsApp (`app/admin/acciones/intentos.ts`).
-- **Reproceso** `GET /api/cron/procesar` (`maxDuration` 300):
-  - Exige `Authorization: Bearer <CRON_SECRET>`, comparado en tiempo constante. Sin secreto o con menos de 16 caracteres → 401.
-  - En cada llamada retoma hasta 5 intentos `pendiente` / `error` / `calificando` con el candado vencido, enviados hace más de 1 min (el primero lo hace `after()`).
-  - Reenvía hasta 20 correos/WhatsApp pendientes de la última semana.
-  - Responde `{ revisados, listos, fallos, ocupados, envios }`.
-- **Quién llama al reproceso cada 10 min** (plan de Vercel por confirmar):
-  - **Hobby** (configuración actual, sin cron en `vercel.json`: Hobby solo admite crons diarios y uno cada 10 min rompe el despliegue): workflow de **n8n**:
-    1. *Schedule Trigger* cada 10 minutos.
-    2. *HTTP Request*: GET `{APP_URL}/api/cron/procesar`, header `Authorization: Bearer {CRON_SECRET}`, timeout 300 s.
-    3. Alertar si responde distinto de 200.
-  - **Pro**: crear `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el `Authorization: Bearer $CRON_SECRET` si la variable existe en el proyecto. Apagar entonces el workflow de n8n.
+- **Reproceso `GET /api/cron/procesar`: opcional y NO configurado.**
+  - Decisión: no se programa (ni Cron de Vercel ni n8n). La ruta queda creada por si algún día hace falta.
+  - `CRON_SECRET` es opcional: sin ella la app arranca y funciona igual, y esta ruta solo responde 401.
+  - Si algún día se programa:
+    - Llamarla con `Authorization: Bearer <CRON_SECRET>` (mínimo 16 caracteres, comparado en tiempo constante).
+    - En cada llamada retoma hasta 5 intentos `pendiente` / `error` / `calificando` con el candado vencido, enviados hace más de 1 min, y reenvía hasta 20 correos/WhatsApp pendientes de la última semana.
+    - Responde `{ revisados, listos, fallos, ocupados, envios }` (`maxDuration` 300).
+    - Para llamarla cada 10 min:
+      - n8n: *Schedule Trigger* + *HTTP Request* GET `{APP_URL}/api/cron/procesar` con ese header y timeout 300 s.
+      - Vercel Pro: `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el header si `CRON_SECRET` existe. Hobby solo admite crons diarios.
 - **Pruebas**: OpenAI, SMTP y ManyChat siempre simulados (`OPENAI_BASE_URL`, `MANYCHAT_API_URL`, SMTP local), nunca los reales del `.env`.
 
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
@@ -155,7 +159,7 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
 2. ✅ Hecha. Dashboard staff: generaciones, evaluaciones (generar 16, publicar/despublicar, fechas), CRUD de preguntas con formulario por tipo, reordenar, clonar.
 3. ✅ Hecha. OTP por correo para estudiantes (código de 6 dígitos, 10 min de validez, máx. 5 intentos, límites de envío por correo e IP), `lib/email/`, migración `db/002_otp.sql`.
 4. ✅ Hecha. Vista estudiante: lista de evaluaciones, presentar (autoguardado, retomar, cierre automático opcional), envío y calificación en el servidor, resultado con insignia, revisión, **historial de puntajes de todos sus intentos** (`/historial` + selector "Ver intento N" como en a2) y `/resultado/[token]`. Las abiertas quedan pendientes hasta la Fase 5.
-5. ✅ Hecha. IA (abiertas con rúbrica + feedback general como a2), correo del resultado, WhatsApp por ManyChat, reproceso protegido (`/api/cron/procesar`) y "Reintentar IA" para el staff. Migración `db/004_ia.sql`.
+5. ✅ Hecha. IA (feedback general como a2: una llamada por intento; abiertas con rúbrica solo con `PREGUNTAS_ABIERTAS_ACTIVAS`), correo del resultado, WhatsApp por ManyChat, la pantalla que reintenta hasta tener el feedback y "Reintentar IA" para el staff. `/api/cron/procesar` queda creado pero sin programar. Migración `db/004_ia.sql`.
 6. Admin: estudiantes (import CSV: solo correo y `manychat_id` opcional; sin nombre), staff, resultados y exportar CSV.
 
 ## Migraciones pendientes en producción
@@ -168,17 +172,17 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
   - Comprobar: `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name = 'intentos' AND column_name IN ('procesando_hasta', 'ia_intentos', 'ia_error', 'whatsapp_enviado', 'envio_error');` (5).
   - Intentos que ya existían:
     - Los `listo` de la Fase 4 (sin abiertas, sin feedback) se marcan como avisados: no reciben correo ni WhatsApp tardíos ni feedback retroactivo.
-    - Los `pendiente` (con abiertas) los toma la IA en el primer reproceso y reciben su correo.
+    - Los `pendiente` (con abiertas) se terminan cuando el estudiante abre su intento (la página relanza la IA) o con "Reintentar IA" desde `/admin/resultados`, donde aparecen como "por revisar". Con las abiertas apagadas, la abierta no cuenta: solo se escribe el feedback y sale el correo.
     - Antes de ejecutarla, ver cuántos son: `SELECT estado, count(*) FROM evaluacion.intentos GROUP BY estado;`.
   - Variables en Vercel (Production):
     - `APP_URL` (si falta, se usa el dominio de producción del proyecto).
     - `OPENAI_API_KEY` y `OPENAI_MODEL` (opcional).
     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`: ahora obligatorias; sin ellas el correo del resultado queda con "SMTP no configurado".
     - `MANYCHAT_API_TOKEN` y `MANYCHAT_FLOW_RESULTADO`.
-    - `CRON_SECRET`.
+    - `PREGUNTAS_ABIERTAS_ACTIVAS`: no definirla (o `false`).
+    - `CRON_SECRET`: no hace falta (reproceso sin programar).
     - Nunca `OPENAI_BASE_URL` ni `MANYCHAT_API_URL` (solo pruebas).
   - Las rutas de la IA usan `maxDuration = 300`, que exige Fluid compute (activado por defecto en Vercel; comprobar en Settings → Functions).
-  - Configurar el reproceso (n8n o Cron de Vercel, ver "IA, correo y WhatsApp").
 
 ## Convenciones
 - Zona horaria del negocio: **America/Bogota** (fechas de apertura/cierre se escriben y muestran en esa zona; Vercel corre en UTC).
