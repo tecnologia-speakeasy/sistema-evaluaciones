@@ -35,7 +35,8 @@ const payloadSchema = z.discriminatedUnion("tipo", [
 
 // Se lee en cada llamada (no al cargar el módulo) para que `next build` no
 // falle si la variable aún no está definida en ese entorno.
-function secreto(): string {
+// También firma los códigos de acceso (lib/auth/codigo.ts), con otra clave derivada.
+export function secreto(): string {
   const s = process.env.SESSION_SECRET;
   if (!s || s.length < 32) {
     throw new Error(

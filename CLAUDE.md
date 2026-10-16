@@ -10,7 +10,7 @@ Plataforma centralizada de evaluaciones de inglés. Reemplaza el modelo "un proy
 
 ## Stack
 - Next.js (App Router) + TypeScript + Tailwind.
-- PostgreSQL con `pg`, schema **`evaluacion`** (ya creado). DDL de referencia: `db/001_schema.sql`.
+- PostgreSQL con `pg`, schema **`evaluacion`** (ya creado). DDL de referencia: `db/001_schema.sql` + migraciones `db/0NN_*.sql` (ver "Migraciones pendientes en producción").
 - `DATABASE_URL=...?schema=evaluacion`; aplicar `search_path` por conexión.
 - Conexiones **efímeras** (abrir → query → cerrar), igual que `../evaluacion-a2/lib/db.js`: el Postgres es un VPS con pocas conexiones y las llamadas a OpenAI tardan 10–30 s.
 - Despliegue en Vercel.
@@ -36,7 +36,7 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 - Mobile first: los estudiantes entran sobre todo desde el celular.
 
 ## Modelo de datos (schema `evaluacion`)
-`generaciones` · `estudiantes` · `staff` · `login_intentos` · `evaluaciones` · `preguntas` · `intentos` · `respuestas`
+`generaciones` · `estudiantes` · `staff` · `login_intentos` · `codigos_acceso` (002) · `evaluaciones` · `preguntas` · `intentos` · `respuestas`
 Funciones: `generar_evaluaciones(generacion_id, staff_id)`, `clonar_preguntas(origen, destino)`.
 Vistas: `v_preguntas_publicas`, `v_evaluaciones_resumen`, `v_resultados`, `v_dificultad_preguntas`.
 Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amigables):
@@ -64,12 +64,13 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 5. Sesión: cookie httpOnly, secure, sameSite=lax, firmada con HMAC (`SESSION_SECRET`), con `{ tipo: 'estudiante'|'staff', id, rol?, exp }`. Duración: 7 días estudiante, 12 h staff. Código en `lib/auth/token.ts` + `lib/auth/session.ts`.
 6. Autorización en cada route handler / server action (no solo en `proxy.ts`) con `requireStaff(roles?)` / `requireEstudiante()` de `lib/auth/guards.ts`, que re-leen la BD (activo, rol actual): docente no puede tocar generaciones, estudiantes ni staff.
 7. Al editar una pregunta que ya tiene `respuestas`: solo permitir agregar variantes aceptadas; borrar = desactivar (`activa=false`). Recalificar intentos solo con acción explícita del staff.
+8. Código de acceso del estudiante (`lib/auth/codigo.ts`, `lib/auth/acceso-estudiante.ts`): en la BD solo su HMAC-SHA256 (clave derivada de `SESSION_SECRET`), 6 dígitos con `crypto.randomInt`, 10 min, máx. 5 intentos, un solo uso y solo vale el último. Envíos limitados por correo y por IP (`OTP_*`, ver `.env.example`) y 60 s entre envíos. El código nunca va a los logs (solo en desarrollo sin SMTP).
 
 ## Flujo de login (un solo formulario)
 1. Usuario escribe su correo.
-2. `POST /api/auth/identify` → `{ tipo: 'staff' }` | `{ tipo: 'estudiante', paso: 'sesion_iniciada' | 'codigo_enviado' }` | `{ tipo: 'no_autorizado' }`.
+2. `POST /api/auth/identify` → `{ tipo: 'staff' }` | `{ tipo: 'estudiante', paso: 'codigo_enviado', reenviarEn, nuevo }` | 429 `{ tipo: 'estudiante', paso: 'limite', reenviarEn, error }` | `{ tipo: 'no_autorizado' }`.
 3. Staff → aparece campo contraseña → `POST /api/auth/staff-login` → `/admin`.
-4. Estudiante → `iniciarAccesoEstudiante()` (`lib/auth/acceso-estudiante.ts`). Hoy crea la sesión directamente (`paso: 'sesion_iniciada'`) → `/` con sus evaluaciones publicadas de su generación. En la fase OTP enviará el código (`paso: 'codigo_enviado'`) y la sesión se creará al verificarlo.
+4. Estudiante → `iniciarAccesoEstudiante()` (`lib/auth/acceso-estudiante.ts`) le envía un código de 6 dígitos por correo (`lib/email/correo-codigo.ts`; en desarrollo sin SMTP, a la consola del servidor) → el formulario muestra 6 casillas (pegar el código completo, autollenado del celular, "Reenviar código" tras 60 s, que vuelve a llamar a identify) → `POST /api/auth/verificar-codigo` crea la sesión → `/` con sus evaluaciones publicadas de su generación.
 
 ## Rutas previstas
 - Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (presentar), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público).
@@ -78,7 +79,7 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
 - `lib/exam.js` → normalize + lógica de calificación.
 - `lib/openai.js` → feedback con IA (modelo `OPENAI_MODEL`, por defecto gpt-4.1-mini).
-- `lib/email.ts` → correo de resultado (SMTP Google Workspace).
+- `lib/email.ts` → ya portado a `lib/email/` (`enviar.ts` + `plantilla.ts` con el diseño de Speak Easy y el logo adjunto); falta el correo de resultado (Fase 5).
 - `lib/manychat.ts` → WhatsApp con el resultado.
 - `app/api/submit/route.js` → patrón: guardar primero (estado `pendiente`), luego IA, luego correo/WhatsApp; nunca perder respuestas.
 - `app/components/EnglishExam.jsx` → UX del examen (antitrampa de cambio de pestaña, etc.). Hacerlo genérico: renderizar preguntas desde la BD según `tipo`.
@@ -86,10 +87,15 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 ## Fases
 1. ✅ Hecha. Base: scaffold Next.js + TS + Tailwind, `lib/db.ts`, `lib/auth/*`, login unificado, `proxy.ts`, `scripts/crear-admin.ts`.
 2. ✅ Hecha. Dashboard staff: generaciones, evaluaciones (generar 16, publicar/despublicar, fechas), CRUD de preguntas con formulario por tipo, reordenar, clonar.
-3. OTP por correo para estudiantes (código de 6 dígitos, 10 min de validez, máx. 5 intentos). Cambiar `iniciarAccesoEstudiante()` para que envíe el código en vez de crear la sesión, y agregar la ruta que lo verifica y el campo del código en `LoginForm`. Requiere una tabla nueva (migración `db/002_...`) y portar `lib/email.ts` antes de la fase de IA.
+3. ✅ Hecha. OTP por correo para estudiantes (código de 6 dígitos, 10 min de validez, máx. 5 intentos, límites de envío por correo e IP), `lib/email/`, migración `db/002_otp.sql`.
 4. Vista estudiante: lista de evaluaciones, presentar, envío y calificación, resultado, e **historial de puntajes de todos sus intentos** (`/historial` + selector "Ver intento N" como en a2).
 5. IA + correo + WhatsApp, reintentos de feedback pendiente.
 6. Admin: estudiantes (import CSV), staff, resultados y exportar CSV.
+
+## Migraciones pendientes en producción
+Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que las usa; al ejecutarlas, marcarlas aquí. Cada archivo fija su propio `search_path`.
+- [ ] `db/002_otp.sql` (Fase 3): tabla `codigos_acceso`. Sin ella el login de estudiantes falla. Ejecutar: `psql "<DATABASE_URL sin ?schema=evaluacion>" -f db/002_otp.sql` (psql no acepta el parámetro `schema`). Comprobar: `SELECT to_regclass('evaluacion.codigos_acceso');` (no debe dar NULL).
+  - En Vercel, además: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (contraseña de aplicación) y `MAIL_FROM`. En producción sin SMTP el estudiante ve "No pudimos enviarte el código". `OTP_*` son opcionales (valores por defecto en `.env.example`).
 
 ## Convenciones
 - Zona horaria del negocio: **America/Bogota** (fechas de apertura/cierre se escriben y muestran en esa zona; Vercel corre en UTC).
