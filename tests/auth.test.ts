@@ -53,16 +53,26 @@ describe("token de sesión", () => {
     const est = firmarSesion({ tipo: "estudiante", id: 7, nombre: "Ana Pérez" }, ahora);
     expect(verificarSesion(est, ahora)).toEqual({ tipo: "estudiante", id: 7, nombre: "Ana Pérez" });
 
-    const staff = firmarSesion({ tipo: "staff", id: 3, rol: "docente" }, ahora);
+    const staff = firmarSesion({ tipo: "staff", id: 3, rol: "docente", v: 2 }, ahora);
     expect(verificarSesion(staff, ahora)).toEqual({
       tipo: "staff",
       id: 3,
       rol: "docente",
+      v: 2,
     });
   });
 
+  it("staff sin versión (cookie de antes de la 005): vale como versión 0", () => {
+    const exp = Math.floor(ahora / 1000) + DURACION_SESION.staff;
+    const cuerpo = Buffer.from(JSON.stringify({ tipo: "staff", id: 3, rol: "admin", exp })).toString("base64url");
+    const firma = createHmac("sha256", "secreto-de-prueba-con-mas-de-32-caracteres")
+      .update(cuerpo)
+      .digest("base64url");
+    expect(verificarSesion(`${cuerpo}.${firma}`, ahora)).toEqual({ tipo: "staff", id: 3, rol: "admin", v: 0 });
+  });
+
   it("rechaza un payload alterado (p. ej. docente → admin)", () => {
-    const token = firmarSesion({ tipo: "staff", id: 3, rol: "docente" }, ahora);
+    const token = firmarSesion({ tipo: "staff", id: 3, rol: "docente", v: 0 }, ahora);
     const [, firma] = token.split(".");
     const exp = Math.floor(ahora / 1000) + DURACION_SESION.staff;
     const falso = Buffer.from(
@@ -88,7 +98,7 @@ describe("token de sesión", () => {
     expect(verificarSesion(est, seisDias)).not.toBeNull();
     expect(verificarSesion(est, sieteDias)).toBeNull();
 
-    const staff = firmarSesion({ tipo: "staff", id: 1, rol: "admin" }, ahora);
+    const staff = firmarSesion({ tipo: "staff", id: 1, rol: "admin", v: 0 }, ahora);
     const onceHoras = ahora + 11 * 3600 * 1000;
     const doceHoras = ahora + 12 * 3600 * 1000;
     expect(verificarSesion(staff, onceHoras)).not.toBeNull();

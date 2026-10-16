@@ -15,12 +15,10 @@
 import { loadEnvConfig } from "@next/env";
 import { parseArgs } from "node:util";
 import { query } from "../lib/db";
-import { hashPassword } from "../lib/auth/password";
+import { hashPassword, MIN_PASSWORD } from "../lib/auth/password";
 import { emailSchema } from "../lib/validacion";
 
 loadEnvConfig(process.cwd());
-
-const MIN_PASSWORD = 12;
 
 function fallar(mensaje: string): never {
   console.error(`✗ ${mensaje}`);
@@ -121,9 +119,11 @@ async function main() {
 
   if (existente) {
     await query(
+      // La eligió quien corre el script: no es temporal. Cierra las sesiones abiertas.
       `UPDATE staff
           SET password_hash = $2, rol = 'admin', activo = TRUE,
-              nombre = COALESCE($3, nombre)
+              nombre = COALESCE($3, nombre),
+              debe_cambiar_password = FALSE, sesion_version = sesion_version + 1
         WHERE id = $1`,
       [existente.id, hash, nombre],
     );

@@ -8,6 +8,7 @@ import { estudianteParaPagina } from "@/lib/auth/guards";
 import {
   cerrarVencidos,
   evaluacionesDelEstudiante,
+  historial,
   puedePresentar,
   type EvaluacionEstudiante,
 } from "@/lib/datos/intentos";
@@ -30,7 +31,11 @@ async function Contenido() {
   const estudiante = await estudianteParaPagina();
   await cerrarVencidos(estudiante.id);
   const evaluaciones = await evaluacionesDelEstudiante(estudiante.id, estudiante.generacion_id);
-  const hayIntentos = evaluaciones.some((e) => e.ultimo_numero !== null);
+  // Generación desactivada: no ve evaluaciones, pero sí su historial.
+  const inactiva = !estudiante.generacion_activa;
+  const hayIntentos = inactiva
+    ? (await historial(estudiante.id)).length > 0
+    : evaluaciones.some((e) => e.ultimo_numero !== null);
 
   return (
     <>
@@ -58,7 +63,11 @@ async function Contenido() {
             {/* eslint-disable-next-line @next/next/no-img-element -- igual que a2 */}
             <img src="/Felipe_test.png" alt="" className="mb-4 h-auto w-full max-w-[360px]" />
             <p className="text-[15px] text-gris-oscuro">
-              Todavía no hay evaluaciones publicadas. Cuando tu coordinador publique una, aparecerá aquí.
+              {inactiva
+                ? `Tu generación está desactivada por ahora: no hay evaluaciones disponibles.${
+                    hayIntentos ? " Tus resultados siguen en «Mi historial»." : ""
+                  }`
+                : "Todavía no hay evaluaciones publicadas. Cuando tu coordinador publique una, aparecerá aquí."}
             </p>
           </Tarjeta>
         ) : (

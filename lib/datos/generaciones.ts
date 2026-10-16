@@ -1,4 +1,5 @@
 import { query, transaction } from "@/lib/db";
+import { ErrorNegocio } from "@/lib/errores";
 
 // Consultas de generaciones. Sin autorización: la hacen las Server Actions/páginas.
 // Las fechas DATE se leen como texto para que no se corran por la zona horaria.
@@ -69,4 +70,36 @@ export async function generarFaltantes(id: number, staffId: number): Promise<num
     [id, staffId],
   );
   return rows[0].creadas;
+}
+
+// Editar (Fase 6): nombre y fechas. El código no se edita: va en el slug de cada
+// evaluación.
+export async function actualizarGeneracion(
+  id: number,
+  datos: { nombre: string; fecha_inicio: string; fecha_fin: string | null },
+): Promise<void> {
+  const { rowCount } = await query(
+    `UPDATE generaciones SET nombre = $2, fecha_inicio = $3, fecha_fin = $4 WHERE id = $1`,
+    [id, datos.nombre, datos.fecha_inicio, datos.fecha_fin],
+  );
+  if (!rowCount) throw new ErrorNegocio("La generación no existe.");
+}
+
+// Desactivar no borra nada: sus estudiantes entran y ven su historial, pero no
+// ven evaluaciones ni empiezan o continúan intentos (también validar_intento).
+// Los intentos en curso se conservan y se retoman al reactivarla.
+export async function cambiarActivaGeneracion(id: number, activa: boolean): Promise<void> {
+  const { rowCount } = await query(`UPDATE generaciones SET activa = $2 WHERE id = $1`, [id, activa]);
+  if (!rowCount) throw new ErrorNegocio("La generación no existe.");
+}
+
+// Lo que se muestra antes de desactivar.
+export async function resumenGeneracion(id: number): Promise<{ estudiantes: number; en_curso: number }> {
+  const { rows } = await query<{ estudiantes: number; en_curso: number }>(
+    `SELECT (SELECT count(*)::int FROM estudiantes s WHERE s.generacion_id = $1 AND s.activo) AS estudiantes,
+            (SELECT count(*)::int FROM intentos i JOIN evaluaciones e ON e.id = i.evaluacion_id
+              WHERE e.generacion_id = $1 AND i.estado = 'en_progreso') AS en_curso`,
+    [id],
+  );
+  return rows[0];
 }

@@ -11,9 +11,11 @@ export type RolStaff = "admin" | "docente";
 
 // El estudiante no tiene nombre en la BD: lo escribe al entrar (como en a2),
 // viaja en la sesión y se copia a cada intento.
+// Staff: `v` = staff.sesion_version al entrar. Restablecer o cambiar la
+// contraseña la incrementa y las sesiones con la versión anterior dejan de valer.
 export type Sesion =
   | { tipo: "estudiante"; id: number; nombre: string }
-  | { tipo: "staff"; id: number; rol: RolStaff };
+  | { tipo: "staff"; id: number; rol: RolStaff; v: number };
 
 // Duración de la sesión en segundos, según el tipo de usuario.
 export const DURACION_SESION: Record<Sesion["tipo"], number> = {
@@ -32,6 +34,8 @@ const payloadSchema = z.discriminatedUnion("tipo", [
     tipo: z.literal("staff"),
     id: z.number().int().positive(),
     rol: z.enum(["admin", "docente"]),
+    // Las cookies de antes de la 005 no la traen: valen como versión 0.
+    v: z.number().int().nonnegative().default(0),
     exp: z.number().int(),
   }),
 ]);
@@ -90,6 +94,6 @@ export function verificarSesion(
   if (d.exp <= Math.floor(ahoraMs / 1000)) return null;
 
   return d.tipo === "staff"
-    ? { tipo: "staff", id: d.id, rol: d.rol }
+    ? { tipo: "staff", id: d.id, rol: d.rol, v: d.v }
     : { tipo: "estudiante", id: d.id, nombre: d.nombre };
 }

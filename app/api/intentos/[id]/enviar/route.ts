@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { ErrorAutorizacion, requireEstudiante } from "@/lib/auth/guards";
 import { enviarIntento } from "@/lib/datos/intentos";
+import { ErrorNegocio } from "@/lib/errores";
 import { errorServidor, leerJson } from "@/lib/http";
 import { procesarIntento } from "@/lib/ia/procesar";
 import { cambiosPestanaSchema, respuestasSchema } from "@/lib/intentos/entrada";
@@ -37,6 +38,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/intentos/[id]/e
     return Response.json(r);
   } catch (e) {
     if (e instanceof ErrorAutorizacion) return e.respuesta();
+    // Generación desactivada: no se califica; el intento queda en curso.
+    if (e instanceof ErrorNegocio) return Response.json({ error: e.message }, { status: 409 });
     console.error("[intentos/enviar]", e);
     return errorServidor();
   }

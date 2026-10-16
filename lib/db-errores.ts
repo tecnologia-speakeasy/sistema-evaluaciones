@@ -80,6 +80,13 @@ const MENSAJES_CONSTRAINT: Record<string, ErrorTraducido> = {
     campo: "codigo",
     mensaje: "Ya existe una generación con ese código.",
   },
+  staff_email_key: {
+    campo: "email",
+    mensaje: "Ya hay un miembro del staff con ese correo.",
+  },
+  estudiantes_email_key: {
+    mensaje: "Otro cambio agregó a uno de estos estudiantes al mismo tiempo. Vuelve a intentarlo.",
+  },
   generaciones_codigo_check: {
     campo: "codigo",
     mensaje: "Usa solo minúsculas, números y guiones (ej. gen-2026-10).",

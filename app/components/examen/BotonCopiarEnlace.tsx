@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Icono } from "@/app/components/ui/Icono";
+import { copiarTexto } from "@/app/components/ui/portapapeles";
 
 // Copia el enlace público del resultado (/resultado/[token]) y avisa
-// "Enlace copiado". Si el navegador no deja usar el portapapeles (sin HTTPS,
-// permisos), cae en el método viejo con un campo temporal.
+// "Enlace copiado".
 export function BotonCopiarEnlace({ ruta }: { ruta: string }) {
   const [estado, setEstado] = useState<"listo" | "copiado" | "error">("listo");
 
@@ -17,12 +17,7 @@ export function BotonCopiarEnlace({ ruta }: { ruta: string }) {
 
   async function copiar() {
     const url = new URL(ruta, window.location.origin).toString();
-    try {
-      await navigator.clipboard.writeText(url);
-      setEstado("copiado");
-    } catch {
-      setEstado(copiarConCampo(url) ? "copiado" : "error");
-    }
+    setEstado((await copiarTexto(url)) ? "copiado" : "error");
   }
 
   return (
@@ -43,19 +38,3 @@ export function BotonCopiarEnlace({ ruta }: { ruta: string }) {
   );
 }
 
-function copiarConCampo(texto: string): boolean {
-  const campo = document.createElement("textarea");
-  campo.value = texto;
-  campo.setAttribute("readonly", "");
-  campo.style.position = "fixed";
-  campo.style.opacity = "0";
-  document.body.appendChild(campo);
-  campo.select();
-  try {
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    campo.remove();
-  }
-}

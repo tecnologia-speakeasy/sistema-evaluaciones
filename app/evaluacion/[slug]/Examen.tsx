@@ -158,11 +158,15 @@ export default function Examen({
       setCalificado(true);
       await new Promise((r) => setTimeout(r, Math.max(0, MIN_CALIFICANDO_MS - (Date.now() - desde)) + 600));
       router.replace(`/evaluacion/${ev.slug}/intentos/${data.numero}`);
-    } catch {
+    } catch (e) {
       enviando.current = false;
       reanudarGuardado();
       setFase("examen");
-      setError("No pudimos enviar tu evaluación. Revisa tu conexión e inténtalo de nuevo: tus respuestas están guardadas.");
+      // Si el servidor explicó por qué (p. ej. generación desactivada), se muestra eso.
+      const mensaje = e instanceof Error && e.message !== SIN_CONEXION ? e.message : null;
+      setError(
+        mensaje ?? "No pudimos enviar tu evaluación. Revisa tu conexión e inténtalo de nuevo: tus respuestas están guardadas.",
+      );
     }
   }, [intento, respuestas, cambiosPestana, ev.slug, router, detenerGuardado, reanudarGuardado, esperarIA]);
 

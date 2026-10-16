@@ -3,13 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { staffParaPagina } from "@/lib/auth/guards";
-import { obtenerGeneracion } from "@/lib/datos/generaciones";
+import { obtenerGeneracion, resumenGeneracion } from "@/lib/datos/generaciones";
 import { listarPorGeneracion, type EvaluacionResumen } from "@/lib/datos/evaluaciones";
 import { formatearFecha } from "@/lib/fechas";
 import { idUrlSchema } from "@/lib/validacion";
+import { Aviso } from "@/app/components/ui/Aviso";
 import { TituloPagina } from "@/app/components/ui/Encabezado";
 import { Cargando } from "@/app/admin/components/Cargando";
+import EditarGeneracion from "./EditarGeneracion";
 import GenerarFaltantes from "./GenerarFaltantes";
+import InterruptorGeneracion from "./InterruptorGeneracion";
 import TarjetaEvaluacion from "./TarjetaEvaluacion";
 
 export const metadata: Metadata = { title: "Evaluaciones de la generación" };
@@ -27,9 +30,12 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const id = idUrlSchema.safeParse((await params).id);
   if (!id.success) notFound();
 
-  const [generacion, evaluaciones] = await Promise.all([
+  const esAdmin = staff.rol === "admin";
+  const [generacion, evaluaciones, resumen] = await Promise.all([
     obtenerGeneracion(id.data),
     listarPorGeneracion(id.data),
+    // Lo que muestra la confirmación de desactivar (solo admin).
+    esAdmin ? resumenGeneracion(id.data) : null,
   ]);
   if (!generacion) notFound();
 
@@ -55,11 +61,30 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           </>
         }
         acciones={
-          staff.rol === "admin" && evaluaciones.length < 16 ? (
-            <GenerarFaltantes generacionId={generacion.id} faltan={16 - evaluaciones.length} />
+          esAdmin && resumen ? (
+            <>
+              {evaluaciones.length < 16 && (
+                <GenerarFaltantes generacionId={generacion.id} faltan={16 - evaluaciones.length} />
+              )}
+              <EditarGeneracion generacion={generacion} />
+              <InterruptorGeneracion
+                generacionId={generacion.id}
+                nombre={generacion.nombre}
+                activa={generacion.activa}
+                estudiantes={resumen.estudiantes}
+                enCurso={resumen.en_curso}
+              />
+            </>
           ) : null
         }
       />
+
+      {!generacion.activa && (
+        <Aviso className="mb-6">
+          Esta generación está <strong>desactivada</strong>: sus estudiantes entran y ven su historial, pero no ven
+          evaluaciones ni pueden empezar o continuar intentos.
+        </Aviso>
+      )}
 
       <Seccion titulo="Mensuales" evaluaciones={mensuales} />
       <Seccion titulo="Trimestrales" evaluaciones={trimestrales} />

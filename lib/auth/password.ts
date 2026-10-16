@@ -1,4 +1,4 @@
-import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
 // Hash de contraseñas del staff con scrypt.
@@ -18,6 +18,19 @@ const KEY_BYTES = 64;
 // mismo scrypt cuando el correo no existe, así el tiempo de respuesta no lo delata.
 export const HASH_RELLENO =
   "scrypt$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+
+/** Mínimo para las contraseñas del staff (también scripts/crear-admin.ts). */
+export const MIN_PASSWORD = 12;
+
+// Contraseña temporal (la genera el admin al crear o restablecer): 16 caracteres
+// al azar sin los que se confunden al copiarlos a mano (0/O, 1/l/I).
+const ALFABETO_TEMPORAL = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+
+export function generarPasswordTemporal(largo = 16): string {
+  let s = "";
+  for (let i = 0; i < largo; i++) s += ALFABETO_TEMPORAL[randomInt(ALFABETO_TEMPORAL.length)];
+  return s;
+}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_BYTES);

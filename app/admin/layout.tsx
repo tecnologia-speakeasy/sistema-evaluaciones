@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getStaffActual } from "@/lib/auth/guards";
+import { getStaffActual, RUTA_CAMBIAR_PASSWORD } from "@/lib/auth/guards";
 import { Encabezado } from "@/app/components/ui/Encabezado";
+import { EnlaceMenu } from "@/app/components/ui/MenuAvatar";
 import NavAdmin, { NavInferior } from "./components/NavAdmin";
 
 // Marco del dashboard: fondo FONDO.png y barra superior de a2 (xs.page / xs.topbar).
@@ -31,6 +32,11 @@ async function EncabezadoStaff() {
         nombre={staff.nombre}
         detalle={esAdmin ? "Administrador" : "Docente"}
         salir
+        cuenta={
+          <EnlaceMenu href={RUTA_CAMBIAR_PASSWORD} icono="llave">
+            Cambiar mi contraseña
+          </EnlaceMenu>
+        }
         navegacion={<NavAdmin esAdmin={esAdmin} />}
       />
       <NavInferior esAdmin={esAdmin} />

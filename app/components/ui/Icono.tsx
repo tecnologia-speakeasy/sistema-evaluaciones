@@ -13,7 +13,11 @@ export type NombreIcono =
   | "salir"
   | "abajo"
   | "copiar"
-  | "listo";
+  | "listo"
+  | "llave"
+  | "descargar"
+  | "subir"
+  | "buscar";
 
 const TRAZOS: Record<NombreIcono, ReactNode> = {
   // Capas apiladas
@@ -83,6 +87,38 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
     </>
   ),
   listo: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  // Llave (contraseña)
+  llave: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="m10.85 12.15 8.65-8.65" />
+      <path d="m16 6 2.5 2.5" />
+      <path d="m14 8 2 2" />
+    </>
+  ),
+  // Flecha hacia una bandeja (exportar)
+  descargar: (
+    <>
+      <path d="M12 4v11" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 19h16" />
+    </>
+  ),
+  // Flecha desde una bandeja (cargar archivo)
+  subir: (
+    <>
+      <path d="M12 15V4" />
+      <path d="m7 9 5-5 5 5" />
+      <path d="M4 19h16" />
+    </>
+  ),
+  // Lupa
+  buscar: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.4-4.4" />
+    </>
+  ),
 };
 
 export function Icono({ nombre, className = "size-5" }: { nombre: NombreIcono; className?: string }) {

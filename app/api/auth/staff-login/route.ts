@@ -43,8 +43,9 @@ export async function POST(req: Request) {
       id: number;
       rol: RolStaff;
       password_hash: string;
+      sesion_version: number;
     }>(
-      `SELECT id, rol, password_hash FROM staff WHERE email = $1 AND activo`,
+      `SELECT id, rol, password_hash, sesion_version FROM staff WHERE email = $1 AND activo`,
       [email],
     );
     const staff = rows[0];
@@ -65,7 +66,8 @@ export async function POST(req: Request) {
     await query(`UPDATE staff SET ultimo_login = now() WHERE id = $1`, [
       staff.id,
     ]);
-    await setSession({ tipo: "staff", id: staff.id, rol: staff.rol });
+    // Con contraseña temporal, el panel lo manda primero a cambiarla (guards).
+    await setSession({ tipo: "staff", id: staff.id, rol: staff.rol, v: staff.sesion_version });
     return Response.json({ ok: true });
   } catch (e) {
     console.error("[auth/staff-login]", e);

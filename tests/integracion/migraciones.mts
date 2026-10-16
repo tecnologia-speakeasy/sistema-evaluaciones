@@ -1,6 +1,6 @@
-// db/004_ia.sql sobre una base "de producción" con 001 + 002 + 003 e intentos de
-// la Fase 4. Usa una base aparte (migra004) del Postgres temporal y la borra al
-// final. Se corre con `npm run test:integracion`.
+// db/004_ia.sql y db/005_admin.sql sobre una base "de producción" con 001 + 002 +
+// 003 e intentos de la Fase 4. Usa una base aparte (migra004) del Postgres
+// temporal y la borra al final. Se corre con `npm run test:integracion`.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import pg from "pg";
@@ -81,6 +81,38 @@ try {
     await q("SET search_path TO evaluacion");
     const [r] = await q<{ n: number }>("SELECT count(*)::int AS n FROM intentos");
     assert.equal(r.n, 3);
+  });
+
+  // 005 sobre la misma base (con un admin de antes).
+  await q(
+    `INSERT INTO staff (email, nombre, rol, password_hash) VALUES ('admin@ejemplo.com', 'Admin', 'admin', 'scrypt$x$y')`,
+  );
+  await q(sqlDe("005_admin.sql"));
+  await q("SET search_path TO evaluacion");
+
+  await caso("005: el staff de antes queda sin cambio obligatorio y en la versión 0 (su sesión sigue)", async () => {
+    const [s] = await q("SELECT debe_cambiar_password, sesion_version FROM staff WHERE email = 'admin@ejemplo.com'");
+    assert.deepEqual(s, { debe_cambiar_password: false, sesion_version: 0 });
+  });
+  await caso("005: validar_intento rechaza intentos nuevos de una generación desactivada", async () => {
+    await q("UPDATE intentos SET estado = 'listo' WHERE token = 'f4-curso'");
+    await q("UPDATE generaciones SET activa = FALSE WHERE id = 1");
+    await assert.rejects(
+      q(`INSERT INTO intentos (evaluacion_id, estudiante_id, token, nombre) VALUES ($1, $2, 'f5-nuevo', 'Ana')`, [
+        ev.id,
+        ana.id,
+      ]),
+      /generación de la evaluación .* está desactivada/,
+    );
+    await q("UPDATE generaciones SET activa = TRUE WHERE id = 1");
+    await q(`INSERT INTO intentos (evaluacion_id, estudiante_id, token, nombre) VALUES ($1, $2, 'f5-nuevo', 'Ana')`, [
+      ev.id,
+      ana.id,
+    ]);
+  });
+  await caso("005 es atómica: correrla otra vez falla sin dejar nada a medias", async () => {
+    await assert.rejects(q(sqlDe("005_admin.sql")), /already exists/);
+    await q("ROLLBACK").catch(() => {});
   });
 } finally {
   await c.end();

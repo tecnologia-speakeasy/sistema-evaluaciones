@@ -24,6 +24,15 @@ import type { TipoEvaluacion } from "@/lib/tipos";
 
 const A_TIEMPO = `(i.limite_at IS NULL OR now() <= i.limite_at + make_interval(secs => ${GRACIA_S}))`;
 
+// Generación desactivada (Fase 6): sus estudiantes no ven evaluaciones ni
+// empiezan o continúan intentos; lo en curso se conserva para cuando se reactive.
+// GEN_ACTIVA usa el alias e (evaluaciones); INTENTO_GEN_ACTIVA, el alias i.
+const GEN_ACTIVA = `EXISTS (SELECT 1 FROM generaciones g WHERE g.id = e.generacion_id AND g.activa)`;
+const INTENTO_GEN_ACTIVA = `EXISTS (SELECT 1 FROM evaluaciones ev JOIN generaciones g ON g.id = ev.generacion_id
+                                    WHERE ev.id = i.evaluacion_id AND g.activa)`;
+export const MENSAJE_GENERACION_INACTIVA =
+  "Tu generación está desactivada por ahora: no hay evaluaciones disponibles. Tus respuestas quedaron guardadas.";
+
 export type Respuestas = Record<string, string | string[]>;
 export type EstadoIntento = "en_progreso" | "pendiente" | "calificando" | "listo" | "error";
 
@@ -76,7 +85,7 @@ export async function evaluacionesDelEstudiante(
     `SELECT ${columnasEvaluacion()}
        FROM evaluaciones e
        LEFT JOIN intentos i ON i.evaluacion_id = e.id AND i.estudiante_id = $1
-      WHERE e.generacion_id = $2 AND e.publicada
+      WHERE e.generacion_id = $2 AND e.publicada AND ${GEN_ACTIVA}
       GROUP BY e.id
       ORDER BY e.tipo, e.numero`,
     [estudianteId, generacionId],
@@ -125,7 +134,7 @@ export async function evaluacionParaPresentar(
     `SELECT ${columnasEvaluacion()}
        FROM evaluaciones e
        LEFT JOIN intentos i ON i.evaluacion_id = e.id AND i.estudiante_id = $2
-      WHERE e.slug = $1 AND e.generacion_id = $3 AND e.publicada
+      WHERE e.slug = $1 AND e.generacion_id = $3 AND e.publicada AND ${GEN_ACTIVA}
       GROUP BY e.id`,
     [slug, estudianteId, generacionId],
   );
@@ -176,6 +185,7 @@ const aEnCurso = (f: FilaEnCurso): IntentoEnCurso => ({
 
 // Mensajes de validar_intento (db/001_schema.sql) para el estudiante.
 const MENSAJES_INICIO: [RegExp, string][] = [
+  [/generación .* está desactivada/, MENSAJE_GENERACION_INACTIVA],
   [/no está publicada/, "Esta evaluación no está disponible."],
   [/fuera de fecha/, "Esta evaluación no está abierta en este momento."],
   [/no autorizado/, "Tu correo no está inscrito en esta generación."],
@@ -199,6 +209,13 @@ export async function iniciarOReanudar(
         evaluacionId,
         estudiante.id,
       ]);
+      // Ni empezar ni continuar con la generación desactivada (el trigger
+      // validar_intento solo cubre los intentos nuevos).
+      const { rows: gen } = await tx.query<{ activa: boolean }>(
+        `SELECT g.activa FROM evaluaciones e JOIN generaciones g ON g.id = e.generacion_id WHERE e.id = $1`,
+        [evaluacionId],
+      );
+      if (gen[0] && !gen[0].activa) throw new ErrorNegocio(MENSAJE_GENERACION_INACTIVA);
       const { rows: actual } = await tx.query<FilaEnCurso>(
         `SELECT ${COLUMNAS_EN_CURSO} FROM intentos i
           WHERE i.evaluacion_id = $1 AND i.estudiante_id = $2 AND i.estado = 'en_progreso'
@@ -241,7 +258,7 @@ export async function iniciarOReanudar(
 
 export type ResultadoGuardado =
   | { ok: true; guardado: string }
-  | { ok: false; motivo: "no_existe" | "enviado" | "fuera_de_plazo" };
+  | { ok: false; motivo: "no_existe" | "enviado" | "fuera_de_plazo" | "generacion_inactiva" };
 
 export async function guardarBorrador(
   intentoId: number,
@@ -254,17 +271,19 @@ export async function guardarBorrador(
         SET respuestas_borrador = $3::jsonb,
             cambios_pestana = GREATEST(i.cambios_pestana, $4)
       WHERE i.id = $1 AND i.estudiante_id = $2 AND i.estado = 'en_progreso' AND ${A_TIEMPO}
+        AND ${INTENTO_GEN_ACTIVA}
       RETURNING now() AS guardado`,
     [intentoId, estudianteId, JSON.stringify(respuestas), cambiosPestana],
   );
   if (rows[0]) return { ok: true, guardado: rows[0].guardado.toISOString() };
 
-  const { rows: info } = await query<{ estado: EstadoIntento }>(
-    `SELECT estado FROM intentos WHERE id = $1 AND estudiante_id = $2`,
+  const { rows: info } = await query<{ estado: EstadoIntento; gen_activa: boolean }>(
+    `SELECT i.estado, ${INTENTO_GEN_ACTIVA} AS gen_activa FROM intentos i WHERE i.id = $1 AND i.estudiante_id = $2`,
     [intentoId, estudianteId],
   );
   if (!info[0]) return { ok: false, motivo: "no_existe" };
-  return { ok: false, motivo: info[0].estado === "en_progreso" ? "fuera_de_plazo" : "enviado" };
+  if (info[0].estado !== "en_progreso") return { ok: false, motivo: "enviado" };
+  return { ok: false, motivo: info[0].gen_activa ? "fuera_de_plazo" : "generacion_inactiva" };
 }
 
 // ---------------------------------------------------------------------------
@@ -284,8 +303,8 @@ export async function enviarIntento(
   cambiosPestana: number,
 ): Promise<Envio | null> {
   return transaction(async (tx) => {
-    const { rows } = await tx.query<{ estado: EstadoIntento; numero_intento: number; slug: string }>(
-      `SELECT i.estado, i.numero_intento, e.slug
+    const { rows } = await tx.query<{ estado: EstadoIntento; numero_intento: number; slug: string; gen_activa: boolean }>(
+      `SELECT i.estado, i.numero_intento, e.slug, ${GEN_ACTIVA} AS gen_activa
          FROM intentos i JOIN evaluaciones e ON e.id = i.evaluacion_id
         WHERE i.id = $1 AND i.estudiante_id = $2
           FOR UPDATE OF i`,
@@ -293,6 +312,8 @@ export async function enviarIntento(
     );
     const intento = rows[0];
     if (!intento) return null;
+    // Generación desactivada: el intento en curso se conserva sin calificar.
+    if (intento.estado === "en_progreso" && !intento.gen_activa) throw new ErrorNegocio(MENSAJE_GENERACION_INACTIVA);
     const estado =
       intento.estado === "en_progreso"
         ? await finalizar(tx, intentoId, respuestas, cambiosPestana)
@@ -372,7 +393,8 @@ async function finalizar(
 export async function cerrarVencidos(estudianteId: number): Promise<void> {
   const { rows } = await query<{ id: number }>(
     `SELECT i.id FROM intentos i
-      WHERE i.estudiante_id = $1 AND i.estado = 'en_progreso' AND NOT ${A_TIEMPO}`,
+      WHERE i.estudiante_id = $1 AND i.estado = 'en_progreso' AND NOT ${A_TIEMPO}
+        AND ${INTENTO_GEN_ACTIVA}`,
     [estudianteId],
   );
   for (const { id } of rows) await enviarIntento(id, estudianteId, null, 0);
@@ -471,7 +493,8 @@ export async function detalleIntento(
             e.id AS evaluacion_id, e.slug, e.titulo, e.tipo, e.numero AS eval_numero,
             e.mostrar_correctas, e.intentos_permitidos,
             (e.fecha_cierre IS NOT NULL AND e.fecha_cierre < now()) AS cerrada,
-            (e.publicada AND (e.fecha_apertura IS NULL OR e.fecha_apertura <= now())
+            (e.publicada AND ${GEN_ACTIVA}
+                         AND (e.fecha_apertura IS NULL OR e.fecha_apertura <= now())
                          AND (e.fecha_cierre IS NULL OR e.fecha_cierre >= now())) AS abierta,
             (SELECT count(*)::int FROM intentos x
               WHERE x.evaluacion_id = e.id AND x.estudiante_id = i.estudiante_id) AS usados,

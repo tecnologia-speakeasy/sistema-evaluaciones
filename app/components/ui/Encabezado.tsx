@@ -8,6 +8,8 @@ import { MenuAvatar } from "./MenuAvatar";
 // Con `salir`:
 //   ≥ 640px  botón "Cerrar sesión" + avatar (como en a2)
 //   < 640px  solo el avatar, que abre un menú con "Cerrar sesión"
+// Con `cuenta` (opciones de la cuenta, p. ej. "Cambiar mi contraseña"), el
+// avatar abre ese menú en todos los tamaños.
 // `navegacion` va en la barra desde 768px y en una fila debajo entre 640 y 767px;
 // en celular la muestra cada layout en su propia barra inferior.
 
@@ -15,6 +17,7 @@ export function Encabezado({
   nombre,
   detalle,
   salir = false,
+  cuenta,
   children,
   navegacion,
 }: {
@@ -23,6 +26,8 @@ export function Encabezado({
   /** Segunda línea del menú del avatar (rol, generación). */
   detalle?: string;
   salir?: boolean;
+  /** Opciones del menú del avatar además de "Cerrar sesión" (role="menuitem"). */
+  cuenta?: ReactNode;
   /** Acciones a la derecha que se ven en todos los tamaños. */
   children?: ReactNode;
   navegacion?: ReactNode;
@@ -53,7 +58,12 @@ export function Encabezado({
             </div>
           )}
           {nombre !== undefined &&
-            (salir ? (
+            (salir && cuenta ? (
+              <MenuAvatar nombre={nombre} detalle={detalle}>
+                {cuenta}
+                <BotonSalir estilo="item" />
+              </MenuAvatar>
+            ) : salir ? (
               <>
                 <div className="hidden sm:block">{avatarFijo}</div>
                 <div className="sm:hidden">
