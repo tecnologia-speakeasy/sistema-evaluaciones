@@ -144,7 +144,7 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
     - Para llamarla cada 10 min:
       - n8n: *Schedule Trigger* + *HTTP Request* GET `{APP_URL}/api/cron/procesar` con ese header y timeout 300 s.
       - Vercel Pro: `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el header si `CRON_SECRET` existe. Hobby solo admite crons diarios.
-- **Pruebas**: OpenAI, SMTP y ManyChat siempre simulados (`OPENAI_BASE_URL`, `MANYCHAT_API_URL`, SMTP local), nunca los reales del `.env`.
+- **Pruebas**: OpenAI, SMTP y ManyChat siempre simulados (`OPENAI_BASE_URL`, `MANYCHAT_API_URL`, SMTP local), nunca los reales del `.env`. Ver "Pruebas".
 
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
 - `lib/exam.js` → normalize + lógica de calificación.
@@ -183,6 +183,15 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
     - `CRON_SECRET`: no hace falta (reproceso sin programar).
     - Nunca `OPENAI_BASE_URL` ni `MANYCHAT_API_URL` (solo pruebas).
   - Las rutas de la IA usan `maxDuration = 300`, que exige Fluid compute (activado por defecto en Vercel; comprobar en Settings → Functions).
+
+## Pruebas
+- `npm test`: pruebas unitarias (vitest, `tests/*.test.ts`).
+- `npm run test:integracion` (una sola suite: `npm run test:integracion -- ia`):
+  - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI, ManyChat y el SMTP (`simuladores.mjs`).
+  - **Aislamiento**: cada suite corre en su propio proceso con un entorno armado desde cero, nunca el `.env`. Si una suite se corre por fuera del runner, se niega a arrancar (`comun.mts`). Al terminar se borra todo.
+  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5) y `migraciones.mts` (004 sobre datos de la Fase 4).
+  - **Configuración por defecto**: abiertas apagadas. La prueba que necesita abiertas las enciende ella misma, solo mientras corre (`conAbiertas()`).
+  - **Suites nuevas**: van en `tests/integracion/*.mts` y se agregan a `SUITES` en `ejecutar.mjs`. Una migración nueva en `db/` se aplica sola.
 
 ## Convenciones
 - Zona horaria del negocio: **America/Bogota** (fechas de apertura/cierre se escriben y muestran en esa zona; Vercel corre en UTC).
