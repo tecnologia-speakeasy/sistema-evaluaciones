@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getEstudianteActual } from "@/lib/auth/guards";
-import BotonSalir from "@/app/components/BotonSalir";
 import { Encabezado } from "@/app/components/ui/Encabezado";
 
 // Inicio del estudiante (styles.hubPage de a2).
@@ -22,9 +21,7 @@ async function Contenido() {
 
   return (
     <>
-      <Encabezado nombre={estudiante.nombre}>
-        <BotonSalir />
-      </Encabezado>
+      <Encabezado nombre={estudiante.nombre} detalle={estudiante.generacion_nombre} salir />
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
         <p className="mb-2 text-sm font-semibold text-gris">{estudiante.generacion_nombre}</p>
         <h1 className="mb-1.5 text-[clamp(26px,4vw,34px)] font-extrabold text-marca">

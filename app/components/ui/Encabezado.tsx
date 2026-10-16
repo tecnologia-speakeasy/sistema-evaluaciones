@@ -1,21 +1,42 @@
 import type { ReactNode } from "react";
+import BotonSalir from "../BotonSalir";
+import { MenuAvatar } from "./MenuAvatar";
 
 // Barra superior de ../evaluacion-a2 (xs.topbar / styles.hubTopbar):
 // degradado morado → rosa, logo blanco de 42px, avatar con la inicial.
+//
+// Con `salir`:
+//   ≥ 640px  botón "Cerrar sesión" + avatar (como en a2)
+//   < 640px  solo el avatar, que abre un menú con "Cerrar sesión"
+// `navegacion` va en la barra desde 768px y en una fila debajo entre 640 y 767px;
+// en celular la muestra cada layout en su propia barra inferior.
 
 export function Encabezado({
   nombre,
+  detalle,
+  salir = false,
   children,
   navegacion,
 }: {
   /** Para el avatar con la inicial (xs.avatar). */
   nombre?: string;
-  /** Botones a la derecha (Salir, etc.). */
+  /** Segunda línea del menú del avatar (rol, generación). */
+  detalle?: string;
+  salir?: boolean;
+  /** Acciones a la derecha que se ven en todos los tamaños. */
   children?: ReactNode;
-  /** Navegación: en escritorio va en la barra, en celular en una fila debajo. */
   navegacion?: ReactNode;
 }) {
   const inicial = (nombre?.trim().charAt(0) ?? "").toUpperCase();
+  const avatarFijo = (
+    <span
+      aria-hidden
+      className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-white text-lg font-bold text-avatar"
+    >
+      {inicial}
+    </span>
+  );
+
   return (
     <header className="degradado-barra text-white">
       <div className="flex items-center justify-between gap-4 px-[18px] py-3 md:px-7">
@@ -26,18 +47,28 @@ export function Encabezado({
         </div>
         <div className="flex shrink-0 items-center gap-3.5">
           {children}
-          {nombre !== undefined && (
-            <span
-              aria-hidden
-              className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-white text-lg font-bold text-avatar"
-            >
-              {inicial}
-            </span>
+          {salir && (
+            <div className="hidden sm:block">
+              <BotonSalir />
+            </div>
           )}
+          {nombre !== undefined &&
+            (salir ? (
+              <>
+                <div className="hidden sm:block">{avatarFijo}</div>
+                <div className="sm:hidden">
+                  <MenuAvatar nombre={nombre} detalle={detalle}>
+                    <BotonSalir estilo="item" />
+                  </MenuAvatar>
+                </div>
+              </>
+            ) : (
+              avatarFijo
+            ))}
         </div>
       </div>
       {navegacion && (
-        <nav className="flex gap-2 overflow-x-auto px-[18px] pb-3 md:hidden">{navegacion}</nav>
+        <nav className="hidden gap-2 overflow-x-auto px-[18px] pb-3 sm:flex md:hidden">{navegacion}</nav>
       )}
     </header>
   );

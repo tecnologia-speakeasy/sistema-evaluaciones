@@ -30,6 +30,7 @@ import {
 } from "@/lib/preguntas/tipos";
 import { EspaciosFillBlank } from "./editores/EspaciosFillBlank";
 import { OpcionesMultiple } from "./editores/OpcionesMultiple";
+import { SelectorSeccion } from "./editores/SelectorSeccion";
 import { Traducciones } from "./editores/Traducciones";
 
 const AYUDA_ENUNCIADO: Record<TipoPregunta, string> = {
@@ -178,7 +179,7 @@ export default function FormPregunta({
           </div>
         </Campo>
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_120px_1.4fr]">
+        <div className="grid gap-4 sm:grid-cols-[1fr_150px]">
           <Campo etiqueta="Categoría" htmlFor="p-categoria" error={errorDe("categoria")}>
             <Selector
               id="p-categoria"
@@ -203,22 +204,23 @@ export default function FormPregunta({
               invalida={!!errorDe("puntaje")}
             />
           </Campo>
-          <Campo etiqueta="Sección" htmlFor="p-seccion" error={errorDe("seccion")}>
-            <Entrada
-              id="p-seccion"
-              list="secciones-evaluacion"
-              value={e.seccion}
-              readOnly={soloAgregar}
-              placeholder="Part 1 – Multiple Choice"
-              onChange={(x) => cambiar({ seccion: x.target.value })}
-            />
-            <datalist id="secciones-evaluacion">
-              {secciones.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          </Campo>
         </div>
+
+        <Campo
+          etiqueta="Sección"
+          htmlFor="p-seccion"
+          error={errorDe("seccion")}
+          ayuda="Como las «Part» de a2: su título se ve arriba de cada pregunta y la numeración reinicia en cada sección."
+        >
+          <SelectorSeccion
+            id="p-seccion"
+            valor={e.seccion}
+            secciones={secciones}
+            onCambio={(seccion) => cambiar({ seccion })}
+            deshabilitado={soloAgregar}
+            invalida={!!errorDe("seccion")}
+          />
+        </Campo>
 
         <Campo
           etiqueta="Enunciado"

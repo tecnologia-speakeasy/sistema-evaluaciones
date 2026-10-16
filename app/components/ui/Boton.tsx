@@ -41,6 +41,8 @@ const TAMANOS = {
   sm: "text-[13px] px-3.5 py-1.5",
   // styles.loginBtn: 15px, padding 14px 24px
   lg: "text-[15px] px-6 py-[14px]",
+  // Solo ícono (necesita aria-label)
+  icono: "size-9 p-0",
 };
 
 export type TamanoBoton = keyof typeof TAMANOS;

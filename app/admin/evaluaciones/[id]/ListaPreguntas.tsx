@@ -30,6 +30,7 @@ import { Aviso } from "@/app/components/ui/Aviso";
 import { Boton } from "@/app/components/ui/Boton";
 import { Dialogo } from "@/app/components/ui/Dialogo";
 import { Insignia } from "@/app/components/ui/InsigniaEstado";
+import { Menu, type ItemMenu } from "@/app/components/ui/Menu";
 import { Tarjeta } from "@/app/components/ui/Tarjeta";
 import { ETIQUETA_CATEGORIA, ETIQUETA_TIPO, type PreguntaStaff } from "@/lib/preguntas/tipos";
 
@@ -245,6 +246,18 @@ function Fila({
   asa?: ReactNode;
 }) {
   const conRespuestas = p.respuestas > 0;
+  // Visible solo la acción principal; el resto en "⋯" (Eliminar al final, en rojo).
+  const masAcciones: ItemMenu[] = [
+    { texto: "Duplicar", onSelect: acciones.duplicar },
+    ...(p.activa ? [{ texto: "Desactivar", onSelect: acciones.desactivar }] : []),
+    {
+      texto: "Eliminar",
+      onSelect: acciones.eliminar,
+      peligro: true,
+      deshabilitado: conRespuestas,
+      detalle: conRespuestas ? "Tiene respuestas: desactívala" : undefined,
+    },
+  ];
   return (
     <Tarjeta relleno="p-3.5 md:p-4" className={`flex gap-3 ${p.activa ? "" : "opacity-75"}`}>
       {asa}
@@ -269,30 +282,23 @@ function Fila({
         </p>
         <p className="mt-1 line-clamp-1 text-[13px] text-gris-oscuro">{resumenRespuestas(p)}</p>
 
-        <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
-          {p.activa && (
+        <div className="mt-2.5">
+          {p.activa ? (
             <Boton variante="texto" className="text-[13px] !text-violeta" onClick={acciones.editar}>
               {conRespuestas ? (p.tipo === "open" ? "Ver" : "Agregar variantes") : "Editar"}
-            </Boton>
-          )}
-          <Boton variante="texto" className="text-[13px]" onClick={acciones.duplicar}>
-            Duplicar
-          </Boton>
-          {p.activa ? (
-            <Boton variante="texto" className="text-[13px]" onClick={acciones.desactivar}>
-              Desactivar
             </Boton>
           ) : (
             <Boton variante="texto" className="text-[13px] !text-violeta" onClick={acciones.reactivar}>
               Reactivar
             </Boton>
           )}
-          {!conRespuestas && (
-            <Boton variante="texto" className="text-[13px] !text-error" onClick={acciones.eliminar}>
-              Eliminar
-            </Boton>
-          )}
         </div>
+      </div>
+      <div className="-mt-1 -mr-1 shrink-0">
+        <Menu
+          etiqueta={posicion ? `Más acciones de la pregunta ${posicion}` : `Más acciones de «${p.enunciado.slice(0, 40)}»`}
+          items={masAcciones}
+        />
       </div>
     </Tarjeta>
   );

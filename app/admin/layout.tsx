@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getStaffActual } from "@/lib/auth/guards";
-import BotonSalir from "@/app/components/BotonSalir";
 import { Encabezado } from "@/app/components/ui/Encabezado";
-import NavAdmin from "./components/NavAdmin";
+import NavAdmin, { NavInferior } from "./components/NavAdmin";
 
 // Marco del dashboard: fondo FONDO.png y barra superior de a2 (xs.page / xs.topbar).
+// En celular (< 640px) la navegación va en una barra inferior fija.
 // El rol se lee dentro de <Suspense> para no bloquear el resto (Cache Components).
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
@@ -13,7 +13,8 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
       <Suspense fallback={<Encabezado />}>
         <EncabezadoStaff />
       </Suspense>
-      <main className="mx-auto w-full max-w-[1180px] flex-1 px-[18px] pt-[18px] pb-10 md:px-7 md:pt-[34px] md:pb-12">
+      {/* pb extra en celular: la barra inferior no tapa el final de la página */}
+      <main className="mx-auto w-full max-w-[1180px] flex-1 px-[18px] pt-[18px] pb-28 sm:pb-10 md:px-7 md:pt-[34px] md:pb-12">
         {children}
       </main>
     </div>
@@ -23,9 +24,16 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
 async function EncabezadoStaff() {
   const staff = await getStaffActual();
   if (!staff) redirect("/login?next=/admin");
+  const esAdmin = staff.rol === "admin";
   return (
-    <Encabezado nombre={staff.nombre} navegacion={<NavAdmin esAdmin={staff.rol === "admin"} />}>
-      <BotonSalir />
-    </Encabezado>
+    <>
+      <Encabezado
+        nombre={staff.nombre}
+        detalle={esAdmin ? "Administrador" : "Docente"}
+        salir
+        navegacion={<NavAdmin esAdmin={esAdmin} />}
+      />
+      <NavInferior esAdmin={esAdmin} />
+    </>
   );
 }

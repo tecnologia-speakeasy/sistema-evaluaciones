@@ -34,16 +34,19 @@ export const fechaSchema = z
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"];
 
+const NBSP = " ";
+
 // "2026-11-03T08:05" → "3 nov 2026, 8:05 a. m." (sin conversiones: ya es hora local).
+// La hora va con espacios no separables: "8:05 a. m." nunca se parte en dos líneas.
 export function formatearFechaHora(local: string | null): string {
   if (!local) return "";
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(local);
   if (!m) return local;
   const [, anio, mes, dia, hh, mm] = m;
   const h = Number(hh);
-  const sufijo = h < 12 ? "a. m." : "p. m.";
+  const sufijo = h < 12 ? `a.${NBSP}m.` : `p.${NBSP}m.`;
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${Number(dia)} ${MESES[Number(mes) - 1]} ${anio}, ${h12}:${mm} ${sufijo}`;
+  return `${Number(dia)} ${MESES[Number(mes) - 1]} ${anio}, ${h12}:${mm}${NBSP}${sufijo}`;
 }
 
 // "2026-10-01" → "1 oct 2026".

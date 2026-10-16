@@ -59,11 +59,13 @@ describe("traducirErrorBD: constraints", () => {
 });
 
 describe("fechas (hora de Colombia, sin conversiones en el cliente)", () => {
-  it("formatea datetime-local y date", () => {
-    expect(formatearFechaHora("2026-11-03T08:05")).toBe("3 nov 2026, 8:05 a. m.");
-    expect(formatearFechaHora("2026-11-03T00:30")).toBe("3 nov 2026, 12:30 a. m.");
-    expect(formatearFechaHora("2026-11-03T12:00")).toBe("3 nov 2026, 12:00 p. m.");
-    expect(formatearFechaHora("2026-11-03T20:30")).toBe("3 nov 2026, 8:30 p. m.");
+  it("formatea datetime-local y date (la hora con espacios no separables)", () => {
+    const nb = (s: string) => s.replace(/ (?=[ap]\.)|(?<=[ap]\.) /g, " ");
+    expect(formatearFechaHora("2026-11-03T08:05")).toBe(nb("3 nov 2026, 8:05 a. m."));
+    expect(formatearFechaHora("2026-11-03T00:30")).toBe(nb("3 nov 2026, 12:30 a. m."));
+    expect(formatearFechaHora("2026-11-03T12:00")).toBe(nb("3 nov 2026, 12:00 p. m."));
+    expect(formatearFechaHora("2026-11-03T20:30")).toBe(nb("3 nov 2026, 8:30 p. m."));
+    expect(formatearFechaHora("2026-11-03T20:30")).toContain("8:30 p. m.");
     expect(formatearFecha("2026-10-01")).toBe("1 oct 2026");
     expect(formatearFechaHora(null)).toBe("");
   });

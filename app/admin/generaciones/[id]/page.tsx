@@ -74,7 +74,7 @@ function Seccion({ titulo, evaluaciones }: { titulo: string; evaluaciones: Evalu
       <h2 className="mb-3.5 text-[17px] font-bold text-tinta">
         {titulo} <span className="font-semibold text-gris">({evaluaciones.length})</span>
       </h2>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <ul className="grid gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {evaluaciones.map((e) => (
           <li key={e.id}>
             <TarjetaEvaluacion evaluacion={e} />
