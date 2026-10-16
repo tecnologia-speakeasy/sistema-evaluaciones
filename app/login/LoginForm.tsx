@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { destinoSeguro } from "@/lib/auth/destino";
+import { Boton } from "@/app/components/ui/Boton";
+import { Campo, Entrada } from "@/app/components/ui/Campo";
 
 // Login unificado: primero el correo (/api/auth/identify); si es staff aparece
 // el campo de contraseña (/api/auth/staff-login).
@@ -36,11 +38,12 @@ export default function LoginForm() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  async function identificar() {
+  // Devuelven true si ya se está navegando a otra página.
+  async function identificar(): Promise<boolean> {
     const { ok, data } = await postJson("/api/auth/identify", { email });
     if (!ok) {
       setError(data?.error ?? SIN_CONEXION);
-      return;
+      return false;
     }
     const r = data as RespuestaIdentify;
     if (r.tipo === "staff") {
@@ -49,25 +52,27 @@ export default function LoginForm() {
       if (r.paso === "sesion_iniciada") {
         // Recarga completa para que el proxy vea la cookie nueva.
         window.location.assign(destinoSeguro(next, "estudiante"));
-        return;
+        return true;
       }
       // Fase OTP: aquí irá el campo del código de 6 dígitos.
       setAviso("Te enviamos un código de acceso a tu correo.");
     } else {
       setError(NO_AUTORIZADO);
     }
+    return false;
   }
 
-  async function ingresarStaff() {
+  async function ingresarStaff(): Promise<boolean> {
     const { ok, data } = await postJson("/api/auth/staff-login", {
       email,
       password,
     });
     if (!ok) {
       setError(data?.error ?? SIN_CONEXION);
-      return;
+      return false;
     }
     window.location.assign(destinoSeguro(next, "staff"));
+    return true;
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -75,13 +80,14 @@ export default function LoginForm() {
     setError(null);
     setAviso(null);
     setEnviando(true);
+    let navegando = false;
     try {
-      if (paso === "email") await identificar();
-      else await ingresarStaff();
+      navegando = paso === "email" ? await identificar() : await ingresarStaff();
     } catch {
       setError(SIN_CONEXION);
     } finally {
-      setEnviando(false);
+      // Si ya navega, el botón sigue en "Ingresando…" hasta que cambie la página.
+      if (!navegando) setEnviando(false);
     }
   }
 
@@ -91,45 +97,49 @@ export default function LoginForm() {
     setError(null);
   }
 
-  const inputClass =
-    "mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 read-only:bg-zinc-100 read-only:text-zinc-600";
+  const puedeEnviar = Boolean(email.trim()) && (paso === "email" || Boolean(password));
 
+  // Estilos de styles.loginLabel / loginInput / loginError / loginBtn de a2.
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-zinc-800">
-          Correo
-        </label>
-        <input
+    <form onSubmit={onSubmit} noValidate className="flex flex-col">
+      <Campo etiqueta="Correo electrónico" htmlFor="email" tono="oscuro" className="mb-[18px]">
+        <Entrada
           id="email"
+          tono="oscuro"
           type="email"
           name="email"
           autoComplete="email"
+          placeholder="Ej. maria.garcia@email.com"
           required
           autoFocus
           readOnly={paso === "password"}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setError(null);
+          }}
         />
-      </div>
+      </Campo>
 
       {paso === "password" && (
-        <div>
-          <div className="flex items-baseline justify-between">
-            <label htmlFor="password" className="block text-sm font-medium text-zinc-800">
-              Contraseña
-            </label>
+        <Campo
+          etiqueta="Contraseña"
+          htmlFor="password"
+          tono="oscuro"
+          className="mb-[18px]"
+          accion={
             <button
               type="button"
               onClick={cambiarCorreo}
-              className="text-xs text-zinc-600 underline hover:text-zinc-900"
+              className="mb-2 cursor-pointer text-[13px] text-white/80 underline-offset-2 hover:text-white hover:underline"
             >
               Cambiar correo
             </button>
-          </div>
-          <input
+          }
+        >
+          <Entrada
             id="password"
+            tono="oscuro"
             type="password"
             autoFocus
             name="password"
@@ -137,23 +147,25 @@ export default function LoginForm() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
           />
-        </div>
+        </Campo>
       )}
 
-      <div aria-live="polite" className="min-h-5 text-sm">
-        {error && <p className="text-red-700">{error}</p>}
-        {aviso && <p className="text-zinc-700">{aviso}</p>}
+      <div aria-live="polite">
+        {error && <p className="-mt-2.5 mb-3.5 text-[13px] leading-snug text-error-claro">{error}</p>}
+        {aviso && <p className="-mt-2.5 mb-3.5 text-[13px] leading-snug text-white/90">{aviso}</p>}
       </div>
 
-      <button
+      <Boton
         type="submit"
-        disabled={enviando || !email.trim() || (paso === "password" && !password)}
-        className="w-full rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+        variante="degradado"
+        tamano="lg"
+        ancho
+        className="mt-1.5 disabled:!opacity-90"
+        disabled={enviando || !puedeEnviar}
       >
-        {enviando ? "Un momento…" : paso === "email" ? "Continuar" : "Ingresar"}
-      </button>
+        {enviando ? "Ingresando…" : "Ingresar"}
+      </Boton>
     </form>
   );
 }

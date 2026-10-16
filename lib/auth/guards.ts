@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { query } from "@/lib/db";
 import { getSession } from "./session";
 import type { RolStaff } from "./token";
@@ -77,6 +78,13 @@ export async function requireStaff(
   if (!roles.includes(staff.rol)) {
     throw new ErrorAutorizacion(403, "No tienes permiso para esta acción.");
   }
+  return staff;
+}
+
+// Para páginas del dashboard: sin sesión de staff válida → al login.
+export async function staffParaPagina(): Promise<StaffActual> {
+  const staff = await getStaffActual();
+  if (!staff) redirect("/login?next=/admin");
   return staff;
 }
 

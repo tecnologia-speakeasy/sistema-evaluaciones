@@ -31,7 +31,7 @@ function makeClient(): pg.Client {
     throw new Error("Falta la variable de entorno DATABASE_URL");
   }
   const schema = schemaFromUrl(connectionString);
-  return new Client({
+  const client = new Client({
     connectionString,
     // Apunta las consultas (tablas sin prefijo) al schema correcto.
     options: `-c search_path=${schema},public`,
@@ -41,6 +41,11 @@ function makeClient(): pg.Client {
       ? { rejectUnauthorized: false }
       : false,
   });
+  // Sin este listener, un corte de la conexión fuera de una query (p. ej. el VPS
+  // se reinicia) emite 'error' sin manejar y tumba el proceso. Las queries en
+  // curso igual fallan con su propio error.
+  client.on("error", (e) => console.error("[db] error de conexión", e.message));
+  return client;
 }
 
 export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
@@ -53,6 +58,36 @@ export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
     return await client.query<T>(text, params);
   } finally {
     // Cierra la conexión pase lo que pase, liberando el cupo del VPS de inmediato.
+    await client.end().catch(() => {});
+  }
+}
+
+// Lo que recibe el callback de transaction(): mismas consultas, una sola conexión.
+export type Tx = {
+  query<T extends pg.QueryResultRow = pg.QueryResultRow>(
+    text: string,
+    params?: unknown[],
+  ): Promise<pg.QueryResult<T>>;
+};
+
+// Transacción en UNA conexión efímera: BEGIN → fn → COMMIT (o ROLLBACK si lanza).
+// La conexión vive lo que dura fn: NUNCA llamar a OpenAI, correo ni nada lento
+// dentro; hacerlo antes o después de la transacción.
+export async function transaction<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  const client = makeClient();
+  await client.connect();
+  try {
+    await client.query("BEGIN");
+    const tx: Tx = {
+      query: (text, params) => client.query(text, params),
+    };
+    const resultado = await fn(tx);
+    await client.query("COMMIT");
+    return resultado;
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
     await client.end().catch(() => {});
   }
 }

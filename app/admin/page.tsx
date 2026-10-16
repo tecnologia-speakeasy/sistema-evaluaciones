@@ -1,42 +1,88 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
-import { getStaffActual } from "@/lib/auth/guards";
-import BotonSalir from "@/app/components/BotonSalir";
+import { staffParaPagina } from "@/lib/auth/guards";
+import { listarGeneraciones } from "@/lib/datos/generaciones";
+import { formatearFecha } from "@/lib/fechas";
+import { TituloPagina } from "@/app/components/ui/Encabezado";
+import { Insignia } from "@/app/components/ui/InsigniaEstado";
+import { Tarjeta } from "@/app/components/ui/Tarjeta";
+import CrearGeneracion from "./components/CrearGeneracion";
+import { Cargando } from "./components/Cargando";
 
-export const metadata: Metadata = { title: "Panel" };
+export const metadata: Metadata = { title: "Generaciones" };
 
-// Resumen del staff. Fase 2: generaciones y evaluaciones.
-export default function AdminInicio() {
+export default function Generaciones() {
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
-      <Suspense fallback={<p className="text-zinc-500">Cargando…</p>}>
-        <Resumen />
-      </Suspense>
-    </main>
+    <Suspense fallback={<Cargando />}>
+      <ListaGeneraciones />
+    </Suspense>
   );
 }
 
-async function Resumen() {
-  const staff = await getStaffActual();
-  if (!staff) redirect("/login?next=/admin");
+async function ListaGeneraciones() {
+  const staff = await staffParaPagina();
+  const generaciones = await listarGeneraciones();
 
   return (
     <>
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-zinc-500">
-            {staff.rol === "admin" ? "Administrador" : "Docente"}
+      <TituloPagina
+        titulo="Generaciones"
+        subtitulo="Cada generación tiene 12 evaluaciones mensuales y 4 trimestrales."
+        acciones={staff.rol === "admin" ? <CrearGeneracion /> : null}
+      />
+
+      {generaciones.length === 0 ? (
+        <Tarjeta className="text-center">
+          <p className="font-bold text-titulo">Aún no hay generaciones.</p>
+          <p className="mt-1 text-sm text-gris-oscuro">
+            {staff.rol === "admin"
+              ? "Crea la primera con el botón «Crear generación»."
+              : "Pídele a un administrador que cree la primera."}
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">
-            Hola, {staff.nombre}
-          </h1>
-        </div>
-        <BotonSalir />
-      </header>
-      <p className="mt-8 text-zinc-600">
-        Aquí irán las generaciones y sus evaluaciones.
-      </p>
+        </Tarjeta>
+      ) : (
+        <ul className="grid gap-4 md:grid-cols-2">
+          {generaciones.map((g) => (
+            <li key={g.id}>
+              <Link
+                href={`/admin/generaciones/${g.id}`}
+                className="group block rounded-[14px] focus-visible:outline-2 focus-visible:outline-rosa"
+              >
+                <Tarjeta className="h-full transition-shadow duration-150 group-hover:shadow-[0_6px_20px_rgba(65,39,107,0.12)]">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Insignia tono="lavanda">{g.codigo}</Insignia>
+                    {!g.activa && <Insignia tono="gris">Inactiva</Insignia>}
+                    {g.evaluaciones < 16 && (
+                      <Insignia tono="rojo">Faltan {16 - g.evaluaciones} evaluaciones</Insignia>
+                    )}
+                  </div>
+                  <h2 className="text-lg font-extrabold text-titulo group-hover:text-violeta">
+                    {g.nombre}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-gris-oscuro">
+                    Desde {formatearFecha(g.fecha_inicio)}
+                    {g.fecha_fin && ` hasta ${formatearFecha(g.fecha_fin)}`}
+                  </p>
+                  <dl className="mt-4 flex gap-6 text-sm">
+                    <div>
+                      <dt className="text-gris">Publicadas</dt>
+                      <dd className="text-[17px] font-semibold text-tinta">
+                        {g.publicadas}
+                        <span className="font-extrabold text-rosa-hover">/{g.evaluaciones}</span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-gris">Estudiantes activos</dt>
+                      <dd className="text-[17px] font-semibold text-tinta">{g.estudiantes}</dd>
+                    </div>
+                  </dl>
+                </Tarjeta>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

@@ -1,18 +1,144 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ───────────────────────────────────────────────────────────────────────────
+   Diseño visual copiado de ../evaluacion-a2 (EnglishExam.jsx: objetos `xs`
+   y `styles`). Los valores son los mismos; si a2 cambia, se cambian aquí.
+   ─────────────────────────────────────────────────────────────────────────── */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@theme {
+  /* Morados */
+  --color-marca: #41276b; /* fondo del login, títulos del hub */
+  --color-marca-medio: #613ba0; /* centro del degradado de la barra superior */
+  --color-violeta: #6d2ebf; /* extremo del botón degradado y del progreso */
+  --color-violeta-claro: #7838d4;
+  --color-morado-oscuro: #34206b; /* opción seleccionada */
+  --color-titulo: #3a1d6e; /* títulos de página (ejTitle) */
+  --color-titulo-oscuro: #1a0a2e; /* títulos muy oscuros */
+  --color-tinta: #2b2240; /* texto principal */
+  --color-lila: #b86bc4;
+
+  /* Rosados */
+  --color-rosa: #ff327d; /* botón principal y acentos */
+  --color-rosa-hover: #e9407e; /* hover del rosa; extremo de la barra superior */
+  --color-rosa-claro: #ff8ab9;
+  --color-rosa-palido: #ffb8d1;
+
+  /* Grises lavanda */
+  --color-gris: #9a93ad; /* texto secundario, contador */
+  --color-gris-oscuro: #6b6480;
+  --color-gris-hub: #5b5b6b; /* subtítulo del hub */
+  --color-gris-claro: #b3abc6;
+  --color-avatar: #9aa3b2; /* inicial del avatar */
+  --color-borde: #d9d2ea;
+  --color-borde-suave: #e3ddf0;
+  --color-borde-paso: #cfc6e6; /* círculo vacío del stepper */
+  --color-linea-paso: #d8cfe8; /* línea vacía del stepper */
+  --color-opcion: #efeff1; /* fondo de opción de selección múltiple */
+  --color-lavanda: #f1ecfb; /* tarjetas de la barra lateral */
+  --color-campo: #faf9fc; /* fondo de textarea */
+  --color-campo-login: #ededed;
+
+  /* Estados */
+  --color-exito: #16a34a;
+  --color-exito-borde: #22c55e;
+  --color-error: #dc2626;
+  --color-error-borde: #ef4444;
+  --color-error-texto: #c0294b;
+  --color-error-claro: #ffb3c6; /* errores sobre fondo oscuro (login) */
+  --color-alerta: #e11d48; /* cronómetro en rojo */
+
+  --animate-fade-up: fade-up 0.5s ease both;
+  --animate-timer-pulse: timer-pulse 1s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes timer-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+}
+
+/* Fuera de @theme: lo usan estilos en línea (Particulas), no una clase animate-*. */
+@keyframes particle-drift {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.95; }
+  50% { transform: translateY(-50vh) translateX(10px); opacity: 0.85; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+}
+
+/* Degradados y fondos de a2 */
+@utility degradado-barra {
+  background: linear-gradient(90deg, #41276b 0%, #613ba0 55%, #e9407e 100%);
+}
+@utility degradado-boton {
+  background: linear-gradient(90deg, #ff327d 0%, #6d2ebf 100%);
+}
+@utility degradado-progreso {
+  background: linear-gradient(90deg, #6d2ebf 0%, #ff327d 100%);
+}
+@utility degradado-opcion {
+  background: linear-gradient(100deg, #34206b 0%, #7838d4 100%);
+}
+@utility degradado-tarjeta-movil {
+  background: linear-gradient(160deg, #4a2c7d 0%, #38205f 100%);
+}
+@utility fondo-pagina {
+  background: #ffffff url("/FONDO.png") center center / cover no-repeat fixed;
+}
+@utility fondo-intro {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(138, 56, 245, 0.5) 0%, rgba(138, 56, 245, 0) 42%),
+    radial-gradient(circle at 88% 90%, rgba(138, 56, 245, 0.55) 0%, rgba(138, 56, 245, 0) 45%),
+    #361e55;
+}
+@utility fondo-vidrio {
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.11) 100%
+  );
+}
+@utility texto-degradado {
+  background: linear-gradient(90deg, #ffffff 0%, #ff327d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@layer base {
+  body {
+    background: #ffffff;
+    color: var(--color-tinta);
+  }
+  /* Foco igual que a2: borde rosado, sin outline del navegador. */
+  input:focus,
+  select:focus {
+    outline: none;
+    border-color: rgba(255, 50, 125, 0.8) !important;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: rgba(255, 50, 125, 0.6) !important;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid #ff327d;
+    outline-offset: 2px;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 50, 125, 0.3);
+    border-radius: 3px;
+  }
 }
