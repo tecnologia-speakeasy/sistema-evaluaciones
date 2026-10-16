@@ -9,6 +9,10 @@ export const GRACIA_S = 120;
 export const AVISO_S = 180;
 /** La pantalla de "calificando" se ve al menos este tiempo. */
 export const MIN_CALIFICANDO_MS = 2500;
+/** Mientras la IA califica, la pantalla consulta el estado cada 4 s (como a2). */
+export const CONSULTA_ESTADO_MS = 4000;
+/** Después de esto avisa que la IA está tardando más de lo normal. */
+export const DEMORA_IA_MS = 45_000;
 
 export function segundosRestantes(inicioMs: number, duracionMin: number, ahoraMs: number): number {
   return Math.max(0, Math.ceil((inicioMs + duracionMin * 60_000 - ahoraMs) / 1000));

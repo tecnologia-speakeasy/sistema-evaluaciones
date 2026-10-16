@@ -13,6 +13,8 @@ import type { EvaluacionEstudiante, IntentoEnCurso, Respuestas } from "@/lib/dat
 import { formatearFechaHora } from "@/lib/fechas";
 import {
   AVISO_S,
+  CONSULTA_ESTADO_MS,
+  DEMORA_IA_MS,
   formatearReloj,
   MIN_CALIFICANDO_MS,
   segundosRestantes,
@@ -68,8 +70,18 @@ export default function Examen({
   const [errorIntro, setErrorIntro] = useState<string | null>(null);
   const [iniciando, setIniciando] = useState(false);
   const [calificado, setCalificado] = useState(false);
+  // La IA está tardando más de lo normal: se ofrece salir (llegará por correo).
+  const [demorado, setDemorado] = useState<{ numero: number } | null>(null);
   const [cambiosPestana, setCambiosPestana] = useState(enCurso?.cambiosPestana ?? 0);
   const enviando = useRef(false);
+  // Al salir de la pantalla (o quedar oculta) se deja de consultar.
+  const montado = useRef(true);
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+    };
+  }, []);
 
   const posiciones = useMemo(() => posicionesPorSeccion(preguntas), [preguntas]);
   const total = preguntas.length;
@@ -96,6 +108,30 @@ export default function Examen({
     },
   });
 
+  // Consulta el estado cada 4 s hasta que la IA termine (sin límite, como a2).
+  // A los 45 s avisa que tarda. Devuelve false si el estudiante salió.
+  const esperarIA = useCallback(
+    async (id: number, desde: number, alDemorar: () => void): Promise<boolean> => {
+      let avisado = false;
+      while (montado.current) {
+        await new Promise((r) => setTimeout(r, CONSULTA_ESTADO_MS));
+        if (!montado.current) return false;
+        if (!avisado && Date.now() - desde > DEMORA_IA_MS) {
+          avisado = true;
+          alDemorar();
+        }
+        try {
+          const res = await fetch(`/api/intentos/${id}/estado`, { cache: "no-store" });
+          if (res.ok && (await res.json())?.estado === "listo") return true;
+        } catch {
+          // Sin conexión: sigue esperando.
+        }
+      }
+      return false;
+    },
+    [],
+  );
+
   const enviar = useCallback(async () => {
     if (!intento || enviando.current) return;
     enviando.current = true;
@@ -112,6 +148,12 @@ export default function Examen({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.numero) throw new Error(data?.error ?? SIN_CONEXION);
+      // La IA (abiertas + feedback) corre en el servidor: esperar a que quede
+      // lista, como a2. No se pierde nada si cierra: llega por correo.
+      if (data.estado !== "listo") {
+        const listo = await esperarIA(intento.id, desde, () => setDemorado({ numero: data.numero }));
+        if (!listo) return;
+      }
       // Como a2: el anillo llega a 100 y a los 600 ms pasa al resultado.
       setCalificado(true);
       await new Promise((r) => setTimeout(r, Math.max(0, MIN_CALIFICANDO_MS - (Date.now() - desde)) + 600));
@@ -122,7 +164,7 @@ export default function Examen({
       setFase("examen");
       setError("No pudimos enviar tu evaluación. Revisa tu conexión e inténtalo de nuevo: tus respuestas están guardadas.");
     }
-  }, [intento, respuestas, cambiosPestana, ev.slug, router, detenerGuardado, reanudarGuardado]);
+  }, [intento, respuestas, cambiosPestana, ev.slug, router, detenerGuardado, reanudarGuardado, esperarIA]);
 
   useEffect(() => {
     enviarRef.current = enviar;
@@ -351,7 +393,12 @@ export default function Examen({
         </div>
       )}
 
-      {fase === "calificando" && <PantallaCalificando listo={calificado} />}
+      {fase === "calificando" && (
+        <PantallaCalificando
+          listo={calificado}
+          demorado={demorado ? `/evaluacion/${ev.slug}/intentos/${demorado.numero}` : null}
+        />
+      )}
     </div>
   );
 }

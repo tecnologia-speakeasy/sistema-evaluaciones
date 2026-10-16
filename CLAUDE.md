@@ -40,7 +40,9 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 - `estudiantes`: `email`, `manychat_id`, `activo` (sin nombre desde la 003).
 - `evaluaciones` (003): `cierre_automatico` (al acabar el tiempo se envía sola; exige `duracion_min`) y `mostrar_correctas`.
 - `intentos` (003): `nombre` (el que escribió al entrar), `respuestas_borrador` (autoguardado mientras responde), `limite_at` (hasta cuándo se aceptan respuestas, fijado al empezar). Índice único: un solo intento `en_progreso` por estudiante y evaluación.
-- `respuestas`: solo respuestas **calificadas** (se crean al enviar). El borrador vive en el intento, así responder no bloquea editar la pregunta.
+- `respuestas`: solo respuestas **calificadas** (se crean al enviar). El borrador vive en el intento, así responder no bloquea editar la pregunta. En las abiertas, `feedback` guarda el comentario de la IA.
+- `intentos` (004): `procesando_hasta` (candado con vencimiento de quien llama a la IA), `ia_intentos` / `ia_error` (fallos de la IA), `whatsapp_enviado` (como `email_enviado`) y `envio_error` (último fallo de correo o WhatsApp).
+- Estados del intento: `en_progreso` → (enviar) `pendiente` → `calificando` (candado tomado) → `listo`. Si la IA falla vuelve a `pendiente`; al 3.er fallo, `error`. Ver "IA, correo y WhatsApp".
 
 Funciones: `generar_evaluaciones(generacion_id, staff_id)`, `clonar_preguntas(origen, destino)`.
 Vistas: `v_preguntas_publicas`, `v_evaluaciones_resumen`, `v_resultados`, `v_dificultad_preguntas`.
@@ -82,7 +84,8 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 
 ## Rutas previstas
 - Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (intro + presentar), `/evaluacion/[slug]/intentos/[n]` (resultado del intento + "Tus intentos"), `/evaluacion/[slug]/intentos/[n]/respuestas` (revisión pregunta por pregunta), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público, solo resumen).
-- API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar).
+- API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar), `GET /api/intentos/[id]/estado` (la pantalla espera a la IA).
+- Reproceso: `GET /api/cron/procesar` (con `CRON_SECRET`, ver "IA, correo y WhatsApp").
 - Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 16 evaluaciones), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados`, `/admin/estudiantes` y `/admin/staff` (solo admin).
 
 ## Reglas del examen del estudiante (Fase 4)
@@ -93,18 +96,57 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
   - `cierre_automatico = true`: al llegar a 0 se envía sola.
 - **Plazo en el servidor**: `limite_at` = el primero entre `started_at + duracion_min` (si `cierre_automatico`) y `fecha_cierre`. Se aceptan respuestas hasta `limite_at` + **2 min de gracia**; después se rechazan y, al enviar o al volver, se califica lo que quedó guardado. La fecha de cierre corta también los intentos en curso.
 - **"Siguiente" bloqueado** hasta responder la pregunta actual, igual que a2.
-- **Calificación** en el servidor al enviar (`lib/grading/`): selección múltiple, completar y traducción con `normalize()`. Las **abiertas** quedan pendientes (estado `pendiente`, sin puntaje final) hasta la IA de la Fase 5, con el aviso "Tu respuesta abierta la calificará la IA".
-- **Resultado** (con sesión, `/evaluacion/[slug]/intentos/[n]`): insignia por rango como a2 (`lib/celebracion.ts`), puntaje, Grammar X/N y Writing X/N (aciertos), selector "Ver intento N" y revisión pregunta por pregunta (acertó/falló). Con `mostrar_correctas`, en las que falló se ve la correcta solo cuando ya no le quedan intentos o la evaluación cerró (ver regla de seguridad 1).
+- **Calificación** en el servidor al enviar (`lib/grading/`): selección múltiple, completar y traducción con `normalize()`. El intento queda `pendiente` y la IA califica las **abiertas** y escribe el feedback (ver "IA, correo y WhatsApp").
+- **Resultado** (con sesión, `/evaluacion/[slug]/intentos/[n]`): insignia por rango como a2 (`lib/celebracion.ts`), puntaje, Grammar X/N y Writing X/N (aciertos), "Revisa tu feedback" (como a2), selector "Ver intento N" y revisión pregunta por pregunta (acertó/falló; en las abiertas, "Nota de la IA: X/10" y su comentario). Con `mostrar_correctas`, en las que falló se ve la correcta solo cuando ya no le quedan intentos o la evaluación cerró (ver regla de seguridad 1).
 - **`/resultado/[token]`** (público, para el enlace de WhatsApp): solo resumen, como a2. Nunca el detalle por pregunta.
 - **Calificando**: Spiky (también en celular) al menos 2,5 s.
 - **Código**: datos y reglas en `lib/datos/intentos.ts`; calificación pura en `lib/grading/` (`normalize.ts` idéntica a a2, `calificar.ts`); reloj en `lib/intentos/reloj.ts`; pantalla en `app/evaluacion/[slug]/Examen.tsx` y piezas en `app/components/examen/` (antitrampa, autoguardado, calificando, confeti, anillo). Grammar/Writing = aciertos "X/N" (N cuenta solo preguntas ya calificadas).
 - Next conserva ocultas las páginas visitadas: `<Examen>` lleva una `key` que cambia con los intentos, para que "Repetir evaluación" no reaparezca el examen anterior.
 
+## IA, correo y WhatsApp (Fase 5)
+Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA, luego correo/WhatsApp; nunca perder respuestas.
+- **Flujo**: `POST /api/intentos/[id]/enviar` califica lo automático, guarda (`pendiente`) y responde. Después, con `after()` y fuera de cualquier transacción, `procesarIntento()` (`lib/ia/procesar.ts`):
+  1. Toma el candado: `calificando`, `procesando_hasta` = ahora + 6 min. Dos procesos a la vez: el segundo ve "ocupado" y no llama a la IA.
+  2. Califica las abiertas con su `rubrica`, todas en una llamada, y guarda notas y puntaje recalculado en una transacción corta. Las que ya tienen nota no se vuelven a pagar.
+  3. Escribe el feedback general en otra llamada (prompt de a2 sin el párrafo de "gracias por intentarlo"; saluda con el primer nombre de `intentos.nombre`).
+  4. Pasa a `listo` y llama a `notificarIntento()`: correo y WhatsApp.
+- **Abiertas**: nota 0–10 de la IA → puntaje = nota/10 × `preguntas.puntaje`. Cuentan como acierto (Writing X/N) con nota ≥ 6. El comentario va en `respuestas.feedback`.
+- **Prompts** en `lib/ia/prompts.ts` (puro, con tests): las respuestas del estudiante van entre `<respuesta>` (no son instrucciones) y la salida se valida con zod.
+- **Cliente** `lib/ia/openai.ts`: `OPENAI_MODEL` (por defecto gpt-4.1-mini), JSON, 3 intentos de 40 s, respeta `Retry-After` en 429/5xx; otros 4xx no se reintentan.
+- **Fallos**: cada fallo suma `ia_intentos` y guarda `ia_error`. El intento vuelve a `pendiente`; al 3.er fallo pasa a `error`. El reproceso automático lo intenta hasta 10 fallos y después solo el staff.
+- **Pantalla del estudiante**:
+  - Spiky consulta `GET /api/intentos/[id]/estado` cada 4 s (si el intento quedó suelto, la consulta lo relanza).
+  - A los 45 s avisa "Está tardando un poco más…" con "Ver mi intento".
+  - La página del intento dice "Tu retroalimentación está en camino" y se actualiza sola al quedar listo.
+- **Correo** (`lib/email/correo-resultado.ts`):
+  - Plantilla de la Fase 3: nombre, puntaje, insignia, Grammar/Writing, feedback y botón "Ver mi resultado" → `APP_URL/resultado/[token]`.
+  - Solo con el intento `listo` y feedback, y una sola vez: `email_enviado` se marca antes de enviar y se desmarca si falla (queda `envio_error`).
+- **WhatsApp** (`lib/manychat.ts`, como a2):
+  - Solo con `MANYCHAT_API_TOKEN` + `MANYCHAT_FLOW_RESULTADO` y si el estudiante tiene `manychat_id`.
+  - Campos `se_puntaje` = `puntaje_total` y `feedback` = token, y luego el flow.
+  - `whatsapp_enviado` funciona igual que el correo.
+- **Staff**:
+  - `/admin` avisa si hay intentos en `error`.
+  - `/admin/resultados` lista los intentos por revisar (`lib/datos/revision.ts`): `error`, pendientes de más de 10 min y correos sin enviar.
+  - "Reintentar IA" ignora el tope de 10 fallos; "Reintentar envío" vuelve a mandar correo/WhatsApp (`app/admin/acciones/intentos.ts`).
+- **Reproceso** `GET /api/cron/procesar` (`maxDuration` 300):
+  - Exige `Authorization: Bearer <CRON_SECRET>`, comparado en tiempo constante. Sin secreto o con menos de 16 caracteres → 401.
+  - En cada llamada retoma hasta 5 intentos `pendiente` / `error` / `calificando` con el candado vencido, enviados hace más de 1 min (el primero lo hace `after()`).
+  - Reenvía hasta 20 correos/WhatsApp pendientes de la última semana.
+  - Responde `{ revisados, listos, fallos, ocupados, envios }`.
+- **Quién llama al reproceso cada 10 min** (plan de Vercel por confirmar):
+  - **Hobby** (configuración actual, sin cron en `vercel.json`: Hobby solo admite crons diarios y uno cada 10 min rompe el despliegue): workflow de **n8n**:
+    1. *Schedule Trigger* cada 10 minutos.
+    2. *HTTP Request*: GET `{APP_URL}/api/cron/procesar`, header `Authorization: Bearer {CRON_SECRET}`, timeout 300 s.
+    3. Alertar si responde distinto de 200.
+  - **Pro**: crear `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el `Authorization: Bearer $CRON_SECRET` si la variable existe en el proyecto. Apagar entonces el workflow de n8n.
+- **Pruebas**: OpenAI, SMTP y ManyChat siempre simulados (`OPENAI_BASE_URL`, `MANYCHAT_API_URL`, SMTP local), nunca los reales del `.env`.
+
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
 - `lib/exam.js` → normalize + lógica de calificación.
-- `lib/openai.js` → feedback con IA (modelo `OPENAI_MODEL`, por defecto gpt-4.1-mini).
-- `lib/email.ts` → ya portado a `lib/email/` (`enviar.ts` + `plantilla.ts` con el diseño de Speak Easy y el logo adjunto); falta el correo de resultado (Fase 5).
-- `lib/manychat.ts` → WhatsApp con el resultado.
+- `lib/openai.js` → ya portado a `lib/ia/` (`openai.ts` + `prompts.ts` + `procesar.ts`).
+- `lib/email.ts` → ya portado a `lib/email/` (`enviar.ts` + `plantilla.ts` con el diseño de Speak Easy y el logo adjunto, `correo-codigo.ts`, `correo-resultado.ts`).
+- `lib/manychat.ts` → ya portado a `lib/manychat.ts`.
 - `app/api/submit/route.js` → patrón: guardar primero (estado `pendiente`), luego IA, luego correo/WhatsApp; nunca perder respuestas.
 - `app/components/EnglishExam.jsx` → UX del examen (antitrampa de cambio de pestaña, etc.). Hacerlo genérico: renderizar preguntas desde la BD según `tipo`.
 
@@ -113,15 +155,30 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 2. ✅ Hecha. Dashboard staff: generaciones, evaluaciones (generar 16, publicar/despublicar, fechas), CRUD de preguntas con formulario por tipo, reordenar, clonar.
 3. ✅ Hecha. OTP por correo para estudiantes (código de 6 dígitos, 10 min de validez, máx. 5 intentos, límites de envío por correo e IP), `lib/email/`, migración `db/002_otp.sql`.
 4. ✅ Hecha. Vista estudiante: lista de evaluaciones, presentar (autoguardado, retomar, cierre automático opcional), envío y calificación en el servidor, resultado con insignia, revisión, **historial de puntajes de todos sus intentos** (`/historial` + selector "Ver intento N" como en a2) y `/resultado/[token]`. Las abiertas quedan pendientes hasta la Fase 5.
-5. IA + correo + WhatsApp, reintentos de feedback pendiente. La IA califica las abiertas de los intentos en estado `pendiente` (`respuestas.es_correcta` NULL) y entonces se calcula `puntaje_total` y el intento pasa a `listo`.
+5. ✅ Hecha. IA (abiertas con rúbrica + feedback general como a2), correo del resultado, WhatsApp por ManyChat, reproceso protegido (`/api/cron/procesar`) y "Reintentar IA" para el staff. Migración `db/004_ia.sql`.
 6. Admin: estudiantes (import CSV: solo correo y `manychat_id` opcional; sin nombre), staff, resultados y exportar CSV.
 
 ## Migraciones pendientes en producción
 Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que las usa; al ejecutarlas, marcarlas aquí. Cada archivo fija su propio `search_path`.
-- [ ] `db/002_otp.sql` (Fase 3): tabla `codigos_acceso`. Sin ella el login de estudiantes falla. Ejecutar: `psql "<DATABASE_URL sin ?schema=evaluacion>" -f db/002_otp.sql` (psql no acepta el parámetro `schema`). Comprobar: `SELECT to_regclass('evaluacion.codigos_acceso');` (no debe dar NULL).
+- [x] `db/002_otp.sql` (Fase 3): tabla `codigos_acceso`. Sin ella el login de estudiantes falla. Ejecutar: `psql "<DATABASE_URL sin ?schema=evaluacion>" -f db/002_otp.sql` (psql no acepta el parámetro `schema`). Comprobar: `SELECT to_regclass('evaluacion.codigos_acceso');` (no debe dar NULL).
   - Con `OTP_ACTIVO=false` (por defecto) el login no la usa, pero se ejecuta igual para que la base quede completa.
   - Si se activa el OTP, en Vercel además: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (contraseña de aplicación) y `MAIL_FROM`. En producción sin SMTP el estudiante ve "No pudimos enviarte el código". `OTP_*` son opcionales (valores por defecto en `.env.example`).
-- [ ] `db/003_ajustes.sql` (antes de la Fase 4): quita `estudiantes.nombre` (lo pasa a `intentos.nombre` en los intentos que existan), recrea `v_resultados`, agrega `evaluaciones.cierre_automatico` / `mostrar_correctas` e `intentos.respuestas_borrador` / `limite_at` y el índice de un intento en curso. Va en una transacción. Después de ejecutarla, las sesiones de estudiante anteriores dejan de valer (no traen nombre) y deben volver a entrar. Comprobar: `SELECT column_name FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name = 'intentos' AND column_name IN ('nombre', 'respuestas_borrador', 'limite_at');` (3 filas).
+- [x] `db/003_ajustes.sql` (antes de la Fase 4): quita `estudiantes.nombre` (lo pasa a `intentos.nombre` en los intentos que existan), recrea `v_resultados`, agrega `evaluaciones.cierre_automatico` / `mostrar_correctas` e `intentos.respuestas_borrador` / `limite_at` y el índice de un intento en curso. Va en una transacción. Después de ejecutarla, las sesiones de estudiante anteriores dejan de valer (no traen nombre) y deben volver a entrar. Comprobar: `SELECT column_name FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name = 'intentos' AND column_name IN ('nombre', 'respuestas_borrador', 'limite_at');` (3 filas).
+- [ ] `db/004_ia.sql` (Fase 5): agrega a `intentos` `procesando_hasta`, `ia_intentos`, `ia_error`, `whatsapp_enviado` y `envio_error`. Va en una transacción. Sin ella, los intentos se envían pero la IA no corre y se quedan esperando.
+  - Comprobar: `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name = 'intentos' AND column_name IN ('procesando_hasta', 'ia_intentos', 'ia_error', 'whatsapp_enviado', 'envio_error');` (5).
+  - Intentos que ya existían:
+    - Los `listo` de la Fase 4 (sin abiertas, sin feedback) se marcan como avisados: no reciben correo ni WhatsApp tardíos ni feedback retroactivo.
+    - Los `pendiente` (con abiertas) los toma la IA en el primer reproceso y reciben su correo.
+    - Antes de ejecutarla, ver cuántos son: `SELECT estado, count(*) FROM evaluacion.intentos GROUP BY estado;`.
+  - Variables en Vercel (Production):
+    - `APP_URL` (si falta, se usa el dominio de producción del proyecto).
+    - `OPENAI_API_KEY` y `OPENAI_MODEL` (opcional).
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`: ahora obligatorias; sin ellas el correo del resultado queda con "SMTP no configurado".
+    - `MANYCHAT_API_TOKEN` y `MANYCHAT_FLOW_RESULTADO`.
+    - `CRON_SECRET`.
+    - Nunca `OPENAI_BASE_URL` ni `MANYCHAT_API_URL` (solo pruebas).
+  - Las rutas de la IA usan `maxDuration = 300`, que exige Fluid compute (activado por defecto en Vercel; comprobar en Settings → Functions).
+  - Configurar el reproceso (n8n o Cron de Vercel, ver "IA, correo y WhatsApp").
 
 ## Convenciones
 - Zona horaria del negocio: **America/Bogota** (fechas de apertura/cierre se escriben y muestran en esa zona; Vercel corre en UTC).

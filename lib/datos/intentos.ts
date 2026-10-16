@@ -9,6 +9,7 @@ import {
   type PreguntaParaCalificar,
   type RespuestaDada,
 } from "@/lib/grading/calificar";
+import { MAX_FALLOS_AUTOMATICOS } from "@/lib/ia/procesar";
 import { GRACIA_S } from "@/lib/intentos/reloj";
 import type { PreguntaPublica, TipoPregunta } from "@/lib/preguntas/tipos";
 import type { TipoEvaluacion } from "@/lib/tipos";
@@ -269,8 +270,10 @@ export async function guardarBorrador(
 
 export type Envio = { numero: number; estado: EstadoIntento; slug: string };
 
-// Califica y cierra el intento. Si llega fuera de plazo, ignora lo que manda el
-// navegador y califica lo que quedó guardado. Enviar dos veces devuelve lo mismo.
+// Califica lo cerrado y cierra el intento: queda 'pendiente' hasta que la IA
+// califique las abiertas y escriba el feedback (lib/ia/procesar.ts, fuera de
+// esta transacción). Si llega fuera de plazo, ignora lo que manda el navegador
+// y califica lo que quedó guardado. Enviar dos veces devuelve lo mismo.
 export async function enviarIntento(
   intentoId: number,
   estudianteId: number,
@@ -340,7 +343,8 @@ async function finalizar(
       ),
     ],
   );
-  const estado: EstadoIntento = resumen.pendiente ? "pendiente" : "listo";
+  // Siempre pasa por la IA (feedback). Sin abiertas, el puntaje ya es el final.
+  const estado: EstadoIntento = "pendiente";
   await tx.query(
     `UPDATE intentos
         SET estado = $2, puntaje_total = $3, grammar_score = $4, writing_score = $5,
@@ -395,9 +399,13 @@ export type DetallePregunta = {
   es_correcta: boolean | null;
   /** Solo si se puede mostrar (ver correctasVisibles). Nunca viene de otra forma. */
   correcta: string | string[] | null;
+  /** Abiertas ya calificadas por la IA: nota de 0 a 10 y su comentario. */
+  nota: number | null;
+  comentario: string | null;
 };
 
 export type DetalleIntento = {
+  id: number;
   numero: number;
   estado: EstadoIntento;
   nombre: string;
@@ -408,6 +416,8 @@ export type DetalleIntento = {
   writing_total: number;
   completado: string | null;
   token: string;
+  /** Retroalimentación de la IA (null mientras está pendiente). */
+  feedback: string | null;
   evaluacion: {
     slug: string;
     titulo: string;
@@ -440,6 +450,7 @@ export async function detalleIntento(
     writing_score: number | null;
     completado: string | null;
     token: string;
+    feedback: string | null;
     evaluacion_id: number;
     slug: string;
     titulo: string;
@@ -453,7 +464,7 @@ export async function detalleIntento(
     en_curso: boolean;
   }>(
     `SELECT i.id, i.numero_intento, i.estado, i.nombre, i.puntaje_total, i.grammar_score,
-            i.writing_score, ${sqlALocal("i.completed_at")} AS completado, i.token,
+            i.writing_score, ${sqlALocal("i.completed_at")} AS completado, i.token, i.feedback,
             e.id AS evaluacion_id, e.slug, e.titulo, e.tipo, e.numero AS eval_numero,
             e.mostrar_correctas, e.intentos_permitidos,
             (e.fecha_cierre IS NOT NULL AND e.fecha_cierre < now()) AS cerrada,
@@ -477,7 +488,10 @@ export async function detalleIntento(
   const [{ rows: preguntas }, { rows: intentos }] = await Promise.all([
     query<Omit<DetallePregunta, "correcta"> & { respuestas_aceptadas: unknown }>(
       `SELECT p.id, p.seccion, p.tipo, p.categoria, p.enunciado, p.pista, p.opciones,
-              p.respuestas_aceptadas, r.respuesta, r.es_correcta
+              p.respuestas_aceptadas, r.respuesta, r.es_correcta,
+              CASE WHEN p.tipo = 'open' AND r.es_correcta IS NOT NULL
+                   THEN round(r.puntaje / p.puntaje * 10)::int END AS nota,
+              r.feedback AS comentario
          FROM respuestas r JOIN preguntas p ON p.id = r.pregunta_id
         WHERE r.intento_id = $1
         ORDER BY p.orden`,
@@ -487,6 +501,7 @@ export async function detalleIntento(
   ]);
 
   return {
+    id: f.id,
     numero: f.numero_intento,
     estado: f.estado,
     nombre: f.nombre,
@@ -498,6 +513,7 @@ export async function detalleIntento(
     writing_total: preguntas.filter((p) => p.categoria === "writing" && p.es_correcta !== null).length,
     completado: f.completado,
     token: f.token,
+    feedback: f.feedback,
     evaluacion: {
       slug: f.slug,
       titulo: f.titulo,
@@ -602,6 +618,32 @@ export async function resultadoPublico(token: string): Promise<ResultadoPublico 
           WHERE r.intento_id = i.id) t
       WHERE i.token = $1 AND i.estado <> 'en_progreso'`,
     [token],
+  );
+  return rows[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Mientras espera el resultado (pantalla "calificando" y resultado pendiente)
+// ---------------------------------------------------------------------------
+
+export type EstadoEspera = {
+  estado: EstadoIntento;
+  numero: number;
+  slug: string;
+  /** Sin terminar y nadie lo está procesando: hay que volver a lanzar la IA. */
+  relanzar: boolean;
+};
+
+export async function estadoIntento(intentoId: number, estudianteId: number): Promise<EstadoEspera | null> {
+  const { rows } = await query<EstadoEspera>(
+    `SELECT i.estado, i.numero_intento AS numero, e.slug,
+            (i.estado IN ('pendiente', 'error', 'calificando')
+              AND (i.procesando_hasta IS NULL OR i.procesando_hasta < now())
+              AND i.ia_intentos < $3
+              AND i.completed_at < now() - interval '20 seconds') AS relanzar
+       FROM intentos i JOIN evaluaciones e ON e.id = i.evaluacion_id
+      WHERE i.id = $1 AND i.estudiante_id = $2`,
+    [intentoId, estudianteId, MAX_FALLOS_AUTOMATICOS],
   );
   return rows[0] ?? null;
 }

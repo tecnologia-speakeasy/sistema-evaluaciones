@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnilloProgreso } from "./AnilloProgreso";
 import { Spiky } from "./Spiky";
@@ -7,7 +8,8 @@ import { Spiky } from "./Spiky";
 // "Calificando" de a2 (xs.loadOverlay / loadCard): Spiky y un anillo que avanza
 // solo hasta 90 % (cada 600 ms, de 2 a 10 %) y llega a 100 cuando el servidor
 // responde (`listo`). Spiky se ve también en celular, más pequeño.
-export function PantallaCalificando({ listo }: { listo: boolean }) {
+// `demorado`: la IA tarda más de lo normal; se ofrece salir (llega por correo).
+export function PantallaCalificando({ listo, demorado = null }: { listo: boolean; demorado?: string | null }) {
   const [avance, setAvance] = useState(4);
 
   useEffect(() => {
@@ -32,6 +34,20 @@ export function PantallaCalificando({ listo }: { listo: boolean }) {
           </AnilloProgreso>
         </div>
         <p className="text-center text-[15px] leading-snug text-white/85">Estamos revisando tus respuestas</p>
+        {demorado && !listo && (
+          <div className="mt-5 flex flex-col items-center gap-3 border-t border-white/14 pt-4 text-center">
+            <p className="text-[13px] leading-snug text-white/75">
+              Está tardando un poco más de lo normal. Puedes esperar aquí o volver más tarde: te enviaremos el
+              resultado a tu correo.
+            </p>
+            <Link
+              href={demorado}
+              className="rounded-xl border-[1.5px] border-white/45 bg-white/12 px-4 py-2 text-sm font-semibold text-white hover:bg-white/18"
+            >
+              Ver mi intento
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

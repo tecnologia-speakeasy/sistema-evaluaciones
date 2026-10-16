@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { AnilloProgreso } from "@/app/components/examen/AnilloProgreso";
 import { BotonCopiarEnlace } from "@/app/components/examen/BotonCopiarEnlace";
 import { Confeti } from "@/app/components/examen/Confeti";
+import { EsperarResultado } from "@/app/components/examen/EsperarResultado";
+import { VerFeedback } from "@/app/components/examen/VerFeedback";
 import { estudianteParaPagina } from "@/lib/auth/guards";
 import { celebracionPorPuntaje } from "@/lib/celebracion";
 import { detalleIntento, type DetalleIntento } from "@/lib/datos/intentos";
@@ -33,17 +35,28 @@ async function Contenido({ params }: { params: Promise<{ slug: string; numero: s
 }
 
 function Celebracion({ d }: { d: DetalleIntento }) {
-  const pendiente = d.estado !== "listo";
+  // Sin puntaje: hay abiertas que la IA no ha calificado. En proceso: la IA
+  // todavía no termina (la página se actualiza sola cuando queda listo). Los
+  // intentos 'listo' de antes de la Fase 5 no tienen feedback: no se espera.
+  const sinPuntaje = d.puntaje_total === null;
+  const enProceso = d.estado !== "listo";
   const c = celebracionPorPuntaje(d.puntaje_total);
   const base = `/evaluacion/${d.evaluacion.slug}`;
+  const hrefRespuestas = `${base}/intentos/${d.numero}/respuestas`;
+  const repetir = d.puedeRepetir
+    ? { href: base, texto: d.enCurso ? "Continuar intento en curso" : "Repetir evaluación" }
+    : null;
   const filas = [
     ["Writing score", d.writing_score, d.writing_total],
     ["Grammar score", d.grammar_score, d.grammar_total],
   ] as const;
+  const secundario =
+    "flex-1 rounded-xl border-[1.5px] border-white/45 bg-white/12 px-3 py-[13px] text-[15px] font-semibold whitespace-nowrap text-white hover:bg-white/18";
 
   return (
     <div className="fondo-intro relative flex min-h-screen flex-1 flex-col items-center overflow-x-hidden p-6 text-center">
-      {!pendiente && <Confeti />}
+      {!sinPuntaje && <Confeti />}
+      {enProceso && <EsperarResultado intentoId={d.id} />}
       <Link href="/" className="absolute top-[22px] right-[30px] z-[2] text-[15px] text-white/85 hover:text-white">
         Cerrar ✕
       </Link>
@@ -54,15 +67,15 @@ function Celebracion({ d }: { d: DetalleIntento }) {
         </p>
         {/* eslint-disable-next-line @next/next/no-img-element -- igual que a2 */}
         <img
-          src={pendiente ? "/spiky-calificando.png" : c.img}
+          src={sinPuntaje ? "/spiky-calificando.png" : c.img}
           alt=""
           className="mb-4 h-auto w-[150px] drop-shadow-[0_10px_24px_rgba(0,0,0,0.3)]"
         />
         <h1 className="mb-2.5 text-[clamp(28px,5vw,38px)] font-extrabold text-white">
-          {pendiente ? "¡Recibimos tu evaluación!" : c.titulo}
+          {sinPuntaje ? "¡Recibimos tu evaluación!" : c.titulo}
         </h1>
         <p className="mb-7 max-w-[430px] text-[15px] leading-[1.45] text-white/82">
-          {pendiente
+          {sinPuntaje
             ? "Tu respuesta abierta la calificará la IA. Cuando esté lista, aquí verás tu puntaje final."
             : c.sub}
         </p>
@@ -70,7 +83,7 @@ function Celebracion({ d }: { d: DetalleIntento }) {
         <div className="mb-7 flex flex-wrap items-center justify-center gap-[30px] rounded-[20px] border border-white/14 bg-white/10 px-[30px] py-[26px]">
           <AnilloProgreso progreso={d.puntaje_total ?? 0} tamano={140} grosor={9}>
             <span className="text-[40px] leading-none font-extrabold text-white">{d.puntaje_total ?? "…"}</span>
-            <span className="mt-0.5 text-[13px] text-white/70">{pendiente ? "Pendiente" : "Puntaje"}</span>
+            <span className="mt-0.5 text-[13px] text-white/70">{sinPuntaje ? "Pendiente" : "Puntaje"}</span>
           </AnilloProgreso>
           <div className="flex flex-col gap-2.5">
             {filas
@@ -90,25 +103,35 @@ function Celebracion({ d }: { d: DetalleIntento }) {
           </div>
         </div>
 
-        <Link
-          href={`${base}/intentos/${d.numero}/respuestas`}
-          className="degradado-boton w-[min(420px,82vw)] rounded-xl py-3.5 text-[15px] font-semibold text-white"
-        >
-          Ver mis respuestas
-        </Link>
-        <div className="mt-3 flex w-[min(420px,82vw)] flex-col gap-3 sm:flex-row">
-          {d.puedeRepetir && (
-            <Link
-              href={base}
-              className="flex-1 rounded-xl border-[1.5px] border-white/45 bg-white/12 py-[13px] text-[15px] font-semibold text-white hover:bg-white/18"
-            >
-              {d.enCurso ? "Continuar intento en curso" : "Repetir evaluación"}
+        {enProceso && (
+          <p role="status" className="mb-4 max-w-[420px] text-[14px] leading-snug text-white/80">
+            Tu retroalimentación está en camino. Te avisaremos por correo cuando esté lista.
+          </p>
+        )}
+
+        {/* Como a2: la acción principal es "Revisa tu feedback". */}
+        {d.feedback ? (
+          <VerFeedback feedback={d.feedback} hrefRespuestas={hrefRespuestas} repetir={repetir} />
+        ) : (
+          <Link
+            href={hrefRespuestas}
+            className="degradado-boton w-[min(420px,82vw)] rounded-xl py-3.5 text-[15px] font-semibold text-white"
+          >
+            Ver mis respuestas
+          </Link>
+        )}
+        <div className="mt-3 flex w-[min(420px,82vw)] flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {d.feedback && (
+            <Link href={hrefRespuestas} className={secundario}>
+              Ver mis respuestas
             </Link>
           )}
-          <Link
-            href="/"
-            className="flex-1 rounded-xl border-[1.5px] border-white/45 bg-white/12 py-[13px] text-[15px] font-semibold text-white hover:bg-white/18"
-          >
+          {repetir && (
+            <Link href={repetir.href} className={secundario}>
+              {repetir.texto}
+            </Link>
+          )}
+          <Link href="/" className={secundario}>
             Volver al inicio
           </Link>
         </div>

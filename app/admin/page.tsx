@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { staffParaPagina } from "@/lib/auth/guards";
 import { listarGeneraciones } from "@/lib/datos/generaciones";
+import { contarIntentosConError } from "@/lib/datos/revision";
 import { formatearFecha } from "@/lib/fechas";
+import { Aviso } from "@/app/components/ui/Aviso";
 import { TituloPagina } from "@/app/components/ui/Encabezado";
 import { Insignia } from "@/app/components/ui/InsigniaEstado";
 import { Tarjeta } from "@/app/components/ui/Tarjeta";
@@ -22,7 +24,7 @@ export default function Generaciones() {
 
 async function ListaGeneraciones() {
   const staff = await staffParaPagina();
-  const generaciones = await listarGeneraciones();
+  const [generaciones, conError] = await Promise.all([listarGeneraciones(), contarIntentosConError()]);
 
   return (
     <>
@@ -31,6 +33,15 @@ async function ListaGeneraciones() {
         subtitulo="Cada generación tiene 12 evaluaciones mensuales y 4 trimestrales."
         acciones={staff.rol === "admin" ? <CrearGeneracion /> : null}
       />
+
+      {conError > 0 && (
+        <Aviso tono="error" className="mb-5">
+          {conError === 1 ? "Hay 1 intento" : `Hay ${conError} intentos`} con error de la IA.{" "}
+          <Link href="/admin/resultados" className="font-bold underline">
+            Revisar
+          </Link>
+        </Aviso>
+      )}
 
       {generaciones.length === 0 ? (
         <Tarjeta className="text-center">

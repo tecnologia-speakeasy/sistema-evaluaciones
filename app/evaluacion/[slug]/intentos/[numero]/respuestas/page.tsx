@@ -94,12 +94,16 @@ const TONO = {
 } as const;
 
 function Estado({ p }: { p: DetallePregunta }) {
+  const bien = "bg-[rgba(34,197,94,0.12)] text-exito";
+  const mal = "bg-[rgba(239,68,68,0.10)] text-error";
   const [texto, clases] =
     p.es_correcta === null
       ? ["Pendiente: la calificará la IA", "bg-opcion text-gris-oscuro"]
-      : p.es_correcta
-        ? ["Correcta", "bg-[rgba(34,197,94,0.12)] text-exito"]
-        : ["Incorrecta", "bg-[rgba(239,68,68,0.10)] text-error"];
+      : p.nota !== null
+        ? [`Nota de la IA: ${p.nota}/10`, p.es_correcta ? bien : mal] // abierta ya calificada
+        : p.es_correcta
+          ? ["Correcta", bien]
+          : ["Incorrecta", mal];
   return <span className={`ml-2 inline-block rounded-full px-2.5 py-0.5 align-middle text-xs font-bold ${clases}`}>{texto}</span>;
 }
 
@@ -195,6 +199,12 @@ function Pregunta({ p, numero }: { p: DetallePregunta; numero: number }) {
         <p className={`mt-3 rounded-[10px] px-3.5 py-[11px] text-[15px] font-semibold whitespace-pre-line ${TONO[tono]}`}>
           {typeof p.respuesta === "string" ? p.respuesta : "(vacío)"}
         </p>
+        {p.comentario && (
+          <p className="mt-3 rounded-[10px] bg-lavanda px-3.5 py-2.5 text-sm leading-relaxed text-tinta">
+            <strong className="text-violeta">Comentario: </strong>
+            {p.comentario}
+          </p>
+        )}
       </div>
     );
   }
