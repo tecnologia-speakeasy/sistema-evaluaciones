@@ -11,11 +11,15 @@ import { formatearCuenta, useCuentaRegresiva } from "./useCuentaRegresiva";
 
 // Login unificado: primero el correo (/api/auth/identify).
 //   · staff      → campo de contraseña (/api/auth/staff-login)
-//   · estudiante → le llega un código de 6 dígitos por correo
-//                  (/api/auth/verificar-codigo); "Reenviar código" vuelve a identify.
+//   · estudiante → escribe su nombre, como en a2 (/api/auth/estudiante-login).
+//                  Con OTP_ACTIVO=true, además el código de 6 dígitos que le
+//                  llega por correo (/api/auth/verificar-codigo); "Reenviar
+//                  código" vuelve a identify.
+// El nombre se recuerda en este navegador para la próxima vez.
 
 type RespuestaIdentify =
   | { tipo: "staff" }
+  | { tipo: "estudiante"; paso: "nombre" }
   | { tipo: "estudiante"; paso: "codigo_enviado"; reenviarEn: number; nuevo: boolean }
   | { tipo: "estudiante"; paso: "limite"; reenviarEn: number; error: string }
   | { tipo: "no_autorizado" };
@@ -26,9 +30,28 @@ const SIN_CONEXION =
   "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
 const YA_ENVIADO = "Ya te enviamos un código hace un momento. Revisa tu correo.";
 const CODIGO_NUEVO = "Te enviamos un código nuevo. El anterior ya no sirve.";
+const FALTA_NOMBRE = "Escribe tu nombre.";
 
 const ID_CODIGO = "codigo";
+const ID_NOMBRE = "nombre";
+const CLAVE_NOMBRE = "se_nombre_estudiante";
 const casillasVacias = () => Array<string>(DIGITOS_CODIGO).fill("");
+const nombreValido = (n: string) => n.replace(/\s+/g, " ").trim().length >= 2;
+
+function nombreRecordado(): string {
+  try {
+    return localStorage.getItem(CLAVE_NOMBRE) ?? "";
+  } catch {
+    return "";
+  }
+}
+function recordarNombre(nombre: string) {
+  try {
+    localStorage.setItem(CLAVE_NOMBRE, nombre.replace(/\s+/g, " ").trim());
+  } catch {
+    // Sin almacenamiento (modo privado): la próxima vez lo vuelve a escribir.
+  }
+}
 
 async function postJson(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -42,9 +65,10 @@ async function postJson(url: string, body: unknown) {
 
 export default function LoginForm() {
   const next = useSearchParams().get("next");
-  const [paso, setPaso] = useState<"email" | "password" | "codigo">("email");
+  const [paso, setPaso] = useState<"email" | "password" | "nombre" | "codigo">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState("");
   const [digitos, setDigitos] = useState(casillasVacias);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -60,11 +84,17 @@ export default function LoginForm() {
     enfocarCodigo();
   }
 
-  // Respuesta de identify para un estudiante (primer envío o "Reenviar código").
-  // Devuelve false si no era de estudiante.
+  // Al pasar al paso del estudiante: el nombre de la última vez en este navegador.
+  function irAPasoEstudiante(siguiente: "nombre" | "codigo") {
+    if (paso !== siguiente && !nombre) setNombre(nombreRecordado());
+    setPaso(siguiente);
+  }
+
+  // Respuesta de identify para un estudiante con OTP (primer envío o
+  // "Reenviar código"). Devuelve false si no era de ese tipo.
   function recibirCodigo(data: RespuestaIdentify | null, reenvio: boolean): boolean {
-    if (data?.tipo !== "estudiante") return false;
-    setPaso("codigo");
+    if (data?.tipo !== "estudiante" || data.paso === "nombre") return false;
+    irAPasoEstudiante("codigo");
     espera.iniciar(data.reenviarEn);
     if (data.paso === "limite") {
       setError(data.error);
@@ -84,11 +114,12 @@ export default function LoginForm() {
     if (recibirCodigo(data, false)) return false;
     if (!ok) {
       setError(data?.error ?? SIN_CONEXION);
-    } else if ((data as RespuestaIdentify).tipo === "staff") {
-      setPaso("password");
-    } else {
-      setError(NO_AUTORIZADO);
+      return false;
     }
+    const r = data as RespuestaIdentify;
+    if (r.tipo === "staff") setPaso("password");
+    else if (r.tipo === "estudiante") irAPasoEstudiante("nombre");
+    else setError(NO_AUTORIZADO);
     return false;
   }
 
@@ -105,14 +136,26 @@ export default function LoginForm() {
     return true;
   }
 
+  async function ingresarEstudiante(): Promise<boolean> {
+    const { ok, data } = await postJson("/api/auth/estudiante-login", { email, nombre });
+    if (!ok) {
+      setError(data?.error ?? SIN_CONEXION);
+      return false;
+    }
+    recordarNombre(nombre);
+    // Recarga completa para que el proxy vea la cookie nueva.
+    window.location.assign(destinoSeguro(next, "estudiante"));
+    return true;
+  }
+
   async function verificarCodigo(codigo: string): Promise<boolean> {
-    const { ok, data } = await postJson("/api/auth/verificar-codigo", { email, codigo });
+    const { ok, data } = await postJson("/api/auth/verificar-codigo", { email, nombre, codigo });
     if (!ok) {
       setError(data?.error ?? SIN_CONEXION);
       reiniciarCasillas();
       return false;
     }
-    // Recarga completa para que el proxy vea la cookie nueva.
+    recordarNombre(nombre);
     window.location.assign(destinoSeguro(next, "estudiante"));
     return true;
   }
@@ -134,19 +177,29 @@ export default function LoginForm() {
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (paso === "codigo" && !nombreValido(nombre)) {
+      setError(FALTA_NOMBRE);
+      document.getElementById(ID_NOMBRE)?.focus();
+      return;
+    }
     if (!puedeEnviar) return;
     if (paso === "email") void enviar(identificar);
     else if (paso === "password") void enviar(ingresarStaff);
+    else if (paso === "nombre") void enviar(ingresarEstudiante);
     else void enviar(() => verificarCodigo(digitos.join("")));
   }
 
-  // Al completar las 6 casillas se envía solo.
+  // Al completar las 6 casillas se envía solo (si ya escribió su nombre).
   function cambiarDigitos(nuevos: string[]) {
     setDigitos(nuevos);
     setError(null);
-    if (nuevos.every(Boolean) && !enviando) {
-      void enviar(() => verificarCodigo(nuevos.join("")));
+    if (!nuevos.every(Boolean) || enviando) return;
+    if (!nombreValido(nombre)) {
+      setError(FALTA_NOMBRE);
+      document.getElementById(ID_NOMBRE)?.focus();
+      return;
     }
+    void enviar(() => verificarCodigo(nuevos.join("")));
   }
 
   async function reenviarCodigo() {
@@ -175,6 +228,7 @@ export default function LoginForm() {
     Boolean(email.trim()) &&
     (paso === "email" ||
       (paso === "password" && Boolean(password)) ||
+      (paso === "nombre" && nombreValido(nombre)) ||
       (paso === "codigo" && digitos.every(Boolean)));
 
   const botonCambiarCorreo = (
@@ -186,6 +240,7 @@ export default function LoginForm() {
       Cambiar correo
     </button>
   );
+  const esEstudiante = paso === "nombre" || paso === "codigo";
 
   // Estilos de styles.loginLabel / loginInput / loginError / loginBtn de a2.
   return (
@@ -195,7 +250,7 @@ export default function LoginForm() {
         htmlFor="email"
         tono="oscuro"
         className="mb-[18px]"
-        accion={paso === "codigo" ? botonCambiarCorreo : null}
+        accion={esEstudiante ? botonCambiarCorreo : null}
       >
         <Entrada
           id="email"
@@ -237,6 +292,35 @@ export default function LoginForm() {
         </Campo>
       )}
 
+      {esEstudiante && (
+        <Campo
+          etiqueta="Nombre"
+          htmlFor={ID_NOMBRE}
+          tono="oscuro"
+          className="mb-[18px]"
+          ayuda={paso === "nombre" ? "Así aparecerá en tus resultados." : undefined}
+        >
+          <Entrada
+            id={ID_NOMBRE}
+            tono="oscuro"
+            name="name"
+            autoComplete="name"
+            autoCapitalize="words"
+            placeholder="Ej. María García López"
+            maxLength={120}
+            required
+            // Sin código: el nombre es lo único que falta. Con código: si ya lo
+            // recordamos, el foco va a las casillas.
+            autoFocus={paso === "nombre" || !nombre}
+            value={nombre}
+            onChange={(e) => {
+              setNombre(e.target.value);
+              setError(null);
+            }}
+          />
+        </Campo>
+      )}
+
       {paso === "codigo" && (
         <Campo
           etiqueta="Código de acceso"
@@ -250,7 +334,8 @@ export default function LoginForm() {
             digitos={digitos}
             onCambio={cambiarDigitos}
             soloLectura={enviando}
-            invalida={Boolean(error)}
+            invalida={Boolean(error) && error !== FALTA_NOMBRE}
+            autoFocus={Boolean(nombre)}
           />
         </Campo>
       )}

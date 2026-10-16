@@ -164,7 +164,11 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: number | string })
 
 // Fechas, duración e intentos. Sin nada configurado: una sola línea.
 function Configuracion({ evaluacion: e }: { evaluacion: EvaluacionResumen }) {
-  if (!e.apertura && !e.cierre && !e.duracion_min && !e.intentos_permitidos) {
+  const opciones = [
+    e.cierre_automatico && "Cierre automático",
+    e.mostrar_correctas && "Muestra correctas",
+  ].filter(Boolean) as string[];
+  if (!e.apertura && !e.cierre && !e.duracion_min && !e.intentos_permitidos && !opciones.length) {
     return <p className="text-[13px] text-gris">Sin configurar</p>;
   }
   return (
@@ -183,6 +187,16 @@ function Configuracion({ evaluacion: e }: { evaluacion: EvaluacionResumen }) {
             : "Intentos ilimitados"}
         </span>
       </p>
+      {opciones.length > 0 && (
+        <p className="flex flex-wrap gap-x-1.5 font-semibold text-violeta">
+          {opciones.map((o, i) => (
+            <span key={o} className="whitespace-nowrap">
+              {i > 0 && <span aria-hidden className="mr-1.5 font-normal text-gris-oscuro">·</span>}
+              {o}
+            </span>
+          ))}
+        </p>
+      )}
     </div>
   );
 }

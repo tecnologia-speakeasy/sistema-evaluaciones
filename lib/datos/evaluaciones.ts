@@ -13,6 +13,11 @@ export type ConfigEvaluacion = {
   cierre: string | null;
   duracion_min: number | null;
   intentos_permitidos: number | null;
+  /** Al acabar el tiempo se envía sola (exige duracion_min). */
+  cierre_automatico: boolean;
+  /** En el resultado, la correcta de las que falló (cuando ya no le quedan
+   *  intentos o la evaluación cerró). */
+  mostrar_correctas: boolean;
 };
 
 export type EvaluacionResumen = ConfigEvaluacion & {
@@ -45,7 +50,7 @@ const COLUMNAS_RESUMEN = `
   e.id, e.generacion_id, e.slug, e.tipo, e.numero, e.publicada, e.titulo, e.descripcion,
   ${sqlALocal("e.fecha_apertura")} AS apertura,
   ${sqlALocal("e.fecha_cierre")}   AS cierre,
-  e.duracion_min, e.intentos_permitidos,
+  e.duracion_min, e.intentos_permitidos, e.cierre_automatico, e.mostrar_correctas,
   ${ESTADO} AS estado,
   r.preguntas::int AS preguntas, r.intentos::int AS intentos,
   r.promedio::float8 AS promedio`;
@@ -81,9 +86,13 @@ export async function actualizarConfig(id: number, c: ConfigEvaluacion): Promise
         SET titulo = $2, descripcion = $3,
             fecha_apertura = ${sqlDesdeLocal("$4")},
             fecha_cierre   = ${sqlDesdeLocal("$5")},
-            duracion_min = $6, intentos_permitidos = $7
+            duracion_min = $6, intentos_permitidos = $7,
+            cierre_automatico = $8, mostrar_correctas = $9
       WHERE id = $1`,
-    [id, c.titulo, c.descripcion, c.apertura, c.cierre, c.duracion_min, c.intentos_permitidos],
+    [
+      id, c.titulo, c.descripcion, c.apertura, c.cierre, c.duracion_min, c.intentos_permitidos,
+      c.cierre_automatico, c.mostrar_correctas,
+    ],
   );
   if (!rowCount) throw new ErrorNegocio("La evaluación no existe.");
 }

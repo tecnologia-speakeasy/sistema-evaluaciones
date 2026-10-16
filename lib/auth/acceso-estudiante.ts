@@ -5,14 +5,16 @@ import { enviarCorreo, smtpConfigurado } from "@/lib/email/enviar";
 import { codigoCoincide, generarCodigo, hashCodigo, limitesEnvio } from "./codigo";
 import { ESPERA_REENVIO_S, MAX_INTENTOS_CODIGO, VIGENCIA_CODIGO_MIN } from "./codigo-compartido";
 
-// Acceso de un estudiante (Fase 3): correo → código de 6 dígitos por correo →
-// sesión. La tabla es codigos_acceso (db/002_otp.sql):
+// Acceso de un estudiante con código (Fase 3, solo si OTP_ACTIVO=true; ver
+// otpActivo()): correo → código de 6 dígitos por correo → sesión. Sin OTP entra
+// con correo + nombre (/api/auth/estudiante-login).
+// La tabla es codigos_acceso (db/002_otp.sql):
 //   · Solo vale el último código del estudiante; pedir otro anula el anterior.
 //   · Vence a los 10 min, máx. 5 intentos, un solo uso.
 //   · Entre dos envíos al mismo correo hay al menos 60 s; además hay un tope de
 //     envíos por correo y por IP en una ventana de tiempo (ver limitesEnvio()).
 
-export type EstudianteAcceso = { id: number; email: string; nombre: string };
+export type EstudianteAcceso = { id: number; email: string };
 
 export type InicioAcceso =
   /** reenviarEn: segundos hasta poder pedir otro. nuevo: false = ya se había
@@ -119,7 +121,7 @@ async function entregarCodigo(estudiante: EstudianteAcceso, codigo: string): Pro
     );
     return;
   }
-  await enviarCorreo(estudiante.email, correoCodigo(estudiante.nombre, codigo));
+  await enviarCorreo(estudiante.email, correoCodigo(codigo));
 }
 
 export type MotivoRechazo = "incorrecto" | "sin_intentos" | "vencido" | "usado" | "sin_codigo";

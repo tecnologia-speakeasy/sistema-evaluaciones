@@ -18,6 +18,7 @@ export function CasillasCodigo({
   onCambio,
   soloLectura = false,
   invalida = false,
+  autoFocus = true,
 }: {
   /** id de la primera casilla (para el <label>). */
   id: string;
@@ -26,6 +27,8 @@ export function CasillasCodigo({
   /** Mientras se verifica: no se puede escribir, pero sí recibir el foco. */
   soloLectura?: boolean;
   invalida?: boolean;
+  /** La primera casilla toma el foco al aparecer. */
+  autoFocus?: boolean;
 }) {
   const casillas = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -39,8 +42,10 @@ export function CasillasCodigo({
 
   function aplicar({ digitos: nuevos, foco }: { digitos: string[]; foco: number }) {
     if (soloLectura) return; // readOnly no frena pegar ni Backspace en una vacía
-    onCambio(nuevos);
+    // Primero el foco y después avisar: así el formulario puede llevarlo a otro
+    // campo (p. ej. al nombre, si falta).
     enfocar(foco);
+    onCambio(nuevos);
   }
 
   function alTeclear(e: KeyboardEvent<HTMLInputElement>, i: number) {
@@ -77,7 +82,7 @@ export function CasillasCodigo({
           aria-label={`Dígito ${i + 1} de ${DIGITOS_CODIGO}`}
           aria-invalid={invalida || undefined}
           readOnly={soloLectura}
-          autoFocus={i === 0}
+          autoFocus={autoFocus && i === 0}
           value={d}
           onChange={(e) => aplicar(escribirEnCasilla(digitos, i, e.target.value))}
           onKeyDown={(e) => alTeclear(e, i)}

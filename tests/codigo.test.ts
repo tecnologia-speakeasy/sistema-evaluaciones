@@ -127,28 +127,19 @@ describe("casillas del código", () => {
 
 describe("correo del código", () => {
   it("asunto con el código, para verlo en la notificación", () => {
-    expect(correoCodigo("Ana Pérez", "048213").asunto).toBe("048213 es tu código de Speak Easy");
+    expect(correoCodigo("048213").asunto).toBe("048213 es tu código de Speak Easy");
   });
 
-  it("HTML con logo, código, vigencia y primer nombre", () => {
-    const { html } = correoCodigo("Ana Pérez", "048213");
+  it("HTML con logo, código, vigencia y saludo sin nombre (no está en la BD)", () => {
+    const { html } = correoCodigo("048213");
     expect(html).toContain('src="cid:logo-speak-easy"');
     expect(html).toContain(">048213<");
     expect(html).toContain("10 minutos");
-    expect(html).toContain("<strong>Ana</strong>");
-    expect(html).not.toContain("Pérez");
-  });
-
-  it("escapa el nombre (viene de la BD)", () => {
-    const { html, texto } = correoCodigo('<img src=x onerror="alert(1)">', "048213");
-    expect(html).not.toContain("<img src=x");
-    expect(html).toContain("&lt;img");
-    // La versión de texto no es HTML: va tal cual.
-    expect(texto).toContain("<img");
+    expect(html).toContain(">Hola,</p>");
   });
 
   it("versión de texto con el código", () => {
-    expect(correoCodigo("Ana", "048213").texto).toMatch(/^\s+048213$/m);
+    expect(correoCodigo("048213").texto).toMatch(/^\s+048213$/m);
   });
 
   it("escaparHtml", () => {

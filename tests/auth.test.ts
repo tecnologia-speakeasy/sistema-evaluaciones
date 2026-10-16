@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   HASH_RELLENO,
@@ -11,6 +12,8 @@ import {
 } from "../lib/auth/token";
 import { schemaFromUrl } from "../lib/db";
 import { destinoSeguro } from "../lib/auth/destino";
+import { otpActivo } from "../lib/auth/codigo";
+import { nombreSchema } from "../lib/validacion";
 
 beforeAll(() => {
   process.env.SESSION_SECRET = "secreto-de-prueba-con-mas-de-32-caracteres";
@@ -47,8 +50,8 @@ describe("token de sesión", () => {
   const ahora = Date.UTC(2026, 9, 15, 12, 0, 0);
 
   it("ida y vuelta para estudiante y staff", () => {
-    const est = firmarSesion({ tipo: "estudiante", id: 7 }, ahora);
-    expect(verificarSesion(est, ahora)).toEqual({ tipo: "estudiante", id: 7 });
+    const est = firmarSesion({ tipo: "estudiante", id: 7, nombre: "Ana Pérez" }, ahora);
+    expect(verificarSesion(est, ahora)).toEqual({ tipo: "estudiante", id: 7, nombre: "Ana Pérez" });
 
     const staff = firmarSesion({ tipo: "staff", id: 3, rol: "docente" }, ahora);
     expect(verificarSesion(staff, ahora)).toEqual({
@@ -69,7 +72,7 @@ describe("token de sesión", () => {
   });
 
   it("rechaza firmas hechas con otro secreto", () => {
-    const token = firmarSesion({ tipo: "estudiante", id: 1 }, ahora);
+    const token = firmarSesion({ tipo: "estudiante", id: 1, nombre: "Ana Pérez" }, ahora);
     process.env.SESSION_SECRET = "otro-secreto-distinto-de-mas-de-32-chars";
     try {
       expect(verificarSesion(token, ahora)).toBeNull();
@@ -79,7 +82,7 @@ describe("token de sesión", () => {
   });
 
   it("expira a los 7 días (estudiante) y a las 12 h (staff)", () => {
-    const est = firmarSesion({ tipo: "estudiante", id: 1 }, ahora);
+    const est = firmarSesion({ tipo: "estudiante", id: 1, nombre: "Ana Pérez" }, ahora);
     const seisDias = ahora + 6 * 24 * 3600 * 1000;
     const sieteDias = ahora + 7 * 24 * 3600 * 1000;
     expect(verificarSesion(est, seisDias)).not.toBeNull();
@@ -92,6 +95,15 @@ describe("token de sesión", () => {
     expect(verificarSesion(staff, doceHoras)).toBeNull();
   });
 
+  it("rechaza la sesión de estudiante sin nombre (cookies de antes de la 003)", () => {
+    const exp = Math.floor(ahora / 1000) + DURACION_SESION.estudiante;
+    const cuerpo = Buffer.from(JSON.stringify({ tipo: "estudiante", id: 7, exp })).toString("base64url");
+    const firma = createHmac("sha256", "secreto-de-prueba-con-mas-de-32-caracteres")
+      .update(cuerpo)
+      .digest("base64url");
+    expect(verificarSesion(`${cuerpo}.${firma}`, ahora)).toBeNull();
+  });
+
   it("rechaza basura sin lanzar error", () => {
     for (const malo of ["", ".", "abc", "a.b.c", "%%%.###"]) {
       expect(verificarSesion(malo, ahora)).toBeNull();
@@ -101,7 +113,7 @@ describe("token de sesión", () => {
   it("exige SESSION_SECRET de al menos 32 caracteres", () => {
     process.env.SESSION_SECRET = "corto";
     try {
-      expect(() => firmarSesion({ tipo: "estudiante", id: 1 }, ahora)).toThrow(
+      expect(() => firmarSesion({ tipo: "estudiante", id: 1, nombre: "Ana Pérez" }, ahora)).toThrow(
         /SESSION_SECRET/,
       );
     } finally {
@@ -157,5 +169,31 @@ describe("schemaFromUrl", () => {
     expect(() =>
       schemaFromUrl("postgres://u:p@h/db?schema=x%20-c%20role%3Dadmin"),
     ).toThrow(/schema inválido/);
+  });
+});
+
+describe("nombre del estudiante (como en a2)", () => {
+  it("se guarda tal cual lo escribe, sin espacios de sobra", () => {
+    expect(nombreSchema.parse("  maría   GARCÍA lópez ")).toBe("maría GARCÍA lópez");
+  });
+
+  it("mínimo 2 caracteres y máximo 120", () => {
+    expect(nombreSchema.safeParse(" a ").success).toBe(false);
+    expect(nombreSchema.safeParse("Al").success).toBe(true);
+    expect(nombreSchema.safeParse("x".repeat(121)).success).toBe(false);
+    expect(nombreSchema.safeParse(undefined).error?.issues[0].message).toBe("Escribe tu nombre");
+  });
+});
+
+describe("OTP_ACTIVO", () => {
+  it("apagado por defecto: el estudiante entra con correo + nombre", () => {
+    expect(otpActivo({})).toBe(false);
+    expect(otpActivo({ OTP_ACTIVO: "false" })).toBe(false);
+    expect(otpActivo({ OTP_ACTIVO: "" })).toBe(false);
+    expect(otpActivo({ OTP_ACTIVO: "no" })).toBe(false);
+  });
+
+  it("se enciende con true / 1 / sí", () => {
+    for (const v of ["true", "TRUE", " 1 ", "si", "sí"]) expect(otpActivo({ OTP_ACTIVO: v })).toBe(true);
   });
 });

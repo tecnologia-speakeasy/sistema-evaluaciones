@@ -51,19 +51,20 @@ export const getStaffActual = cache(async (): Promise<StaffActual | null> => {
   return rows[0] ?? null;
 });
 
+// El nombre viene de la sesión (lo escribió al entrar); la BD confirma que sigue
+// activo y de qué generación es.
 export const getEstudianteActual = cache(
   async (): Promise<EstudianteActual | null> => {
     const sesion = await getSession();
     if (sesion?.tipo !== "estudiante") return null;
-    const { rows } = await query<EstudianteActual>(
-      `SELECT e.id, e.email, e.nombre, e.generacion_id,
-              g.nombre AS generacion_nombre
+    const { rows } = await query<Omit<EstudianteActual, "nombre">>(
+      `SELECT e.id, e.email, e.generacion_id, g.nombre AS generacion_nombre
          FROM estudiantes e
          JOIN generaciones g ON g.id = e.generacion_id
         WHERE e.id = $1 AND e.activo`,
       [sesion.id],
     );
-    return rows[0] ?? null;
+    return rows[0] ? { ...rows[0], nombre: sesion.nombre } : null;
   },
 );
 

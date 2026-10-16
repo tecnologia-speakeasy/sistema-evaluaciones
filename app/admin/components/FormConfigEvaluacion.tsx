@@ -5,9 +5,11 @@ import { guardarConfigAction, type DatosConfig } from "@/app/admin/acciones/eval
 import { Aviso } from "@/app/components/ui/Aviso";
 import { Boton } from "@/app/components/ui/Boton";
 import { AreaTexto, Campo, Entrada } from "@/app/components/ui/Campo";
+import { Interruptor } from "@/app/components/ui/Interruptor";
 import type { ConfigEvaluacion } from "@/lib/datos/evaluaciones";
 
-// Título, descripción, apertura/cierre (hora de Colombia), duración e intentos.
+// Título, descripción, apertura/cierre (hora de Colombia), duración, intentos y
+// dos opciones: cerrar al acabar el tiempo y mostrar las correctas en el resultado.
 export function FormConfigEvaluacion({
   evaluacionId,
   inicial,
@@ -24,14 +26,23 @@ export function FormConfigEvaluacion({
     cierre: inicial.cierre ?? "",
     duracion_min: inicial.duracion_min?.toString() ?? "",
     intentos_permitidos: inicial.intentos_permitidos?.toString() ?? "",
+    cierre_automatico: inicial.cierre_automatico,
+    mostrar_correctas: inicial.mostrar_correctas,
   });
   const [error, setError] = useState<{ mensaje: string; campo?: string } | null>(null);
   const [guardado, setGuardado] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  const cambiar = (campo: keyof DatosConfig) => (v: string) => {
+  type CampoTexto = Exclude<keyof DatosConfig, "cierre_automatico" | "mostrar_correctas">;
+  const cambiar = (campo: CampoTexto) => (v: string) => {
     setDatos((d) => ({ ...d, [campo]: v }));
     setGuardado(false);
+    setError(null);
+  };
+  const cambiarOpcion = (campo: "cierre_automatico" | "mostrar_correctas") => (v: boolean) => {
+    setDatos((d) => ({ ...d, [campo]: v }));
+    setGuardado(false);
+    setError(null);
   };
   const errorDe = (campo: string) => (error?.campo === campo ? error.mensaje : null);
 
@@ -137,6 +148,26 @@ export function FormConfigEvaluacion({
         </Campo>
       </div>
 
+      <div className="flex flex-col divide-y divide-borde-suave rounded-xl border-[1.5px] border-borde-suave bg-campo">
+        <Opcion
+          etiqueta="Cerrar al acabar el tiempo"
+          ayuda={
+            datos.duracion_min.trim()
+              ? "Al llegar a cero se envía sola. Apagado: el tiempo es solo una referencia."
+              : "Necesita una duración. Sin ella, el tiempo es solo una referencia."
+          }
+          activo={datos.cierre_automatico}
+          onCambio={cambiarOpcion("cierre_automatico")}
+          error={errorDe("cierre_automatico")}
+        />
+        <Opcion
+          etiqueta="Mostrar respuestas correctas en el resultado"
+          ayuda="En las que falló, cuando ya no le queden intentos o la evaluación haya cerrado."
+          activo={datos.mostrar_correctas}
+          onCambio={cambiarOpcion("mostrar_correctas")}
+        />
+      </div>
+
       {error && !error.campo && <Aviso tono="error">{error.mensaje}</Aviso>}
       {guardado && !onGuardado && <Aviso tono="exito">Cambios guardados.</Aviso>}
 
@@ -146,5 +177,37 @@ export function FormConfigEvaluacion({
         </Boton>
       </div>
     </form>
+  );
+}
+
+// Una opción sí/no: texto a la izquierda, interruptor a la derecha.
+function Opcion({
+  etiqueta,
+  ayuda,
+  activo,
+  onCambio,
+  error,
+}: {
+  etiqueta: string;
+  ayuda: string;
+  activo: boolean;
+  onCambio: (v: boolean) => void;
+  error?: string | null;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-tinta">{etiqueta}</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-gris-oscuro">{ayuda}</p>
+        {error && (
+          <p role="alert" className="mt-1 text-[13px] leading-snug text-error-texto">
+            {error}
+          </p>
+        )}
+      </div>
+      <div className="pt-0.5">
+        <Interruptor activo={activo} onCambio={onCambio} etiqueta={etiqueta} />
+      </div>
+    </div>
   );
 }

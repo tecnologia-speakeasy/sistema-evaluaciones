@@ -9,8 +9,10 @@ export const COOKIE_SESION = "se_sesion";
 
 export type RolStaff = "admin" | "docente";
 
+// El estudiante no tiene nombre en la BD: lo escribe al entrar (como en a2),
+// viaja en la sesión y se copia a cada intento.
 export type Sesion =
-  | { tipo: "estudiante"; id: number }
+  | { tipo: "estudiante"; id: number; nombre: string }
   | { tipo: "staff"; id: number; rol: RolStaff };
 
 // Duración de la sesión en segundos, según el tipo de usuario.
@@ -23,6 +25,7 @@ const payloadSchema = z.discriminatedUnion("tipo", [
   z.object({
     tipo: z.literal("estudiante"),
     id: z.number().int().positive(),
+    nombre: z.string().min(1).max(120),
     exp: z.number().int(),
   }),
   z.object({
@@ -88,5 +91,5 @@ export function verificarSesion(
 
   return d.tipo === "staff"
     ? { tipo: "staff", id: d.id, rol: d.rol }
-    : { tipo: "estudiante", id: d.id };
+    : { tipo: "estudiante", id: d.id, nombre: d.nombre };
 }

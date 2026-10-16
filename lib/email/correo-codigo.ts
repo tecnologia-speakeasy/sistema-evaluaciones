@@ -3,12 +3,12 @@ import { COLOR, escaparHtml, plantillaCorreo, type Correo } from "./plantilla";
 
 // Correo con el código de acceso del estudiante. El código va en el asunto
 // para que se vea en la notificación del celular sin abrir el correo.
-export function correoCodigo(nombre: string, codigo: string): Correo {
-  const primerNombre = nombre.trim().split(/\s+/)[0] || nombre;
+// Sin nombre: el estudiante lo escribe en el mismo paso que el código.
+export function correoCodigo(codigo: string): Correo {
   const vigencia = `${VIGENCIA_CODIGO_MIN} minutos`;
 
   const contenidoHtml = `
-<p style="margin:0 0 6px;">Hola <strong>${escaparHtml(primerNombre)}</strong>,</p>
+<p style="margin:0 0 6px;">Hola,</p>
 <p style="margin:0;">Usa este código para entrar a tus evaluaciones de inglés:</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
   <tr>
@@ -28,7 +28,7 @@ export function correoCodigo(nombre: string, codigo: string): Correo {
       contenidoHtml,
     }),
     texto: [
-      `Hola ${primerNombre},`,
+      "Hola,",
       "",
       "Usa este código para entrar a tus evaluaciones de inglés:",
       "",

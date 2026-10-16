@@ -7,14 +7,17 @@ import {
   iniciarAccesoEstudiante,
   mensajeLimite,
 } from "@/lib/auth/acceso-estudiante";
+import { otpActivo } from "@/lib/auth/codigo";
 import { ipDeRequest } from "@/lib/auth/login-intentos";
 
 // Paso 1 del login unificado: ¿de quién es este correo?
-//   { tipo: "staff" }                                        → el formulario pide la contraseña
-//   { tipo: "estudiante", paso: "codigo_enviado", reenviarEn, nuevo } → pide el código de 6 dígitos
-//   429 { tipo: "estudiante", paso: "limite", reenviarEn, error }
+//   { tipo: "staff" }                         → el formulario pide la contraseña
+//   { tipo: "estudiante", paso: "nombre" }    → pide el nombre (/api/auth/estudiante-login)
 //   { tipo: "no_autorizado" }
-// "Reenviar código" vuelve a llamar a esta ruta.
+// Solo con OTP_ACTIVO=true, para un estudiante:
+//   { tipo: "estudiante", paso: "codigo_enviado", reenviarEn, nuevo } → nombre + código
+//   429 { tipo: "estudiante", paso: "limite", reenviarEn, error }
+//   "Reenviar código" vuelve a llamar a esta ruta.
 
 const schema = z.object({ email: emailSchema });
 
@@ -24,10 +27,10 @@ export async function POST(req: Request) {
   const { email } = entrada.data;
 
   try {
-    const { rows } = await query<{ tipo: "staff" | "estudiante"; id: number; nombre: string }>(
-      `SELECT 'staff' AS tipo, id, nombre FROM staff WHERE email = $1 AND activo
+    const { rows } = await query<{ tipo: "staff" | "estudiante"; id: number }>(
+      `SELECT 'staff' AS tipo, id FROM staff WHERE email = $1 AND activo
        UNION ALL
-       SELECT 'estudiante', id, nombre FROM estudiantes WHERE email = $1 AND activo`,
+       SELECT 'estudiante', id FROM estudiantes WHERE email = $1 AND activo`,
       [email],
     );
 
@@ -39,10 +42,9 @@ export async function POST(req: Request) {
     const estudiante = rows.find((r) => r.tipo === "estudiante");
     if (!estudiante) return Response.json({ tipo: "no_autorizado" });
 
-    const r = await iniciarAccesoEstudiante(
-      { id: estudiante.id, email, nombre: estudiante.nombre },
-      ipDeRequest(req),
-    );
+    if (!otpActivo()) return Response.json({ tipo: "estudiante", paso: "nombre" });
+
+    const r = await iniciarAccesoEstudiante({ id: estudiante.id, email }, ipDeRequest(req));
     if (r.paso === "limite") {
       return Response.json(
         { tipo: "estudiante", paso: "limite", reenviarEn: r.reenviarEn, error: mensajeLimite(r.motivo) },

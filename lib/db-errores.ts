@@ -95,6 +95,10 @@ const MENSAJES_CONSTRAINT: Record<string, ErrorTraducido> = {
     campo: "duracion_min",
     mensaje: "La duración debe ser mayor que 0 (o vacía para sin límite).",
   },
+  evaluaciones_cierre_automatico_check: {
+    campo: "cierre_automatico",
+    mensaje: "Para cerrar al acabar el tiempo, define la duración.",
+  },
   evaluaciones_intentos_permitidos_check: {
     campo: "intentos_permitidos",
     mensaje: "Los intentos deben ser mayores que 0 (o vacío para ilimitados).",

@@ -26,18 +26,26 @@ function enteroOpcional(nombre: string, max: number) {
     );
 }
 
-const configSchema = z.object({
-  titulo: z.string().trim().min(1, "Escribe el título").max(200, "El título es demasiado largo"),
-  descripcion: z
-    .string()
-    .trim()
-    .max(2000, "La descripción es demasiado larga")
-    .transform((v) => v || null),
-  apertura: fechaHoraLocalSchema,
-  cierre: fechaHoraLocalSchema,
-  duracion_min: enteroOpcional("Duración", 1440),
-  intentos_permitidos: enteroOpcional("Intentos", 100),
-});
+const configSchema = z
+  .object({
+    titulo: z.string().trim().min(1, "Escribe el título").max(200, "El título es demasiado largo"),
+    descripcion: z
+      .string()
+      .trim()
+      .max(2000, "La descripción es demasiado larga")
+      .transform((v) => v || null),
+    apertura: fechaHoraLocalSchema,
+    cierre: fechaHoraLocalSchema,
+    duracion_min: enteroOpcional("Duración", 1440),
+    intentos_permitidos: enteroOpcional("Intentos", 100),
+    cierre_automatico: z.boolean(),
+    mostrar_correctas: z.boolean(),
+  })
+  // También lo exige la BD (evaluaciones_cierre_automatico_check).
+  .refine((c) => !c.cierre_automatico || c.duracion_min !== null, {
+    path: ["cierre_automatico"],
+    message: "Para cerrar al acabar el tiempo, define la duración.",
+  });
 
 export type DatosConfig = z.input<typeof configSchema>;
 

@@ -14,3 +14,10 @@ export const emailSchema = z
   .trim()
   .toLowerCase()
   .pipe(z.email("Correo inválido").max(254, "Correo demasiado largo"));
+
+// Nombre que escribe el estudiante al entrar (como en a2). Se guarda tal cual lo
+// escribe (sin cambiar mayúsculas), solo sin espacios de sobra.
+export const nombreSchema = z
+  .string({ error: "Escribe tu nombre" })
+  .transform((v) => v.replace(/\s+/g, " ").trim())
+  .pipe(z.string().min(2, "Escribe tu nombre").max(120, "Nombre demasiado largo"));

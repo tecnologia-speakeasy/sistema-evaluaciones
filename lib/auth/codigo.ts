@@ -28,6 +28,12 @@ export function codigoCoincide(estudianteId: number, codigo: string, hashGuardad
   return guardado.length === recibido.length && timingSafeEqual(guardado, recibido);
 }
 
+// OTP_ACTIVO=true: el estudiante entra con un código que le llega por correo.
+// Por defecto (false): entra solo con correo + nombre, como en a2.
+export function otpActivo(env: Record<string, string | undefined> = process.env): boolean {
+  return /^(true|1|si|sí)$/i.test(env.OTP_ACTIVO?.trim() ?? "");
+}
+
 // Límites de envío de códigos (protegen el cupo diario del SMTP):
 //   OTP_MAX_ENVIOS_POR_CORREO (3) y OTP_MAX_ENVIOS_POR_IP (30)
 //   cada OTP_VENTANA_ENVIOS_MIN (15) minutos.
