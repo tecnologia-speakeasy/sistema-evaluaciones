@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AnilloProgreso } from "@/app/components/examen/AnilloProgreso";
+import { BotonCopiarEnlace } from "@/app/components/examen/BotonCopiarEnlace";
 import { Confeti } from "@/app/components/examen/Confeti";
 import { estudianteParaPagina } from "@/lib/auth/guards";
 import { celebracionPorPuntaje } from "@/lib/celebracion";
@@ -112,14 +113,9 @@ function Celebracion({ d }: { d: DetalleIntento }) {
           </Link>
         </div>
 
-        {d.intentos.length > 1 && <TusIntentos d={d} />}
+        <BotonCopiarEnlace ruta={`/resultado/${d.token}`} />
 
-        <Link
-          href={`/resultado/${d.token}`}
-          className="mt-6 text-[13px] text-white/60 underline-offset-2 hover:text-white hover:underline"
-        >
-          Enlace para compartir este resultado
-        </Link>
+        {d.intentos.length > 1 && <TusIntentos d={d} />}
       </div>
     </div>
   );

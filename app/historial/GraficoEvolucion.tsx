@@ -6,11 +6,15 @@ const ANCHO = 640;
 const ALTO = 220;
 const M = { arriba: 28, abajo: 34, izq: 34, der: 18 };
 
-const codigo = (p: IntentoHistorial) => `${p.tipo === "mensual" ? "M" : "T"}${p.eval_numero}`;
-
 export function GraficoEvolucion({ intentos }: { intentos: IntentoHistorial[] }) {
   const puntos = intentos.filter((i): i is IntentoHistorial & { puntaje_total: number } => i.puntaje_total !== null);
   if (puntos.length === 0) return null;
+
+  // "M1·2" = intento 2 de M1; si la evaluación tiene un solo intento, solo "M2".
+  const porEvaluacion = new Map<string, number>();
+  for (const i of intentos) porEvaluacion.set(i.slug, (porEvaluacion.get(i.slug) ?? 0) + 1);
+  const codigo = (p: IntentoHistorial) =>
+    `${p.tipo === "mensual" ? "M" : "T"}${p.eval_numero}${(porEvaluacion.get(p.slug) ?? 0) > 1 ? `·${p.numero}` : ""}`;
 
   const ancho = ANCHO - M.izq - M.der;
   const alto = ALTO - M.arriba - M.abajo;

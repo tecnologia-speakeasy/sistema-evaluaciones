@@ -202,7 +202,8 @@ function Pregunta({ p, numero }: { p: DetallePregunta; numero: number }) {
   return (
     <article className="mb-[22px]">
       {cuerpo}
-      <LineaCorrecta correcta={p.correcta} />
+      {/* En selección múltiple ya lo dice la opción en verde. */}
+      {p.tipo !== "multiple_choice" && <LineaCorrecta correcta={p.correcta} />}
     </article>
   );
 }
