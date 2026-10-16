@@ -156,7 +156,9 @@ export default function FormPregunta({
           </Aviso>
         )}
 
-        {/* Tipo: botones con el estilo de las opciones de a2 */}
+        {/* Tipo: botones con el estilo de las opciones de a2. Solo se anima el
+            color de fondo (hover): el degradado cambia de golpe y, si el texto
+            se animara, por un instante quedaría oscuro sobre el degradado. */}
         <Campo etiqueta="Tipo de pregunta" error={errorDe("tipo")}>
           <div role="radiogroup" aria-label="Tipo de pregunta" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {TIPOS_PREGUNTA.map((t) => (
@@ -167,7 +169,7 @@ export default function FormPregunta({
                 aria-checked={e.tipo === t}
                 disabled={soloAgregar}
                 onClick={() => cambiarTipo(t)}
-                className={`cursor-pointer rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed ${
+                className={`cursor-pointer rounded-xl px-3 py-2.5 text-sm font-semibold transition-[background-color] duration-150 disabled:cursor-not-allowed ${
                   e.tipo === t
                     ? "degradado-opcion text-white"
                     : "bg-opcion text-tinta hover:bg-lavanda disabled:opacity-50"

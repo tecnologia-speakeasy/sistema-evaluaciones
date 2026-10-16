@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import {
   COOKIE_SESION,
   DURACION_SESION,
@@ -26,7 +27,12 @@ export async function setSession(sesion: Sesion): Promise<void> {
 export async function getSession(): Promise<Sesion | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_SESION)?.value;
-  return token ? verificarSesion(token) : null;
+  if (!token) return null;
+  // La verificación compara la expiración con la hora actual (Date.now()):
+  // debe correr con la petición real, nunca en un prerender (el prefetch de
+  // runtime sí tiene las cookies, y Cache Components rechaza leer la hora ahí).
+  await connection();
+  return verificarSesion(token);
 }
 
 export async function clearSession(): Promise<void> {

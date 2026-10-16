@@ -30,8 +30,13 @@ export default function TarjetaEvaluacion({ evaluacion: e }: { evaluacion: Evalu
       {codigo}
     </span>
   );
-  const interruptor = (
-    <InterruptorPublicar evaluacionId={e.id} titulo={e.titulo} publicada={e.publicada} />
+  const interruptor = (confirmar: boolean) => (
+    <InterruptorPublicar
+      evaluacionId={e.id}
+      titulo={e.titulo}
+      publicada={e.publicada}
+      confirmar={confirmar}
+    />
   );
 
   return (
@@ -55,7 +60,7 @@ export default function TarjetaEvaluacion({ evaluacion: e }: { evaluacion: Evalu
             >
               <Icono nombre="configurar" className="size-4" />
             </Boton>
-            <div className="pt-[3px]">{interruptor}</div>
+            <div className="pt-[3px]">{interruptor(false)}</div>
           </div>
         </div>
 
@@ -76,15 +81,16 @@ export default function TarjetaEvaluacion({ evaluacion: e }: { evaluacion: Evalu
         </div>
       </Tarjeta>
 
-      {/* Celular */}
+      {/* Celular: el interruptor va aparte, tras una línea divisoria, y pide
+          confirmación (un toque al chevron no debe publicar por accidente). */}
       <Tarjeta relleno="p-0" className="sm:hidden">
-        <div className="flex items-center gap-2 pr-3">
+        <div className="flex items-stretch">
           <button
             type="button"
             aria-expanded={expandida}
             aria-controls={idDetalle}
             onClick={() => setExpandida((x) => !x)}
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pl-3 text-left"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pr-3 pl-3 text-left"
           >
             {cuadroCodigo}
             <span className="min-w-0 flex-1">
@@ -98,7 +104,9 @@ export default function TarjetaEvaluacion({ evaluacion: e }: { evaluacion: Evalu
               className={`size-5 shrink-0 text-gris transition-transform duration-150 ${expandida ? "rotate-180" : ""}`}
             />
           </button>
-          {interruptor}
+          <div className="my-2.5 flex items-center border-l border-borde-suave px-3.5">
+            {interruptor(true)}
+          </div>
         </div>
         {expandida && (
           <div id={idDetalle} className="border-t border-borde-suave px-3.5 pt-3 pb-3.5">
