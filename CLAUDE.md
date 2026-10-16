@@ -81,7 +81,8 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 6. El nombre se recuerda en ese navegador (`localStorage`) para la próxima vez; se puede cambiar.
 
 ## Rutas previstas
-- Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (presentar), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público).
+- Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (intro + presentar), `/evaluacion/[slug]/intentos/[n]` (resultado del intento + "Tus intentos"), `/evaluacion/[slug]/intentos/[n]/respuestas` (revisión pregunta por pregunta), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público, solo resumen).
+- API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar).
 - Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 16 evaluaciones), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados`, `/admin/estudiantes` y `/admin/staff` (solo admin).
 
 ## Reglas del examen del estudiante (Fase 4)
@@ -96,6 +97,8 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 - **Resultado** (con sesión, `/evaluacion/[slug]/intentos/[n]`): insignia por rango como a2 (`lib/celebracion.ts`), puntaje, Grammar X/N y Writing X/N (aciertos), selector "Ver intento N" y revisión pregunta por pregunta (acertó/falló). Con `mostrar_correctas`, en las que falló se ve la correcta solo cuando ya no le quedan intentos o la evaluación cerró (ver regla de seguridad 1).
 - **`/resultado/[token]`** (público, para el enlace de WhatsApp): solo resumen, como a2. Nunca el detalle por pregunta.
 - **Calificando**: Spiky (también en celular) al menos 2,5 s.
+- **Código**: datos y reglas en `lib/datos/intentos.ts`; calificación pura en `lib/grading/` (`normalize.ts` idéntica a a2, `calificar.ts`); reloj en `lib/intentos/reloj.ts`; pantalla en `app/evaluacion/[slug]/Examen.tsx` y piezas en `app/components/examen/` (antitrampa, autoguardado, calificando, confeti, anillo). Grammar/Writing = aciertos "X/N" (N cuenta solo preguntas ya calificadas).
+- Next conserva ocultas las páginas visitadas: `<Examen>` lleva una `key` que cambia con los intentos, para que "Repetir evaluación" no reaparezca el examen anterior.
 
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
 - `lib/exam.js` → normalize + lógica de calificación.
@@ -109,8 +112,8 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 1. ✅ Hecha. Base: scaffold Next.js + TS + Tailwind, `lib/db.ts`, `lib/auth/*`, login unificado, `proxy.ts`, `scripts/crear-admin.ts`.
 2. ✅ Hecha. Dashboard staff: generaciones, evaluaciones (generar 16, publicar/despublicar, fechas), CRUD de preguntas con formulario por tipo, reordenar, clonar.
 3. ✅ Hecha. OTP por correo para estudiantes (código de 6 dígitos, 10 min de validez, máx. 5 intentos, límites de envío por correo e IP), `lib/email/`, migración `db/002_otp.sql`.
-4. Vista estudiante: lista de evaluaciones, presentar, envío y calificación, resultado, e **historial de puntajes de todos sus intentos** (`/historial` + selector "Ver intento N" como en a2).
-5. IA + correo + WhatsApp, reintentos de feedback pendiente.
+4. ✅ Hecha. Vista estudiante: lista de evaluaciones, presentar (autoguardado, retomar, cierre automático opcional), envío y calificación en el servidor, resultado con insignia, revisión, **historial de puntajes de todos sus intentos** (`/historial` + selector "Ver intento N" como en a2) y `/resultado/[token]`. Las abiertas quedan pendientes hasta la Fase 5.
+5. IA + correo + WhatsApp, reintentos de feedback pendiente. La IA califica las abiertas de los intentos en estado `pendiente` (`respuestas.es_correcta` NULL) y entonces se calcula `puntaje_total` y el intento pasa a `listo`.
 6. Admin: estudiantes (import CSV: solo correo y `manychat_id` opcional; sin nombre), staff, resultados y exportar CSV.
 
 ## Migraciones pendientes en producción

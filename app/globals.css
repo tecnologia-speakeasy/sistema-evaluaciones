@@ -73,6 +73,18 @@
   100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
 }
 
+/* Confeti de la pantalla de resultado (confettiFall de a2). */
+@keyframes confetti-fall {
+  0% { transform: translateY(-12vh) rotate(0deg); }
+  100% { transform: translateY(112vh) rotate(720deg); }
+}
+
+/* Scroll fino y claro sobre fondos oscuros (.fb-scroll de a2). */
+@utility scroll-claro {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+}
+
 /* Degradados y fondos de a2 */
 @utility degradado-barra {
   background: linear-gradient(90deg, #41276b 0%, #613ba0 55%, #e9407e 100%);

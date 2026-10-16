@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import {
   contarEspacios,
   partirEnunciado,
@@ -30,12 +30,15 @@ export function PreguntaEstudiante({
   numero,
   respuesta,
   onCambio,
+  cronometro,
 }: {
   pregunta: PreguntaPublica;
   /** Número dentro de su sección (a2 reinicia la numeración en cada Part). */
   numero: number;
   respuesta: RespuestaEstudiante;
   onCambio: (r: RespuestaEstudiante) => void;
+  /** Celular: el cronómetro circular encima de la tarjeta morada (xs.mTimer). */
+  cronometro?: ReactNode;
 }) {
   const titulo = pregunta.seccion ?? `Ejercicio ${numero}`;
   const instruccion = INSTRUCCION_POR_TIPO[pregunta.tipo];
@@ -50,8 +53,17 @@ export function PreguntaEstudiante({
           <p className="mb-[26px] text-base leading-normal text-tinta">{instruccion}</p>
         )}
       </div>
-      {/* Celular: xs.mCard (tarjeta morada), variante sin cronómetro */}
-      <div className="degradado-tarjeta-movil mt-[46px] mb-[26px] rounded-[20px] px-[22px] pt-[26px] pb-7 text-center text-white md:hidden">
+      {/* Celular: xs.mCard (tarjeta morada), con o sin cronómetro encima */}
+      <div
+        className={`degradado-tarjeta-movil relative mt-[46px] mb-[26px] rounded-[20px] px-[22px] pb-7 text-center text-white md:hidden ${
+          cronometro ? "pt-14" : "pt-[26px]"
+        }`}
+      >
+        {cronometro && (
+          <div className="absolute -top-10 left-1/2 flex size-20 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+            {cronometro}
+          </div>
+        )}
         <h2 className="mb-2 text-[22px] font-extrabold text-white">{titulo}</h2>
         {esMultiple && <p className="text-[15px] leading-normal text-white/90">{instruccion}</p>}
       </div>

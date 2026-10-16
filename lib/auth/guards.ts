@@ -89,6 +89,13 @@ export async function staffParaPagina(): Promise<StaffActual> {
   return staff;
 }
 
+// Para páginas del estudiante: sin sesión válida → al login, y de vuelta aquí.
+export async function estudianteParaPagina(volverA = "/"): Promise<EstudianteActual> {
+  const estudiante = await getEstudianteActual();
+  if (!estudiante) redirect(volverA === "/" ? "/login" : `/login?next=${encodeURIComponent(volverA)}`);
+  return estudiante;
+}
+
 export async function requireEstudiante(): Promise<EstudianteActual> {
   const estudiante = await getEstudianteActual();
   if (!estudiante) {

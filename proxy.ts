@@ -34,5 +34,5 @@ export function proxy(req: NextRequest) {
 export const config = {
   // /login, /resultado/[token] (público) y /api/* quedan fuera:
   // los route handlers autorizan por su cuenta.
-  matcher: ["/", "/admin/:path*", "/evaluacion/:path*"],
+  matcher: ["/", "/admin/:path*", "/evaluacion/:path*", "/historial"],
 };
