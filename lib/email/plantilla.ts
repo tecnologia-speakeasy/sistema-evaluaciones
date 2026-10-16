@@ -6,7 +6,11 @@ import { LOGO_ALTO, LOGO_ANCHO } from "./logo";
 // HTML con tablas y estilos en línea: es lo que respetan Gmail y Outlook.
 // Outlook no pinta degradados: queda el color de fondo morado.
 
-export type Correo = { asunto: string; html: string; texto: string };
+/** Imagen embebida en el HTML con <img src="cid:...">. */
+export type AdjuntoEmbebido = { cid: string; nombre: string; contenido: Buffer; tipo: string };
+
+/** `adjuntos`: imágenes embebidas además del logo (que siempre va). */
+export type Correo = { asunto: string; html: string; texto: string; adjuntos?: AdjuntoEmbebido[] };
 
 /** Content-ID del logo adjunto (ver enviar.ts). */
 export const CID_LOGO = "logo-speak-easy";

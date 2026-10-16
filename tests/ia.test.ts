@@ -10,8 +10,9 @@ import {
   resumirParaFeedback,
   type RespuestaParaResumen,
 } from "../lib/ia/prompts";
-import { correoResultado } from "../lib/email/correo-resultado";
-import { urlBase, urlPublica } from "../lib/url";
+import { CID_INSIGNIA, correoResultado } from "../lib/email/correo-resultado";
+import { INSIGNIAS_CORREO } from "../lib/email/insignias";
+import { RANGOS_CELEBRACION } from "../lib/celebracion";
 
 describe("abiertas: prompt y lectura de la IA", () => {
   const items = [
@@ -109,26 +110,46 @@ describe("feedback general", () => {
 
 describe("correo del resultado", () => {
   const base = {
-    nombre: "Lucía Pérez",
     evaluacion: "Evaluación mensual 1",
     puntaje: 80,
     grammar: { aciertos: 2, total: 2 },
     writing: { aciertos: 2, total: 3 },
     feedback: "Hola Lucía,\nbuen trabajo <script>alert(1)</script>",
-    urlResultado: "https://evaluaciones.example.com/resultado/abc123",
-    urlBase: "https://evaluaciones.example.com",
   };
 
-  it("asunto, saludo, puntaje, insignia por rango y botón al resultado", () => {
+  it("asunto, insignia, título, puntaje y Grammar/Writing", () => {
     const c = correoResultado(base);
     expect(c.asunto).toBe("Tu resultado de Evaluación mensual 1 · Speak Easy");
-    expect(c.html).toContain("Hola <strong>Lucía</strong>");
-    expect(c.html).toContain(">80<");
-    expect(c.html).toContain('src="https://evaluaciones.example.com/calificaciones/80.png"');
+    expect(c.html).toContain(`src="cid:${CID_INSIGNIA}"`);
     expect(c.html).toContain("¡Lo estás haciendo bien!");
-    expect(c.html).toContain('href="https://evaluaciones.example.com/resultado/abc123"');
-    expect(c.html).toContain("Ver mi resultado");
+    expect(c.html).toContain(">80<");
     expect(c.html).toMatch(/Grammar <strong>2<\/strong><strong[^>]*>\/2</);
+    expect(c.html).toMatch(/Writing <strong>2<\/strong><strong[^>]*>\/3</);
+  });
+
+  it("la insignia va embebida (cid:): solo la del puntaje, sin depender de una URL", () => {
+    const c = correoResultado(base);
+    expect(c.adjuntos).toHaveLength(1);
+    expect(c.adjuntos![0]).toMatchObject({ cid: CID_INSIGNIA, tipo: "image/png" });
+    expect(c.adjuntos![0].contenido.equals(INSIGNIAS_CORREO["/calificaciones/80.png"].png)).toBe(true);
+    expect(c.html).not.toMatch(/src="https?:/);
+  });
+
+  it("sin botón ni enlace al resultado", () => {
+    const c = correoResultado(base);
+    expect(c.html).not.toContain("Ver mi resultado");
+    expect(c.html).not.toContain("Si el botón no funciona");
+    expect(c.html).not.toMatch(/<a\s/);
+    expect(c.texto).not.toMatch(/https?:\/\//);
+  });
+
+  it("hay una insignia PNG válida para cada rango de calificación", () => {
+    for (const r of RANGOS_CELEBRACION) {
+      const i = INSIGNIAS_CORREO[r.img];
+      expect(i, r.img).toBeDefined();
+      expect(i.png.subarray(1, 4).toString()).toBe("PNG");
+      expect(i.ancho).toBe(96);
+    }
   });
 
   it("escapa el feedback de la IA; el texto plano lo lleva tal cual", () => {
@@ -136,27 +157,11 @@ describe("correo del resultado", () => {
     expect(c.html).not.toContain("<script>");
     expect(c.html).toContain("&lt;script&gt;");
     expect(c.texto).toContain("buen trabajo <script>");
-    expect(c.texto).toContain("Ver mi resultado: https://evaluaciones.example.com/resultado/abc123");
+    expect(c.texto).toContain("Evaluación mensual 1: 80/100");
   });
 
   it("sin preguntas de una categoría, no la muestra", () => {
     const c = correoResultado({ ...base, writing: { aciertos: 0, total: 0 } });
     expect(c.html).not.toContain("Writing");
-  });
-});
-
-describe("URL pública (APP_URL; en Vercel, el dominio de producción)", () => {
-  it("prefiere APP_URL y quita la barra final", () => {
-    expect(urlBase({ APP_URL: "https://app.example.com/", VERCEL_PROJECT_PRODUCTION_URL: "x.vercel.app" })).toBe(
-      "https://app.example.com",
-    );
-  });
-  it("sin APP_URL usa el dominio de producción de Vercel", () => {
-    expect(urlPublica("/resultado/t", { VERCEL_PROJECT_PRODUCTION_URL: "evaluaciones.vercel.app" })).toBe(
-      "https://evaluaciones.vercel.app/resultado/t",
-    );
-  });
-  it("si no hay ninguna, localhost", () => {
-    expect(urlBase({})).toBe("http://localhost:3000");
   });
 });

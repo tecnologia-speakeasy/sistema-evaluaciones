@@ -32,7 +32,8 @@ export function smtpConfigurado(): boolean {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
-// Todos los correos usan plantillaCorreo(), que muestra el logo adjunto (cid:).
+// Todos los correos usan plantillaCorreo(), que muestra el logo adjunto (cid:);
+// algunos agregan más imágenes embebidas (correo.adjuntos, p. ej. la insignia).
 export async function enviarCorreo(para: string, correo: Correo): Promise<void> {
   if (!smtpConfigurado()) {
     throw new Error("SMTP no configurado (faltan SMTP_HOST/SMTP_USER/SMTP_PASS)");
@@ -51,6 +52,13 @@ export async function enviarCorreo(para: string, correo: Correo): Promise<void> 
         cid: CID_LOGO,
         contentDisposition: "inline",
       },
+      ...(correo.adjuntos ?? []).map((a) => ({
+        filename: a.nombre,
+        content: a.contenido,
+        contentType: a.tipo,
+        cid: a.cid,
+        contentDisposition: "inline" as const,
+      })),
     ],
   });
 }

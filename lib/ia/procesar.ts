@@ -6,7 +6,6 @@ import { resumirIntento } from "@/lib/grading/calificar";
 import { enviarWhatsApp, manychatConfigurado } from "@/lib/manychat";
 import { abiertasActivas } from "@/lib/preguntas/abiertas";
 import type { TipoPregunta } from "@/lib/preguntas/tipos";
-import { urlBase, urlPublica } from "@/lib/url";
 import { llamarOpenAI } from "./openai";
 import {
   leerFeedback,
@@ -212,8 +211,6 @@ async function registrarFalloEnvio(intentoId: number, columna: "email_enviado" |
 
 async function enviarCorreoResultado(intentoId: number): Promise<ResultadoEnvio> {
   const { rows } = await query<{
-    nombre: string;
-    token: string;
     puntaje_total: number;
     grammar_score: number;
     writing_score: number;
@@ -226,9 +223,9 @@ async function enviarCorreoResultado(intentoId: number): Promise<ResultadoEnvio>
     `WITH tomado AS (
        UPDATE intentos i SET email_enviado = TRUE
         WHERE i.id = $1 AND i.estado = 'listo' AND i.feedback IS NOT NULL AND NOT i.email_enviado
-        RETURNING i.id, i.nombre, i.token, i.puntaje_total, i.grammar_score, i.writing_score,
+        RETURNING i.id, i.puntaje_total, i.grammar_score, i.writing_score,
                   i.feedback, i.estudiante_id, i.evaluacion_id)
-     SELECT t.nombre, t.token, t.puntaje_total, coalesce(t.grammar_score, 0) AS grammar_score,
+     SELECT t.puntaje_total, coalesce(t.grammar_score, 0) AS grammar_score,
             coalesce(t.writing_score, 0) AS writing_score, t.feedback, s.email, e.titulo,
             c.grammar_total, c.writing_total
        FROM tomado t
@@ -255,14 +252,11 @@ async function enviarCorreoResultado(intentoId: number): Promise<ResultadoEnvio>
     await enviarCorreo(
       d.email,
       correoResultado({
-        nombre: d.nombre,
         evaluacion: d.titulo,
         puntaje: d.puntaje_total,
         grammar: { aciertos: d.grammar_score, total: d.grammar_total },
         writing: { aciertos: d.writing_score, total: d.writing_total },
         feedback: d.feedback,
-        urlResultado: urlPublica(`/resultado/${d.token}`),
-        urlBase: urlBase(),
       }),
     );
     await query(`UPDATE intentos SET envio_error = NULL WHERE id = $1`, [intentoId]).catch(() => {});

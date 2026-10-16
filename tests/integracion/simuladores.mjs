@@ -108,7 +108,8 @@ function smtpLocal(carpeta) {
       stream.on("end", async () => {
         try {
           const crudo = Buffer.concat(trozos);
-          const correo = await simpleParser(crudo);
+          // keepCidLinks: el HTML tal como se envió (si no, cambia cid: por data:).
+          const correo = await simpleParser(crudo, { keepCidLinks: true });
           n++;
           writeFileSync(`${carpeta}/${n}.eml`, crudo);
           const resumen = {
@@ -119,6 +120,12 @@ function smtpLocal(carpeta) {
             subject: correo.subject,
             text: correo.text,
             html: correo.html,
+            adjuntos: correo.attachments.map((a) => ({
+              cid: a.cid,
+              contentType: a.contentType,
+              contentDisposition: a.contentDisposition,
+              size: a.size,
+            })),
           };
           writeFileSync(`${carpeta}/${n}.json`, JSON.stringify(resumen, null, 2));
           cb();

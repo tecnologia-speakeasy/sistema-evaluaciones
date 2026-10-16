@@ -100,15 +100,19 @@ await caso("(abiertas) procesar: la IA califica la abierta (con rúbrica) y escr
   }),
 );
 
-await caso("correo del resultado: una sola vez, con nombre, puntaje, feedback y botón a APP_URL/resultado/token", async () => {
+await caso("correo del resultado: una sola vez, con insignia embebida, puntaje y feedback; sin enlaces", async () => {
   const lista = correosPara(ana.email);
   assert.equal(lista.length, 1);
   const c = lista[0];
-  const { token } = await intento(idAna);
   assert.equal(c.subject, "Tu resultado de Evaluación mensual 1 · Speak Easy");
-  assert.match(c.html, /Hola <strong>Ana<\/strong>/);
-  assert.ok(c.html.includes(`href="https://evaluaciones.prueba/resultado/${token}"`));
-  assert.ok(c.html.includes("https://evaluaciones.prueba/calificaciones/90.png"));
+  // Logo e insignia (90 → rango 81–90) adjuntos en línea y referenciados por cid.
+  const cids = c.adjuntos.map((a) => a.cid).sort();
+  assert.deepEqual(cids, ["insignia-resultado", "logo-speak-easy"]);
+  assert.ok(c.adjuntos.every((a) => a.contentType === "image/png" && a.contentDisposition === "inline"));
+  assert.ok(c.html.includes('src="cid:insignia-resultado"'));
+  assert.ok(c.html.includes("¡Felicitaciones!"));
+  assert.ok(c.html.includes(">90<"));
+  assert.ok(!/src="https?:|<a\s|Ver mi resultado/.test(c.html), "no debe tener URLs ni botón");
   assert.match(c.text, /en tu evaluación demuestras/);
   assert.equal((await intento(idAna)).email_enviado, true);
   await P.notificarIntento(idAna);

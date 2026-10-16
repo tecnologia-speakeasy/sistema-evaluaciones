@@ -1,0 +1,10 @@
+{
+  "name": "sistema-evaluaciones-pruebas-integracion",
+  "private": true,
+  "description": "Dependencias solo de npm run test:integracion. Van aparte del package.json de la app para que Vercel nunca las instale (embedded-postgres pesa ~100 MB). Las instala tests/integracion/ejecutar.mjs la primera vez.",
+  "devDependencies": {
+    "embedded-postgres": "^17.9.0-beta.17",
+    "mailparser": "^3.9.40",
+    "smtp-server": "^3.19.23"
+  }
+}

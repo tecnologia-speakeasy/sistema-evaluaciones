@@ -74,7 +74,14 @@ export const openai = simulador(new URL(process.env.OPENAI_BASE_URL!).origin);
 export const manychat = simulador(new URL(process.env.MANYCHAT_API_URL!).origin);
 
 // Correos que recibió el SMTP local.
-export type Correo = { n: number; envelopeTo: string[]; subject: string; text: string; html: string };
+export type Correo = {
+  n: number;
+  envelopeTo: string[];
+  subject: string;
+  text: string;
+  html: string;
+  adjuntos: { cid?: string; contentType: string; contentDisposition: string; size: number }[];
+};
 export function correosPara(para: string): Correo[] {
   const carpeta = process.env.PRUEBAS_CORREOS!;
   return (existsSync(carpeta) ? readdirSync(carpeta) : [])

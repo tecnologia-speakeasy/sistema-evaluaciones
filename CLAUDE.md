@@ -124,7 +124,8 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
   3. El staff, si el estudiante cerró la página: el intento aparece en `/admin` ("Hay N intentos por revisar") y en `/admin/resultados` → "Reintentar IA" o "Reintentar envío".
 - **Fallos**: cada fallo suma `ia_intentos` y guarda `ia_error`. El intento vuelve a `pendiente`; al 3.er fallo pasa a `error` (la pantalla lo sigue relanzando). Relanzar solo se detiene a los 10 fallos; después, solo el staff.
 - **Correo** (`lib/email/correo-resultado.ts`):
-  - Plantilla de la Fase 3: nombre, puntaje, insignia, Grammar/Writing, feedback y botón "Ver mi resultado" → `APP_URL/resultado/[token]`.
+  - Plantilla de la Fase 3 con: la insignia del rango, su título, el puntaje, Grammar/Writing y el feedback. Sin botón ni enlaces: no depende de ninguna URL.
+  - La insignia va **embebida** (cid:), igual que el logo: solo la del puntaje, desde `lib/email/insignias.ts` (las de `public/calificaciones/` reducidas a 192 px, ~10 KB, en base64), así se ve siempre en Gmail sin depender de una URL pública ni de que `public/` llegue a la función de Vercel.
   - Solo con el intento `listo` y feedback, y una sola vez: `email_enviado` se marca antes de enviar y se desmarca si falla (queda `envio_error`).
 - **WhatsApp** (`lib/manychat.ts`, como a2):
   - Solo con `MANYCHAT_API_TOKEN` + `MANYCHAT_FLOW_RESULTADO` y si el estudiante tiene `manychat_id`.
@@ -142,7 +143,7 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
     - En cada llamada retoma hasta 5 intentos `pendiente` / `error` / `calificando` con el candado vencido, enviados hace más de 1 min, y reenvía hasta 20 correos/WhatsApp pendientes de la última semana.
     - Responde `{ revisados, listos, fallos, ocupados, envios }` (`maxDuration` 300).
     - Para llamarla cada 10 min:
-      - n8n: *Schedule Trigger* + *HTTP Request* GET `{APP_URL}/api/cron/procesar` con ese header y timeout 300 s.
+      - n8n: *Schedule Trigger* + *HTTP Request* GET `https://<dominio de la app>/api/cron/procesar` con ese header y timeout 300 s.
       - Vercel Pro: `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el header si `CRON_SECRET` existe. Hobby solo admite crons diarios.
 - **Pruebas**: OpenAI, SMTP y ManyChat siempre simulados (`OPENAI_BASE_URL`, `MANYCHAT_API_URL`, SMTP local), nunca los reales del `.env`. Ver "Pruebas".
 
@@ -175,7 +176,6 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
     - Los `pendiente` (con abiertas) se terminan cuando el estudiante abre su intento (la página relanza la IA) o con "Reintentar IA" desde `/admin/resultados`, donde aparecen como "por revisar". Con las abiertas apagadas, la abierta no cuenta: solo se escribe el feedback y sale el correo.
     - Antes de ejecutarla, ver cuántos son: `SELECT estado, count(*) FROM evaluacion.intentos GROUP BY estado;`.
   - Variables en Vercel (Production):
-    - `APP_URL` (si falta, se usa el dominio de producción del proyecto).
     - `OPENAI_API_KEY` y `OPENAI_MODEL` (opcional).
     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`: ahora obligatorias; sin ellas el correo del resultado queda con "SMTP no configurado".
     - `MANYCHAT_API_TOKEN` y `MANYCHAT_FLOW_RESULTADO`.
@@ -188,6 +188,7 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
 - `npm test`: pruebas unitarias (vitest, `tests/*.test.ts`).
 - `npm run test:integracion` (una sola suite: `npm run test:integracion -- ia`):
   - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI, ManyChat y el SMTP (`simuladores.mjs`).
+  - **Dependencias aparte**: `embedded-postgres` (~100 MB), `smtp-server` y `mailparser` van en `tests/integracion/package.json` (con su propio lockfile), **no** en el de la app, así Vercel nunca las instala. El runner las instala la primera vez o si cambia ese lockfile (`tests/integracion/node_modules` está en `.gitignore`). No usar `optionalDependencies`: `npm ci` también las instala, y `--omit=optional` rompería el build (los binarios de Next, Tailwind y lightningcss son opcionales).
   - **Aislamiento**: cada suite corre en su propio proceso con un entorno armado desde cero, nunca el `.env`. Si una suite se corre por fuera del runner, se niega a arrancar (`comun.mts`). Al terminar se borra todo.
   - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5) y `migraciones.mts` (004 sobre datos de la Fase 4).
   - **Configuración por defecto**: abiertas apagadas. La prueba que necesita abiertas las enciende ella misma, solo mientras corre (`conAbiertas()`).

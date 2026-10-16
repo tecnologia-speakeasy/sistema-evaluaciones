@@ -3,19 +3,36 @@
 // simuladores (OpenAI, ManyChat, SMTP), y corre cada suite en su propio proceso
 // con un entorno armado desde cero: nunca usa el .env ni servicios reales.
 // Al terminar borra todo (base, correos).
-import { spawn } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import EmbeddedPostgres from "embedded-postgres";
-import pg from "pg";
-import { iniciarSimuladores } from "./simuladores.mjs";
 
-const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const aqui = path.dirname(fileURLToPath(import.meta.url));
+const raiz = path.resolve(aqui, "../..");
 const SUITES = ["intentos.mts", "ia.mts", "migraciones.mts"];
 const filtro = process.argv[2];
+
+// Las dependencias de estas pruebas (embedded-postgres, smtp-server, mailparser)
+// van en tests/integracion/package.json, no en el de la app: así Vercel nunca
+// las instala. Se instalan aquí la primera vez o si cambió su package-lock.json.
+function prepararDependencias() {
+  const instalado = path.join(aqui, "node_modules", ".package-lock.json");
+  const lock = path.join(aqui, "package-lock.json");
+  if (existsSync(instalado) && statSync(instalado).mtimeMs >= statSync(lock).mtimeMs) return;
+  console.log("Instalando las dependencias de las pruebas de integración (tests/integracion)…");
+  const r = spawnSync("npm ci --no-audit --no-fund", { cwd: aqui, stdio: "inherit", shell: true });
+  if (r.status !== 0) {
+    console.error("No se pudieron instalar las dependencias de tests/integracion.");
+    process.exit(1);
+  }
+}
+prepararDependencias();
+const { default: EmbeddedPostgres } = await import("embedded-postgres");
+const { default: pg } = await import("pg");
+const { iniciarSimuladores } = await import("./simuladores.mjs");
 
 const puertoLibre = () =>
   new Promise((resolver, rechazar) => {
@@ -73,7 +90,7 @@ try {
   // (así las abiertas quedan apagadas, como por defecto) y solo valores de prueba.
   const entorno = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(DATABASE_|SESSION_|OPENAI_|SMTP_|MAIL_|MANYCHAT_|APP_URL|CRON_|OTP_|PREGUNTAS_|VERCEL)/.test(k),
+      ([k]) => !/^(DATABASE_|SESSION_|OPENAI_|SMTP_|MAIL_|MANYCHAT_|CRON_|OTP_|PREGUNTAS_|VERCEL)/.test(k),
     ),
   );
   Object.assign(entorno, {
@@ -91,7 +108,6 @@ try {
     MANYCHAT_API_TOKEN: "token-manychat-prueba",
     MANYCHAT_FLOW_RESULTADO: "content20261016",
     MANYCHAT_API_URL: `http://127.0.0.1:${simuladores.puertoManyChat}`,
-    APP_URL: "https://evaluaciones.prueba",
     PRUEBAS_CORREOS: correos,
   });
 
