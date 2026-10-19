@@ -11,6 +11,7 @@ import { Aviso } from "@/app/components/ui/Aviso";
 import { TituloPagina } from "@/app/components/ui/Encabezado";
 import { Cargando } from "@/app/admin/components/Cargando";
 import EditarGeneracion from "./EditarGeneracion";
+import EliminarGeneracion from "./EliminarGeneracion";
 import GenerarFaltantes from "./GenerarFaltantes";
 import InterruptorGeneracion from "./InterruptorGeneracion";
 import TarjetaEvaluacion from "./TarjetaEvaluacion";
@@ -74,6 +75,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                 estudiantes={resumen.estudiantes}
                 enCurso={resumen.en_curso}
               />
+              <EliminarGeneracion generacionId={generacion.id} />
             </>
           ) : null
         }

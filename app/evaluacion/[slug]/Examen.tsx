@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnilloProgreso } from "@/app/components/examen/AnilloProgreso";
+import { BarraProgreso } from "@/app/components/examen/BarraProgreso";
 import { PantallaCalificando } from "@/app/components/examen/PantallaCalificando";
+import { PasosSeccion } from "@/app/components/examen/PasosSeccion";
 import { useAntitrampa } from "@/app/components/examen/useAntitrampa";
 import { useAutoguardado, type EstadoGuardado } from "@/app/components/examen/useAutoguardado";
 import { PreguntaEstudiante, type RespuestaEstudiante } from "@/app/components/preguntas/PreguntaEstudiante";
@@ -31,7 +33,6 @@ import { contarEspacios, posicionesPorSeccion, type PreguntaPublica } from "@/li
 type Intento = { id: number; numero: number; inicioMs: number; desfaseMs: number };
 
 const ROJO = "#e11d48";
-const VENTANA_PASOS = 9;
 const SIN_CONEXION = "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
 
 const clave = (p: PreguntaPublica) => String(p.id);
@@ -268,25 +269,7 @@ export default function Examen({
 
       <div className="mx-auto flex w-full max-w-[1180px] flex-1 items-start px-[18px] pt-[18px] pb-10 md:gap-7 md:px-7 md:pt-[34px] md:pb-12">
         <main className="min-w-0 flex-1">
-          {/* La barra es global; el contador, por sección (como a2) */}
-          <div className="mb-[30px] flex items-center gap-4">
-            <div
-              role="progressbar"
-              aria-label="Progreso de la evaluación"
-              aria-valuemin={0}
-              aria-valuemax={total}
-              aria-valuenow={indice + 1}
-              className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(120,90,180,0.15)]"
-            >
-              <div
-                className="degradado-progreso h-full rounded-full transition-[width] duration-300"
-                style={{ width: `${((indice + 1) / total) * 100}%` }}
-              />
-            </div>
-            <span className="shrink-0 text-[15px] font-semibold text-gris">
-              {posicion.numero}/{posicion.largo}
-            </span>
-          </div>
+          <BarraProgreso actual={indice + 1} total={total} contador={`${posicion.numero}/${posicion.largo}`} />
 
           <PreguntaEstudiante
             key={pregunta.id}
@@ -360,11 +343,11 @@ export default function Examen({
             </div>
           )}
           <PasosSeccion
-            preguntas={preguntas}
-            respuestas={respuestas}
             indice={indice}
             inicio={posicion.inicio}
             largo={posicion.largo}
+            // Se puede ir a una ya alcanzada o ya respondida, no saltar adelante.
+            puedeIr={(g) => g <= indice || respondida(preguntas[g], respuestas[clave(preguntas[g])])}
             onIr={(i) => {
               setIndice(i);
               setError(null);
@@ -435,73 +418,6 @@ function IndicadorGuardado({ estado }: { estado: EstadoGuardado }) {
     >
       {texto}
     </p>
-  );
-}
-
-// Pasos de la sección actual (xs.stepperCard): ventana de 9 "Ejercicio N".
-// Se puede ir a una ya alcanzada o ya respondida, no saltar adelante.
-function PasosSeccion({
-  preguntas,
-  respuestas,
-  indice,
-  inicio,
-  largo,
-  onIr,
-}: {
-  preguntas: PreguntaPublica[];
-  respuestas: Respuestas;
-  indice: number;
-  inicio: number;
-  largo: number;
-  onIr: (i: number) => void;
-}) {
-  const enSeccion = indice - inicio;
-  const desde =
-    largo > VENTANA_PASOS ? Math.min(Math.max(0, enSeccion - 4), largo - VENTANA_PASOS) : 0;
-  const cuantos = Math.min(largo, VENTANA_PASOS);
-
-  return (
-    <nav aria-label="Ejercicios de la sección" className="max-h-[380px] overflow-y-auto rounded-2xl bg-lavanda px-[22px] py-[18px]">
-      <ol>
-        {Array.from({ length: cuantos }, (_, j) => {
-          const pos = desde + j;
-          const global = inicio + pos;
-          const hecho = pos <= enSeccion;
-          const actual = pos === enSeccion;
-          const puedeIr = global <= indice || respondida(preguntas[global], respuestas[clave(preguntas[global])]);
-          return (
-            <li key={global}>
-              <button
-                type="button"
-                disabled={!puedeIr}
-                aria-current={actual ? "step" : undefined}
-                onClick={() => onIr(global)}
-                className="flex h-[34px] w-full cursor-pointer items-center gap-3 text-left disabled:cursor-not-allowed"
-              >
-                <span className="relative flex h-[34px] w-[18px] shrink-0 items-center justify-center">
-                  {j > 0 && (
-                    <span className={`absolute top-0 h-[17px] w-0.5 ${pos <= enSeccion ? "bg-rosa" : "bg-linea-paso"}`} />
-                  )}
-                  {j < cuantos - 1 && (
-                    <span className={`absolute top-[17px] h-[17px] w-0.5 ${pos < enSeccion ? "bg-rosa" : "bg-linea-paso"}`} />
-                  )}
-                  <span
-                    className={`z-[1] rounded-full ${actual ? "size-[15px] shadow-[0_0_0_4px_rgba(255,50,125,0.18)]" : "size-[13px]"} ${
-                      hecho ? "bg-rosa" : "border-2 border-borde-paso bg-white"
-                    }`}
-                  />
-                </span>
-                <span
-                  className={`text-sm ${actual ? "font-bold text-tinta" : hecho ? "font-medium text-gris-oscuro" : "font-medium text-gris-claro"}`}
-                >
-                  Ejercicio {pos + 1}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
   );
 }
 

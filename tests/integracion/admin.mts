@@ -348,4 +348,85 @@ await caso("editar generación: nombre y fechas; la que no existe da error", asy
   await assert.rejects(G.actualizarGeneracion(999_999, { nombre: "x", fecha_inicio: "2026-01-01", fecha_fin: null }), /no existe/);
 });
 
+// ---------------------------------------------------------------------------
+// Eliminar una generación (todo lo suyo, confirmando con su código)
+// ---------------------------------------------------------------------------
+async function m1Publicada(generacionId: number) {
+  const [ev] = await sql<{ id: number }>(
+    `SELECT id FROM evaluaciones WHERE generacion_id = $1 ORDER BY tipo, numero LIMIT 1`,
+    [generacionId],
+  );
+  await sql(
+    `INSERT INTO preguntas (evaluacion_id, orden, tipo, categoria, enunciado, opciones, respuestas_aceptadas)
+     VALUES ($1, 1, 'multiple_choice', 'grammar', 'I ___ a student.', '["am","is"]', '["am"]')`,
+    [ev.id],
+  );
+  await sql(`UPDATE evaluaciones SET publicada = TRUE WHERE id = $1`, [ev.id]);
+  return ev.id;
+}
+const gx = await generacion("Borrar");
+const gy = await generacion("Queda");
+const evX = await m1Publicada(gx);
+const evY = await m1Publicada(gy);
+const evaluacionesX = (await sql<{ id: number }>(`SELECT id FROM evaluaciones WHERE generacion_id = $1`, [gx])).map((e) => e.id);
+const x1 = { id: await estudiante(gx, "x1"), nombre: "Equis Uno" };
+await estudiante(gx, "x2");
+const sale = { id: await estudiante(gx, "sale"), nombre: "Sale" }; // presentó en gx y luego pasó a gy
+const entra = { id: await estudiante(gy, "entra"), nombre: "Entra" }; // presentó en gy y luego pasó a gx
+const y1 = { id: await estudiante(gy, "y1"), nombre: "Ye Uno" };
+const intentoX1 = await presentar(x1, evX, "am");
+const intentoSale = await presentar(sale, evX, "is");
+const intentoEntra = await presentar(entra, evY, "am");
+const intentoY1 = await presentar(y1, evY, "am");
+await sql(`UPDATE estudiantes SET generacion_id = $2 WHERE id = $1`, [sale.id, gy]);
+await sql(`UPDATE estudiantes SET generacion_id = $2 WHERE id = $1`, [entra.id, gx]);
+const existe = async (tabla: string, id: number) =>
+  (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM ${tabla} WHERE id = $1`, [id]))[0].n === 1;
+
+await caso("eliminar: el resumen cuenta evaluaciones, preguntas, estudiantes e intentos (también fuera)", async () => {
+  assert.deepEqual(await G.resumenEliminacion(gx), {
+    codigo: `gen-borrar-${sufijo}`,
+    nombre: "Borrar",
+    evaluaciones: 16,
+    preguntas: 1,
+    estudiantes: 3, // x1, x2 y "entra"
+    intentos: 3, // x1 y "sale" en sus evaluaciones + "entra" en otra generación
+  });
+  assert.equal(await G.resumenEliminacion(999_999), null);
+});
+
+await caso("eliminar: con otro código no borra nada", async () => {
+  await assert.rejects(G.eliminarGeneracion(gx, "gen-otra"), (e: { campo?: string; message: string }) =>
+    e.campo === "codigo" && /Escribe exactamente el código/.test(e.message),
+  );
+  assert.equal(await existe("generaciones", gx), true);
+  assert.equal((await G.resumenEliminacion(gx))?.intentos, 3);
+  await assert.rejects(G.eliminarGeneracion(999_999, "x"), /no existe/);
+});
+
+await caso("eliminar: borra la generación con todo lo suyo y no toca lo demás", async () => {
+  const r = await G.eliminarGeneracion(gx, ` gen-borrar-${sufijo} `);
+  assert.deepEqual([r.estudiantes, r.intentos], [3, 3]);
+  assert.equal(await existe("generaciones", gx), false);
+  const [restos] = await sql<{ ev: number; pr: number; res: number }>(
+    `SELECT (SELECT count(*)::int FROM evaluaciones WHERE id = ANY($1)) AS ev,
+            (SELECT count(*)::int FROM preguntas WHERE evaluacion_id = ANY($1)) AS pr,
+            (SELECT count(*)::int FROM respuestas WHERE intento_id = ANY($2)) AS res`,
+    [evaluacionesX, [intentoX1, intentoSale, intentoEntra]],
+  );
+  assert.deepEqual(restos, { ev: 0, pr: 0, res: 0 });
+  // Sus estudiantes (y sus intentos en otras generaciones) se van; el que ya se había ido, queda.
+  assert.deepEqual(
+    [await existe("estudiantes", x1.id), await existe("estudiantes", entra.id), await existe("estudiantes", sale.id)],
+    [false, false, true],
+  );
+  assert.deepEqual(
+    [await existe("intentos", intentoX1), await existe("intentos", intentoSale), await existe("intentos", intentoEntra)],
+    [false, false, false],
+  );
+  // La otra generación sigue entera.
+  assert.equal(await existe("intentos", intentoY1), true);
+  assert.equal((await G.resumenEliminacion(gy))?.evaluaciones, 16);
+});
+
 fin();

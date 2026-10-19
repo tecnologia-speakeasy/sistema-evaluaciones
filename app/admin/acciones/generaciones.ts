@@ -9,7 +9,10 @@ import {
   actualizarGeneracion,
   cambiarActivaGeneracion,
   crearGeneracion,
+  eliminarGeneracion,
   generarFaltantes,
+  resumenEliminacion,
+  type ResumenEliminacion,
 } from "@/lib/datos/generaciones";
 import { fechaSchema } from "@/lib/fechas";
 import { idSchema } from "@/lib/validacion";
@@ -101,4 +104,36 @@ export async function cambiarActivaGeneracionAction(generacionId: unknown, activ
   }
   refresh();
   return { ok: true };
+}
+
+// Eliminar (irreversible): el resumen se pide al abrir la confirmación (así está
+// al día) y el borrado exige escribir el código de la generación.
+export type ResultadoResumenEliminacion =
+  | { ok: true; resumen: ResumenEliminacion }
+  | { ok: false; error: string };
+
+export async function resumenEliminacionAction(generacionId: unknown): Promise<ResultadoResumenEliminacion> {
+  try {
+    await requireStaff(["admin"]);
+    const resumen = await resumenEliminacion(idSchema.parse(generacionId));
+    return resumen ? { ok: true, resumen } : { ok: false, error: "La generación no existe." };
+  } catch (e) {
+    const r = aResultadoError(e);
+    return { ok: false, error: r.ok ? "" : r.error };
+  }
+}
+
+export async function eliminarGeneracionAction(generacionId: unknown, codigo: unknown): Promise<ResultadoAccion> {
+  let nombre: string;
+  try {
+    await requireStaff(["admin"]);
+    const r = await eliminarGeneracion(
+      idSchema.parse(generacionId),
+      z.string({ error: "Escribe el código" }).max(60).parse(codigo),
+    );
+    nombre = r.nombre;
+  } catch (e) {
+    return aResultadoError(e);
+  }
+  redirect(`/admin?eliminada=${encodeURIComponent(nombre)}`);
 }

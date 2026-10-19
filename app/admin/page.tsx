@@ -14,16 +14,19 @@ import { Cargando } from "./components/Cargando";
 
 export const metadata: Metadata = { title: "Generaciones" };
 
-export default function Generaciones() {
+export default function Generaciones({ searchParams }: PageProps<"/admin">) {
   return (
     <Suspense fallback={<Cargando />}>
-      <ListaGeneraciones />
+      <ListaGeneraciones searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function ListaGeneraciones() {
+async function ListaGeneraciones({ searchParams }: { searchParams: PageProps<"/admin">["searchParams"] }) {
   const staff = await staffParaPagina();
+  // Al eliminar una generación, la acción trae aquí con su nombre para avisarlo.
+  const eliminada = (await searchParams).eliminada;
+  const nombreEliminada = typeof eliminada === "string" ? eliminada.slice(0, 120) : null;
   const [generaciones, porRevisar] = await Promise.all([listarGeneraciones(), contarIntentosPorRevisar()]);
 
   return (
@@ -33,6 +36,12 @@ async function ListaGeneraciones() {
         subtitulo="Cada generación tiene 12 evaluaciones mensuales y 4 trimestrales."
         acciones={staff.rol === "admin" ? <CrearGeneracion /> : null}
       />
+
+      {nombreEliminada && (
+        <Aviso tono="exito" className="mb-5">
+          Eliminamos la generación «{nombreEliminada}» con sus evaluaciones, estudiantes e intentos.
+        </Aviso>
+      )}
 
       {porRevisar > 0 && (
         <Aviso tono="error" className="mb-5">
