@@ -103,3 +103,59 @@ export async function resumenGeneracion(id: number): Promise<{ estudiantes: numb
   );
   return rows[0];
 }
+
+// ---------------------------------------------------------------------------
+// Eliminar (solo admin). Irreversible: borra la generación, sus evaluaciones con
+// sus preguntas, sus estudiantes y TODOS los intentos con sus resultados (los de
+// sus evaluaciones y los que sus estudiantes tengan en otras). Antes se muestra
+// este resumen y se pide escribir el código de la generación.
+// ---------------------------------------------------------------------------
+
+export type ResumenEliminacion = {
+  codigo: string;
+  nombre: string;
+  evaluaciones: number;
+  preguntas: number;
+  estudiantes: number;
+  intentos: number;
+};
+
+const SQL_RESUMEN = `
+  SELECT g.codigo, g.nombre,
+         (SELECT count(*)::int FROM evaluaciones e WHERE e.generacion_id = g.id) AS evaluaciones,
+         (SELECT count(*)::int FROM preguntas p JOIN evaluaciones e ON e.id = p.evaluacion_id
+           WHERE e.generacion_id = g.id) AS preguntas,
+         (SELECT count(*)::int FROM estudiantes s WHERE s.generacion_id = g.id) AS estudiantes,
+         (SELECT count(*)::int FROM intentos i
+           WHERE i.evaluacion_id IN (SELECT id FROM evaluaciones WHERE generacion_id = g.id)
+              OR i.estudiante_id IN (SELECT id FROM estudiantes WHERE generacion_id = g.id)) AS intentos
+    FROM generaciones g WHERE g.id = $1`;
+
+export async function resumenEliminacion(id: number): Promise<ResumenEliminacion | null> {
+  const { rows } = await query<ResumenEliminacion>(SQL_RESUMEN, [id]);
+  return rows[0] ?? null;
+}
+
+// Todo en una transacción. El orden importa: respuestas → preguntas es RESTRICT,
+// así que primero salen los intentos de sus evaluaciones (con sus respuestas),
+// luego sus estudiantes (con sus demás intentos y códigos de acceso) y al final
+// la generación (con sus evaluaciones y preguntas, en cascada).
+export async function eliminarGeneracion(id: number, codigoConfirmado: string): Promise<ResumenEliminacion> {
+  return transaction(async (tx) => {
+    const { rows } = await tx.query<{ codigo: string }>(`SELECT codigo FROM generaciones WHERE id = $1 FOR UPDATE`, [
+      id,
+    ]);
+    if (!rows[0]) throw new ErrorNegocio("La generación no existe.");
+    if (rows[0].codigo !== codigoConfirmado.trim()) {
+      throw new ErrorNegocio(`Escribe exactamente el código «${rows[0].codigo}» para confirmar.`, "codigo");
+    }
+    const { rows: resumen } = await tx.query<ResumenEliminacion>(SQL_RESUMEN, [id]);
+    await tx.query(
+      `DELETE FROM intentos WHERE evaluacion_id IN (SELECT id FROM evaluaciones WHERE generacion_id = $1)`,
+      [id],
+    );
+    await tx.query(`DELETE FROM estudiantes WHERE generacion_id = $1`, [id]);
+    await tx.query(`DELETE FROM generaciones WHERE id = $1`, [id]);
+    return resumen[0];
+  });
+}

@@ -11,8 +11,8 @@ import {
 // Una pregunta tal como la ve el estudiante. Réplica de la pantalla del examen
 // de ../evaluacion-a2 (EnglishExam.jsx, objeto `xs`): mismos tamaños, colores y
 // textos. Solo recibe PreguntaPublica: por tipos no puede llegarle una respuesta
-// correcta ni la rúbrica. La usan la vista previa del staff y, en la fase de
-// estudiante, la presentación de la evaluación.
+// correcta ni la rúbrica. La usan la vista previa del staff y la presentación de
+// la evaluación; la revisión de un intento (PreguntaRevision) usa su encabezado.
 
 export type RespuestaEstudiante = string | string[] | null;
 
@@ -40,38 +40,9 @@ export function PreguntaEstudiante({
   /** Celular: el cronómetro circular encima de la tarjeta morada (xs.mTimer). */
   cronometro?: ReactNode;
 }) {
-  const titulo = pregunta.seccion ?? `Ejercicio ${numero}`;
-  const instruccion = INSTRUCCION_POR_TIPO[pregunta.tipo];
-  const esMultiple = pregunta.tipo === "multiple_choice";
-
   return (
     <div>
-      {/* Escritorio: xs.ejTitle + xs.ejQuestion */}
-      <div className="hidden md:block">
-        <h1 className="mb-2.5 text-[26px] font-extrabold text-titulo">{titulo}</h1>
-        {esMultiple && (
-          <p className="mb-[26px] text-base leading-normal text-tinta">{instruccion}</p>
-        )}
-      </div>
-      {/* Celular: xs.mCard (tarjeta morada), con o sin cronómetro encima */}
-      <div
-        className={`degradado-tarjeta-movil relative mt-[46px] mb-[26px] rounded-[20px] px-[22px] pb-7 text-center text-white md:hidden ${
-          cronometro ? "pt-14" : "pt-[26px]"
-        }`}
-      >
-        {cronometro && (
-          <div className="absolute -top-10 left-1/2 flex size-20 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
-            {cronometro}
-          </div>
-        )}
-        <h2 className="mb-2 text-[22px] font-extrabold text-white">{titulo}</h2>
-        {esMultiple && <p className="text-[15px] leading-normal text-white/90">{instruccion}</p>}
-      </div>
-
-      {/* xs.instr */}
-      <p className="mb-4 text-[15px] font-bold text-tinta">
-        {esMultiple ? `${numero}. ${pregunta.enunciado}` : instruccion}
-      </p>
+      <EncabezadoPregunta pregunta={pregunta} numero={numero} cronometro={cronometro} />
 
       {pregunta.tipo === "multiple_choice" && (
         <OpcionesMultiple
@@ -108,6 +79,53 @@ export function PreguntaEstudiante({
         </div>
       )}
     </div>
+  );
+}
+
+// Título de la sección, instrucción y enunciado (xs.ejTitle / xs.ejQuestion /
+// xs.instr), y en celular la tarjeta morada (xs.mCard). Igual en el examen y en
+// la revisión.
+export function EncabezadoPregunta({
+  pregunta,
+  numero,
+  cronometro,
+}: {
+  pregunta: Pick<PreguntaPublica, "seccion" | "tipo" | "enunciado">;
+  numero: number;
+  cronometro?: ReactNode;
+}) {
+  const titulo = pregunta.seccion ?? `Ejercicio ${numero}`;
+  const instruccion = INSTRUCCION_POR_TIPO[pregunta.tipo];
+  const esMultiple = pregunta.tipo === "multiple_choice";
+  return (
+    <>
+      {/* Escritorio: xs.ejTitle + xs.ejQuestion */}
+      <div className="hidden md:block">
+        <h1 className="mb-2.5 text-[26px] font-extrabold text-titulo">{titulo}</h1>
+        {esMultiple && (
+          <p className="mb-[26px] text-base leading-normal text-tinta">{instruccion}</p>
+        )}
+      </div>
+      {/* Celular: xs.mCard (tarjeta morada), con o sin cronómetro encima */}
+      <div
+        className={`degradado-tarjeta-movil relative mt-[46px] mb-[26px] rounded-[20px] px-[22px] pb-7 text-center text-white md:hidden ${
+          cronometro ? "pt-14" : "pt-[26px]"
+        }`}
+      >
+        {cronometro && (
+          <div className="absolute -top-10 left-1/2 flex size-20 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+            {cronometro}
+          </div>
+        )}
+        <h2 className="mb-2 text-[22px] font-extrabold text-white">{titulo}</h2>
+        {esMultiple && <p className="text-[15px] leading-normal text-white/90">{instruccion}</p>}
+      </div>
+
+      {/* xs.instr */}
+      <p className="mb-4 text-[15px] font-bold text-tinta">
+        {esMultiple ? `${numero}. ${pregunta.enunciado}` : instruccion}
+      </p>
+    </>
   );
 }
 
