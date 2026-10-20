@@ -1,6 +1,6 @@
 // Integración de la Fase 6 (administración): importación de estudiantes por CSV,
-// reglas del staff (incluida la concurrencia), resultados con filtros y
-// exportación, y generación desactivada. Se corre con `npm run test:integracion`.
+// estudiantes uno a uno, reglas del staff (incluida la concurrencia), resultados
+// con filtros y exportación, generación desactivada y eliminar una generación. Se corre con `npm run test:integracion`.
 import assert from "node:assert/strict";
 import { casos } from "./comun.mjs";
 import { query } from "@/lib/db";
@@ -118,12 +118,12 @@ await caso("generación que no existe o archivo sin correos válidos: error clar
   await assert.rejects(E.importarEstudiantes(g1, []), /no tiene correos válidos/);
 });
 
-await caso("lista: búsqueda por correo y nombre (comodines literales), activar/desactivar y manychat_id", async () => {
+await caso("lista: búsqueda por correo y nombre (comodines literales), activar/desactivar y editar", async () => {
   let l = await E.listarEstudiantes(g1, { q: "BETO" });
   assert.deepEqual([l.total, l.filas[0]?.email], [1, correo("beto")]);
   assert.equal((await E.listarEstudiantes(g1, { q: "%" })).total, 0, "% no es comodín");
   await E.cambiarActivoEstudiante(idDiana, false);
-  await E.guardarManychat(idDiana, "777");
+  await E.actualizarEstudiante(idDiana, { email: correo("diana"), generacionId: g1, manychat_id: "777" });
   l = await E.listarEstudiantes(g1, { q: "diana" });
   assert.deepEqual([l.filas[0].activo, l.filas[0].manychat_id, l.filas[0].intentos], [false, "777", 0]);
   await E.cambiarActivoEstudiante(idDiana, true);
@@ -427,6 +427,74 @@ await caso("eliminar: borra la generación con todo lo suyo y no toca lo demás"
   // La otra generación sigue entera.
   assert.equal(await existe("intentos", intentoY1), true);
   assert.equal((await G.resumenEliminacion(gy))?.evaluaciones, 16);
+});
+
+// ---------------------------------------------------------------------------
+// Estudiantes uno a uno (agregar, editar y eliminar)
+// ---------------------------------------------------------------------------
+let idSuelto = 0;
+let intentoSuelto = 0;
+const datos = (n: string, generacionId: number, manychat_id: string | null = null) => ({
+  email: correo(n),
+  generacionId,
+  manychat_id,
+});
+
+await caso("agregar: activo en su generación; correo del staff, ya inscrito o generación inexistente, rechazados", async () => {
+  idSuelto = await E.crearEstudiante(datos("suelto", g1, "555"));
+  assert.deepEqual(await fila(correo("suelto")), { generacion_id: g1, activo: true, manychat_id: "555" });
+  await assert.rejects(E.crearEstudiante(datos("staff", g1)), (e: { campo?: string; message: string }) =>
+    e.campo === "email" && /es del staff/.test(e.message),
+  );
+  // citext: con mayúsculas es el mismo correo; el aviso dice en qué generación está.
+  await assert.rejects(
+    E.crearEstudiante({ ...datos("suelto", g2), email: correo("suelto").toUpperCase() }),
+    /ya está inscrito en Uno/,
+  );
+  await assert.rejects(E.crearEstudiante(datos("otro", 999_999)), /La generación no existe/);
+  assert.equal((await sql(`SELECT 1 FROM estudiantes WHERE email = $1`, [correo("otro")])).length, 0);
+});
+
+await caso("agregar el mismo correo dos veces a la vez: uno lo crea y el otro recibe el aviso", async () => {
+  const rs = await Promise.allSettled([1, 2].map(() => E.crearEstudiante(datos("doble", g2))));
+  assert.deepEqual(rs.map((r) => r.status).sort(), ["fulfilled", "rejected"]);
+  assert.match(String((rs.find((r) => r.status === "rejected") as PromiseRejectedResult).reason), /ya está inscrito/);
+});
+
+await caso("editar: correo, generación (conserva sus intentos) y manychat_id; correo repetido o del staff, rechazados", async () => {
+  await E.actualizarEstudiante(idSuelto, datos("suelto2", gy));
+  assert.deepEqual(await fila(correo("suelto2")), { generacion_id: gy, activo: true, manychat_id: null });
+  intentoSuelto = await presentar({ id: idSuelto, nombre: "Suelto" }, evY, "am");
+  await E.actualizarEstudiante(idSuelto, datos("suelto2", g2, "9"));
+  const [i] = await sql<{ estudiante_id: number }>(`SELECT estudiante_id FROM intentos WHERE id = $1`, [intentoSuelto]);
+  assert.equal(i.estudiante_id, idSuelto, "moverlo conserva sus intentos");
+  await assert.rejects(E.actualizarEstudiante(idSuelto, datos("ana", g2)), (e: { constraint?: string }) =>
+    e.constraint === "estudiantes_email_key",
+  );
+  await assert.rejects(E.actualizarEstudiante(idSuelto, datos("staff", g2)), /es del staff/);
+  await assert.rejects(E.actualizarEstudiante(idSuelto, datos("suelto2", 999_999)), /La generación no existe/);
+  await assert.rejects(E.actualizarEstudiante(999_999, datos("nadie", g2)), /no existe/);
+  assert.deepEqual(await fila(correo("suelto2")), { generacion_id: g2, activo: true, manychat_id: "9" });
+});
+
+await caso("eliminar: el resumen cuenta sus intentos; se va con sus respuestas y códigos, y nadie más", async () => {
+  await sql(
+    `INSERT INTO codigos_acceso (estudiante_id, codigo_hash, expira_at) VALUES ($1, 'x', now() + interval '10 minutes')`,
+    [idSuelto],
+  );
+  assert.deepEqual(await E.resumenEliminarEstudiante(idSuelto), { email: correo("suelto2"), intentos: 1 });
+  await E.eliminarEstudiante(idSuelto);
+  const [restos] = await sql<{ est: number; int: number; res: number; cod: number }>(
+    `SELECT (SELECT count(*)::int FROM estudiantes WHERE id = $1) AS est,
+            (SELECT count(*)::int FROM intentos WHERE estudiante_id = $1) AS int,
+            (SELECT count(*)::int FROM respuestas WHERE intento_id = $2) AS res,
+            (SELECT count(*)::int FROM codigos_acceso WHERE estudiante_id = $1) AS cod`,
+    [idSuelto, intentoSuelto],
+  );
+  assert.deepEqual(restos, { est: 0, int: 0, res: 0, cod: 0 });
+  assert.equal(await existe("intentos", intentoY1), true, "los demás no se tocan");
+  assert.equal(await E.resumenEliminarEstudiante(idSuelto), null);
+  await assert.rejects(E.eliminarEstudiante(idSuelto), /no existe/);
 });
 
 fin();

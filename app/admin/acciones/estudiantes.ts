@@ -12,11 +12,12 @@ import {
   type FilaDuplicada,
   type FilaInvalida,
 } from "@/lib/estudiantes/importar";
-import { idSchema } from "@/lib/validacion";
+import { emailSchema, idSchema } from "@/lib/validacion";
 
-// Estudiantes: solo admin (regla 6). El CSV se lee en el navegador y llega como
-// texto; aquí se vuelve a analizar todo, tanto en la vista previa como al
-// confirmar (nunca se confía en lo que mostró el navegador).
+// Estudiantes: solo admin (regla 6). Uno a uno: agregar, editar y eliminar. El
+// CSV se lee en el navegador y llega como texto; aquí se vuelve a analizar todo,
+// tanto en la vista previa como al confirmar (nunca se confía en lo que mostró
+// el navegador).
 
 // Margen sobre 1 MB: el límite exacto (en bytes) lo revisa el análisis.
 const textoCsv = z.string().max(MAX_BYTES_CSV + 1024, "El archivo pesa más de 1 MB. Divídelo en partes.");
@@ -88,10 +89,36 @@ export async function cambiarActivoEstudianteAction(id: unknown, activo: unknown
   return ejecutar(() => datos.cambiarActivoEstudiante(idSchema.parse(id), z.boolean().parse(activo)));
 }
 
-export async function guardarManychatAction(id: unknown, valor: unknown): Promise<ResultadoAccion> {
-  return ejecutar(async () => {
-    const manychat = manychatSchema.safeParse(typeof valor === "string" ? valor : "");
-    if (!manychat.success) throw manychat.error;
-    await datos.guardarManychat(idSchema.parse(id), manychat.data);
-  });
+const datosSchema = z.object({
+  email: emailSchema,
+  generacionId: idSchema,
+  manychat_id: manychatSchema,
+});
+
+// Un error de zod llega al formulario con su campo (aResultadoError).
+export async function crearEstudianteAction(entrada: unknown): Promise<ResultadoAccion> {
+  return ejecutar(() => datos.crearEstudiante(datosSchema.parse(entrada)));
+}
+
+export async function actualizarEstudianteAction(id: unknown, entrada: unknown): Promise<ResultadoAccion> {
+  return ejecutar(() => datos.actualizarEstudiante(idSchema.parse(id), datosSchema.parse(entrada)));
+}
+
+export type ResultadoResumenEstudiante =
+  | { ok: true; resumen: { email: string; intentos: number } }
+  | { ok: false; error: string };
+
+export async function resumenEliminarEstudianteAction(id: unknown): Promise<ResultadoResumenEstudiante> {
+  try {
+    await requireStaff(["admin"]);
+    const resumen = await datos.resumenEliminarEstudiante(idSchema.parse(id));
+    if (!resumen) return { ok: false, error: "El estudiante no existe." };
+    return { ok: true, resumen };
+  } catch (e) {
+    return error(e);
+  }
+}
+
+export async function eliminarEstudianteAction(id: unknown): Promise<ResultadoAccion> {
+  return ejecutar(() => datos.eliminarEstudiante(idSchema.parse(id)));
 }

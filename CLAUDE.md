@@ -4,7 +4,7 @@ Plataforma centralizada de evaluaciones de inglés. Reemplaza el modelo "un proy
 
 ## Contexto de negocio
 - Cada **generación** (cohorte) tiene 16 evaluaciones: 12 mensuales + 4 trimestrales.
-- **Estudiantes**: pertenecen a una sola generación. Estar en la tabla = estar autorizado. En la BD el estudiante es solo su **correo** (+ `manychat_id` opcional y `activo`): el **nombre lo escribe al entrar**, como en a2, viaja en la sesión y se guarda en cada intento (`intentos.nombre`); ese es el que se usa en pantallas, feedback de IA y correos. Se cargan por SQL/CSV (no hay registro público).
+- **Estudiantes**: pertenecen a una sola generación. Estar en la tabla = estar autorizado. En la BD el estudiante es solo su **correo** (+ `manychat_id` opcional y `activo`): el **nombre lo escribe al entrar**, como en a2, viaja en la sesión y se guarda en cada intento (`intentos.nombre`); ese es el que se usa en pantallas, feedback de IA y correos. El admin los agrega uno a uno o por CSV (no hay registro público).
 - **Staff**: `admin` (todo) y `docente` (evaluaciones, preguntas, resultados). Login con contraseña.
 - Las evaluaciones A1/A2 viven en otro sistema; se migrarán después. No hay agendamiento ni speaking.
 
@@ -153,7 +153,11 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
 
 ## Administración (Fase 6)
 Todo solo para admin, salvo Resultados (admin y docente). Acciones en `app/admin/acciones/` (`estudiantes.ts`, `staff.ts`, `generaciones.ts`); datos en `lib/datos/`.
-- **Estudiantes** (`/admin/estudiantes`): lista por generación con buscador (correo, nombre de sus intentos, manychat_id), activar/desactivar y editar `manychat_id` (solo dígitos; vacío = sin WhatsApp). Nunca se borran.
+- **Estudiantes** (`/admin/estudiantes`): lista por generación con buscador (correo, nombre de sus intentos, manychat_id) y activar/desactivar. Uno a uno (`app/admin/estudiantes/FormEstudiante.tsx`; `crearEstudiante` / `actualizarEstudiante` / `eliminarEstudiante` en `lib/datos/estudiantes.ts`):
+  - **Agregar**: correo, generación y `manychat_id` (solo dígitos; vacío = sin WhatsApp). Se rechaza un correo del staff o uno ya inscrito (el aviso dice en qué generación está).
+  - **Editar** (menú "⋯"): correo, generación (moverlo conserva sus intentos) y `manychat_id`.
+  - **Eliminar** (menú "⋯", irreversible): resumen con sus intentos y confirmación; se van sus intentos con sus resultados y sus códigos de acceso (FK en cascada). El diálogo ofrece "Desactivar" en su lugar: para que deje de entrar sin perder sus resultados, se desactiva.
+  - Agregar y editar se ponen en fila con las importaciones CSV (mismo candado).
 - **Carga por CSV** (`lib/csv.ts` + `lib/estudiantes/importar.ts` + `lib/datos/estudiantes.ts`):
   - Columna `correo` y `manychat_id` opcional; coma o punto y coma (se detecta); con o sin encabezado (sin encabezado: 1.ª columna correo, 2.ª manychat_id). Máximo 5.000 filas o 1 MB (`serverActions.bodySizeLimit` = 2 MB en `next.config.ts`).
   - El navegador lee el archivo y manda el texto; el servidor lo analiza en la vista previa y **otra vez** al confirmar.
