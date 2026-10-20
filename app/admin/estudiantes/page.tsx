@@ -92,7 +92,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/admin/est
         <Tarjeta className="text-center">
           <p className="font-bold text-titulo">{q ? "Ningún estudiante coincide." : "Esta generación aún no tiene estudiantes."}</p>
           <p className="mt-1 text-sm text-gris-oscuro">
-            {q ? "Busca por correo, nombre o manychat_id." : "Agrégalos uno a uno o con «Cargar CSV»."}
+            {q ? "Busca por correo o nombre." : "Agrégalos uno a uno o con «Cargar CSV»."}
           </p>
         </Tarjeta>
       ) : (

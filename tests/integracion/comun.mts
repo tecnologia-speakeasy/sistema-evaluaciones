@@ -38,7 +38,7 @@ export async function conAbiertas<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-// Simuladores de OpenAI y ManyChat (tests/integracion/simuladores.mjs).
+// Simulador de OpenAI (tests/integracion/simuladores.mjs).
 export type Llamada = {
   ruta: string;
   auth: string | null;
@@ -48,10 +48,6 @@ export type Llamada = {
   datos: {
     messages?: { role: string; content: string }[];
     response_format?: { type: string };
-    subscriber_id?: number;
-    field_name?: string;
-    field_value?: unknown;
-    flow_ns?: string;
   };
 };
 type Modo = { falla?: "500" | "429" | "basura"; veces?: number; saltar?: number; demoraMs?: number };
@@ -71,7 +67,6 @@ function simulador(origen: string) {
   };
 }
 export const openai = simulador(new URL(process.env.OPENAI_BASE_URL!).origin);
-export const manychat = simulador(new URL(process.env.MANYCHAT_API_URL!).origin);
 
 // Correos que recibió el SMTP local.
 export type Correo = {

@@ -10,9 +10,9 @@ import { Dialogo } from "@/app/components/ui/Dialogo";
 import type { EstudianteLista } from "@/lib/datos/estudiantes";
 import type { OpcionGeneracion } from "./BarraEstudiantes";
 
-// Agregar un estudiante o editarlo (solo admin): correo, generación y
-// manychat_id. Las reglas (correo del staff, correo repetido) las revisa el
-// servidor. Al agregarlo o moverlo de generación, la lista lo muestra.
+// Agregar un estudiante o editarlo (solo admin): correo y generación. Las
+// reglas (correo del staff, correo repetido) las revisa el servidor. Al
+// agregarlo o moverlo de generación, la lista lo muestra.
 
 const urlEstudiante = (generacionId: number, email: string) =>
   `/admin/estudiantes?${new URLSearchParams({ generacion: String(generacionId), q: email })}`;
@@ -34,7 +34,7 @@ export default function AgregarEstudiante({
       <Dialogo abierto={abierto} onCerrar={() => setAbierto(false)} titulo="Agregar estudiante">
         <Formulario
           generaciones={generaciones}
-          inicial={{ email: "", generacionId, manychat_id: "" }}
+          inicial={{ email: "", generacionId }}
           textoBoton="Agregar estudiante"
           textoPendiente="Agregando…"
           guardar={(d) => crearEstudianteAction(d)}
@@ -64,7 +64,7 @@ export function EditarEstudiante({
   return (
     <Formulario
       generaciones={generaciones}
-      inicial={{ email: e.email, generacionId, manychat_id: e.manychat_id ?? "" }}
+      inicial={{ email: e.email, generacionId }}
       textoBoton="Guardar cambios"
       textoPendiente="Guardando…"
       guardar={(d) => actualizarEstudianteAction(e.id, d)}
@@ -80,7 +80,7 @@ export function EditarEstudiante({
   );
 }
 
-type Datos = { email: string; generacionId: number; manychat_id: string };
+type Datos = { email: string; generacionId: number };
 
 function Formulario({
   generaciones,
@@ -120,7 +120,6 @@ function Formulario({
     });
   }
 
-  const enCampo = error?.campo === "email" || error?.campo === "manychat_id";
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
       <Campo etiqueta="Correo" htmlFor="estudiante-email" error={errorDe("email")} ayuda={ayudaEmail}>
@@ -148,23 +147,7 @@ function Formulario({
           ))}
         </Selector>
       </Campo>
-      <Campo
-        etiqueta="manychat_id (opcional)"
-        htmlFor="estudiante-manychat"
-        error={errorDe("manychat_id")}
-        ayuda="Solo números. Vacío = no recibe el resultado por WhatsApp."
-      >
-        <Entrada
-          id="estudiante-manychat"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={20}
-          value={datos.manychat_id}
-          onChange={(ev) => cambiar({ manychat_id: ev.target.value })}
-          invalida={!!errorDe("manychat_id")}
-        />
-      </Campo>
-      {error && !enCampo && <Aviso tono="error">{error.mensaje}</Aviso>}
+      {error && error.campo !== "email" && <Aviso tono="error">{error.mensaje}</Aviso>}
       <Boton type="submit" disabled={pendiente} ancho>
         {pendiente ? textoPendiente : textoBoton}
       </Boton>

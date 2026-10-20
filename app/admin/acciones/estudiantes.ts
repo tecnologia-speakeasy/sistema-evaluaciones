@@ -5,13 +5,7 @@ import { z } from "zod";
 import { requireStaff } from "@/lib/auth/guards";
 import { aResultadoError, type ResultadoAccion } from "@/lib/acciones";
 import * as datos from "@/lib/datos/estudiantes";
-import {
-  analizarCsvEstudiantes,
-  manychatSchema,
-  MAX_BYTES_CSV,
-  type FilaDuplicada,
-  type FilaInvalida,
-} from "@/lib/estudiantes/importar";
+import { analizarCsvEstudiantes, MAX_BYTES_CSV, type FilaDuplicada, type FilaInvalida } from "@/lib/estudiantes/importar";
 import { emailSchema, idSchema } from "@/lib/validacion";
 
 // Estudiantes: solo admin (regla 6). Uno a uno: agregar, editar y eliminar. El
@@ -89,11 +83,7 @@ export async function cambiarActivoEstudianteAction(id: unknown, activo: unknown
   return ejecutar(() => datos.cambiarActivoEstudiante(idSchema.parse(id), z.boolean().parse(activo)));
 }
 
-const datosSchema = z.object({
-  email: emailSchema,
-  generacionId: idSchema,
-  manychat_id: manychatSchema,
-});
+const datosSchema = z.object({ email: emailSchema, generacionId: idSchema });
 
 // Un error de zod llega al formulario con su campo (aResultadoError).
 export async function crearEstudianteAction(entrada: unknown): Promise<ResultadoAccion> {

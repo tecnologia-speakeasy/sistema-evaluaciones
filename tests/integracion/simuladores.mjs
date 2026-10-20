@@ -1,8 +1,7 @@
 // Servicios simulados para las pruebas de integración (nunca los reales del .env):
 //   · OpenAI   POST /v1/chat/completions
-//   · ManyChat POST /fb/...
 //   · SMTP     recibe los correos y los guarda en una carpeta (nunca reenvía)
-// Control de OpenAI y ManyChat (lo usan las suites):
+// Control de OpenAI (lo usan las suites):
 //   POST /__modo {falla: "500"|"429"|"basura"|null, veces, saltar, demoraMs}
 //   GET /__llamadas · POST /__reiniciar
 import http from "node:http";
@@ -137,20 +136,17 @@ function smtpLocal(carpeta) {
   });
 }
 
-/** Levanta los tres simuladores en puertos libres. */
+/** Levanta los dos simuladores en puertos libres. */
 export async function iniciarSimuladores(carpetaCorreos) {
   const openai = simuladorHttp(atenderOpenAI);
-  const manychat = simuladorHttp((_req, _datos, json) => json(200, { status: "success" }));
   const smtp = smtpLocal(carpetaCorreos);
-  const [puertoOpenAI, puertoManyChat, puertoSmtp] = await Promise.all([
+  const [puertoOpenAI, puertoSmtp] = await Promise.all([
     escuchar(openai),
-    escuchar(manychat),
     new Promise((resolver) => smtp.listen(0, "127.0.0.1", () => resolver(smtp.server.address().port))),
   ]);
   return {
     puertoOpenAI,
-    puertoManyChat,
     puertoSmtp,
-    cerrar: () => Promise.all([cerrar(openai), cerrar(manychat), new Promise((r) => smtp.close(r))]),
+    cerrar: () => Promise.all([cerrar(openai), new Promise((r) => smtp.close(r))]),
   };
 }

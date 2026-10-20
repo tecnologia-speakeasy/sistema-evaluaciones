@@ -1,9 +1,9 @@
-// Integración de la Fase 5 (IA, correo, WhatsApp, reproceso) con OpenAI y
-// ManyChat simulados y el SMTP local. Se corre con `npm run test:integracion`.
+// Integración de la Fase 5 (IA, correo, reproceso) con OpenAI simulado y el
+// SMTP local. Se corre con `npm run test:integracion`.
 // Por defecto las abiertas están apagadas (una sola llamada a OpenAI por
 // intento); las pruebas que las usan las encienden ellas mismas (conAbiertas).
 import assert from "node:assert/strict";
-import { casos, conAbiertas, correosPara, manychat, openai } from "./comun.mjs";
+import { casos, conAbiertas, correosPara, openai } from "./comun.mjs";
 import { query } from "@/lib/db";
 import * as I from "@/lib/datos/intentos";
 import * as Q from "@/lib/datos/preguntas";
@@ -37,10 +37,10 @@ const m2 = evs[1];
 const qM2 = await ins(m2.id, 1, "multiple_choice", "grammar", "I ___ a student.", ["am", "is"], ["am"]);
 await sql(`UPDATE evaluaciones SET publicada = TRUE WHERE id = ANY($1)`, [[m1.id, m2.id]]);
 
-async function estudiante(email: string, manychatId: string | null = null) {
+async function estudiante(email: string) {
   const [e] = await sql<{ id: number }>(
-    `INSERT INTO estudiantes (generacion_id, email, manychat_id) VALUES ($1, $2, $3) RETURNING id`,
-    [gen.id, email, manychatId],
+    `INSERT INTO estudiantes (generacion_id, email) VALUES ($1, $2) RETURNING id`,
+    [gen.id, email],
   );
   return { id: e.id, nombre: "Ana María Pérez", email };
 }
@@ -53,15 +53,14 @@ async function presentar(est: { id: number; nombre: string }, evId: number, resp
 const intento = async (id: number) =>
   (
     await sql<Record<string, unknown>>(
-      `SELECT estado, puntaje_total, grammar_score, writing_score, feedback, email_enviado, whatsapp_enviado,
+      `SELECT estado, puntaje_total, grammar_score, writing_score, feedback, email_enviado,
               ia_intentos, ia_error, envio_error, procesando_hasta, token FROM intentos WHERE id = $1`,
       [id],
     )
   )[0];
 
 await openai.reiniciar();
-await manychat.reiniciar();
-const ana = await estudiante(`ana-${sufijo}@ia.test`, "12345");
+const ana = await estudiante(`ana-${sufijo}@ia.test`);
 let idAna = 0;
 
 // ---------------------------------------------------------------------------
@@ -119,33 +118,13 @@ await caso("correo del resultado: una sola vez, con insignia embebida, puntaje y
   assert.equal(correosPara(ana.email).length, 1, "se mandó dos veces");
 });
 
-await caso("WhatsApp por ManyChat: campos se_puntaje y feedback (= token) y luego el flow; una sola vez", async () => {
-  const llamadas = await manychat.llamadas();
-  const { token } = await intento(idAna);
-  assert.deepEqual(
-    llamadas.map((l) => [l.ruta, l.datos.field_name ?? l.datos.flow_ns, l.datos.field_value ?? null]),
-    [
-      ["/fb/subscriber/setCustomFieldByName", "se_puntaje", 90],
-      ["/fb/subscriber/setCustomFieldByName", "feedback", token],
-      ["/fb/sending/sendFlow", "content20261016", null],
-    ],
-  );
-  assert.equal(llamadas[0].datos.subscriber_id, 12345);
-  assert.equal(llamadas[0].auth, "Bearer token-manychat-prueba");
-  assert.equal((await intento(idAna)).whatsapp_enviado, true);
-  await P.notificarIntento(idAna);
-  assert.equal((await manychat.llamadas()).length, 3);
-});
-
-await caso("sin manychat_id no se manda WhatsApp; sin abiertas, una sola llamada a la IA", async () => {
+await caso("sin abiertas, una sola llamada a la IA y el correo", async () => {
   await openai.reiniciar();
-  await manychat.reiniciar();
   const beto = await estudiante(`beto-${sufijo}@ia.test`);
   const r = await presentar(beto, m2.id, { [qM2]: "am" });
   assert.equal((await intento(r.id)).puntaje_total, 100, "sin abiertas el puntaje ya es el final");
   assert.equal(await P.procesarIntento(r.id), "listo");
   assert.deepEqual((await openai.llamadas()).map((l) => l.tipo), ["feedback"]);
-  assert.equal((await manychat.llamadas()).length, 0);
   assert.equal(correosPara(beto.email).length, 1);
 });
 
@@ -269,28 +248,29 @@ await caso("correo que rebota: se desmarca y queda el error; al corregirlo, se m
   assert.match(String(i.envio_error), /550|buzón/i);
   await sql(`UPDATE estudiantes SET email = $2 WHERE id = $1`, [e.id, `ivan-${sufijo}@ia.test`]);
   // "Reintentar envío" del staff.
-  assert.deepEqual(await P.notificarIntento(r.id), { correo: "enviado", whatsapp: "no_aplica" });
+  assert.equal(await P.notificarIntento(r.id), "enviado");
   i = await intento(r.id);
   assert.deepEqual([i.email_enviado, i.envio_error], [true, null]);
 });
 
-await caso("ManyChat falla: se desmarca y queda el error (se puede reintentar)", async () => {
-  await manychat.reiniciar();
-  await manychat.modo({ falla: "500", veces: 1 });
-  const juli = await estudiante(`juli-${sufijo}@ia.test`, "777");
-  const r = await presentar(juli, m2.id, { [qM2]: "am" });
+await caso("correo que no salió: el reproceso (opcional) lo reenvía", async () => {
+  const [e] = await sql<{ id: number }>(`INSERT INTO estudiantes (generacion_id, email) VALUES ($1, $2) RETURNING id`, [
+    gen.id,
+    `rebota@ia2${sufijo}.test`,
+  ]);
+  const r = await presentar({ id: e.id, nombre: "Juli" }, m2.id, { [qM2]: "am" });
   await P.procesarIntento(r.id);
-  let i = await intento(r.id);
-  assert.equal(i.whatsapp_enviado, false);
-  assert.match(String(i.envio_error), /WhatsApp: ManyChat/);
-  await P.reprocesarPendientes();
-  i = await intento(r.id);
-  assert.equal(i.whatsapp_enviado, true);
+  assert.equal((await intento(r.id)).email_enviado, false);
+  await sql(`UPDATE estudiantes SET email = $2 WHERE id = $1`, [e.id, `juli-${sufijo}@ia.test`]);
+  const s = await P.reprocesarPendientes();
+  assert.ok(s.envios >= 1, JSON.stringify(s));
+  const i = await intento(r.id);
+  assert.deepEqual([i.email_enviado, i.envio_error], [true, null]);
+  assert.equal(correosPara(`juli-${sufijo}@ia.test`).length, 1);
 });
 
-await caso("«listo» sin feedback (de antes de la Fase 5): ni correo ni WhatsApp, ni por el reproceso ni por el staff", async () => {
-  await manychat.reiniciar();
-  const leo = await estudiante(`leo-${sufijo}@ia.test`, "888");
+await caso("«listo» sin feedback (de antes de la Fase 5): sin correo, ni por el reproceso ni por el staff", async () => {
+  const leo = await estudiante(`leo-${sufijo}@ia.test`);
   const r = await presentar(leo, m2.id, { [qM2]: "am" });
   // Como lo dejó la Fase 4: listo, con puntaje, sin feedback y sin avisar.
   await sql(
@@ -300,11 +280,10 @@ await caso("«listo» sin feedback (de antes de la Fase 5): ni correo ni WhatsAp
   );
   const s = await P.reprocesarPendientes();
   assert.equal(s.envios, 0);
-  assert.deepEqual(await P.notificarIntento(r.id), { correo: "no_aplica", whatsapp: "no_aplica" });
+  assert.equal(await P.notificarIntento(r.id), "no_aplica");
   const i = await intento(r.id);
-  assert.deepEqual([i.email_enviado, i.whatsapp_enviado, i.envio_error], [false, false, null]);
+  assert.deepEqual([i.email_enviado, i.envio_error], [false, null]);
   assert.equal(correosPara(leo.email).length, 0);
-  assert.equal((await manychat.llamadas()).length, 0);
   // Y el estudiante no se queda esperando un feedback que no va a llegar.
   const e = await I.estadoIntento(r.id, leo.id);
   assert.deepEqual([e?.estado, e?.relanzar], ["listo", false]);
@@ -325,7 +304,6 @@ await caso("revisión del estudiante: feedback, nota y comentario de la abierta 
 
 await caso("abiertas apagadas: el estudiante no ve la abierta y el intento hace UNA llamada (feedback)", async () => {
   await openai.reiniciar();
-  await manychat.reiniciar();
   const cata = await estudiante(`cata-${sufijo}@ia.test`);
   // M1 tiene una cerrada y una abierta: solo ve la cerrada (la abierta sigue en la BD).
   const d = await I.evaluacionParaPresentar(m1.slug, cata.id, gen.id);

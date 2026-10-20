@@ -1,5 +1,5 @@
-// db/004_ia.sql y db/005_admin.sql sobre una base "de producción" con 001 + 002 +
-// 003 e intentos de la Fase 4. Usa una base aparte (migra004) del Postgres
+// db/004_ia.sql, db/005_admin.sql y db/006_sin_manychat.sql sobre una base "de
+// producción" con 001 + 002 + 003 e intentos de la Fase 4. Usa una base aparte (migra004) del Postgres
 // temporal y la borra al final. Se corre con `npm run test:integracion`.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -113,6 +113,44 @@ try {
   await caso("005 es atómica: correrla otra vez falla sin dejar nada a medias", async () => {
     await assert.rejects(q(sqlDe("005_admin.sql")), /already exists/);
     await q("ROLLBACK").catch(() => {});
+  });
+
+  // 006 sobre la misma base (con un manychat_id de antes).
+  await q("SET search_path TO evaluacion");
+  await q("UPDATE estudiantes SET manychat_id = '123' WHERE id = $1", [ana.id]);
+  await q(sqlDe("006_sin_manychat.sql"));
+  await q("SET search_path TO evaluacion");
+  const columnas = async () =>
+    (
+      await q<{ n: number }>(
+        `SELECT count(*)::int AS n FROM information_schema.columns
+          WHERE table_schema = 'evaluacion'
+            AND ((table_name = 'estudiantes' AND column_name = 'manychat_id')
+              OR (table_name = 'intentos' AND column_name = 'whatsapp_enviado'))`,
+      )
+    )[0].n;
+
+  await caso("006: sin manychat_id ni whatsapp_enviado (consulta de comprobación de CLAUDE.md)", async () => {
+    assert.equal(await columnas(), 0);
+  });
+  await caso("006: estudiantes e intentos se conservan con lo demás (correo enviado incluido)", async () => {
+    const [s] = await q("SELECT email::text AS email, activo FROM estudiantes WHERE id = $1", [ana.id]);
+    assert.deepEqual(s, { email: "ana@ejemplo.com", activo: true });
+    const r = await q("SELECT token, email_enviado FROM intentos ORDER BY token");
+    assert.deepEqual(r, [
+      { token: "f4-curso", email_enviado: false },
+      { token: "f4-listo", email_enviado: true },
+      { token: "f4-pendiente", email_enviado: false },
+      { token: "f5-nuevo", email_enviado: false },
+    ]);
+  });
+  await caso("006 es atómica: correrla otra vez falla sin dejar nada a medias", async () => {
+    await assert.rejects(q(sqlDe("006_sin_manychat.sql")), /does not exist/);
+    await q("ROLLBACK").catch(() => {});
+    await q("SET search_path TO evaluacion");
+    assert.equal(await columnas(), 0);
+    const [r] = await q<{ n: number }>("SELECT count(*)::int AS n FROM intentos");
+    assert.equal(r.n, 4);
   });
 } finally {
   await c.end();

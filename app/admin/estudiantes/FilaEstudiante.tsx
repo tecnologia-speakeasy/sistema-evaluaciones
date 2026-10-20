@@ -18,9 +18,9 @@ import type { EstudianteLista } from "@/lib/datos/estudiantes";
 import type { OpcionGeneracion } from "./BarraEstudiantes";
 import { EditarEstudiante } from "./FormEstudiante";
 
-// Un estudiante: correo, el último nombre con el que entró, sus intentos,
-// manychat_id y activo. "⋯": editar (correo, generación, manychat_id) y
-// eliminar. Desactivar no borra nada: deja de poder entrar.
+// Un estudiante: correo, el último nombre con el que entró, sus intentos y
+// activo. "⋯": editar (correo y generación) y eliminar. Desactivar no borra
+// nada: deja de poder entrar.
 export default function FilaEstudiante({
   estudiante: e,
   generacionId,
@@ -56,9 +56,6 @@ export default function FilaEstudiante({
         <p className="mt-0.5 text-sm text-gris-oscuro">
           {e.ultimo_nombre && <span className="font-semibold text-tinta">{e.ultimo_nombre} · </span>}
           {e.intentos === 0 ? "Sin intentos" : `${e.intentos} ${e.intentos === 1 ? "intento" : "intentos"}`}
-        </p>
-        <p className="mt-0.5 text-sm text-gris-oscuro">
-          manychat_id: <span className="font-semibold text-tinta">{e.manychat_id ?? "—"}</span>
         </p>
         {error && (
           <p role="alert" className="mt-1 text-[13px] text-error-texto">

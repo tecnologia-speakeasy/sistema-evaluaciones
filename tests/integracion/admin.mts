@@ -26,17 +26,17 @@ async function generacion(nombre: string) {
   await sql(`SELECT generar_evaluaciones($1)`, [g.id]);
   return g.id;
 }
-async function estudiante(generacionId: number, n: string, { activo = true, manychat = null as string | null } = {}) {
+async function estudiante(generacionId: number, n: string, { activo = true } = {}) {
   const [e] = await sql<{ id: number }>(
-    `INSERT INTO estudiantes (generacion_id, email, manychat_id, activo) VALUES ($1, $2, $3, $4) RETURNING id`,
-    [generacionId, correo(n), manychat, activo],
+    `INSERT INTO estudiantes (generacion_id, email, activo) VALUES ($1, $2, $3) RETURNING id`,
+    [generacionId, correo(n), activo],
   );
   return e.id;
 }
 const fila = async (email: string) =>
   (
-    await sql<{ generacion_id: number; activo: boolean; manychat_id: string | null }>(
-      `SELECT generacion_id, activo, manychat_id FROM estudiantes WHERE email = $1`,
+    await sql<{ generacion_id: number; activo: boolean }>(
+      `SELECT generacion_id, activo FROM estudiantes WHERE email = $1`,
       [email],
     )
   )[0];
@@ -51,7 +51,7 @@ const validas = (texto: string) => {
 // ---------------------------------------------------------------------------
 const g1 = await generacion("Uno");
 const g2 = await generacion("Dos");
-await estudiante(g1, "ana", { manychat: "111" });
+await estudiante(g1, "ana");
 await estudiante(g2, "beto");
 await estudiante(g2, "carla", { activo: false });
 const idDiana = await estudiante(g1, "diana"); // no viene en el CSV: no se toca
@@ -59,6 +59,7 @@ await sql(
   `INSERT INTO staff (email, nombre, rol, password_hash) VALUES ($1, 'Staff', 'docente', 'scrypt$x$y')`,
   [correo("staff")],
 );
+// Con el formato de antes (columna manychat_id): esa columna se ignora.
 const CSV = [
   "correo;manychat_id",
   `${correo("nuevo")};999`,
@@ -70,41 +71,35 @@ const CSV = [
   `${correo("NUEVO")};`,
 ].join("\r\n");
 
-await caso("vista previa: nuevos, cambian de generación, manychat, inactivos y correos del staff", async () => {
+await caso("vista previa: nuevos, cambian de generación, sin cambios, inactivos y correos del staff", async () => {
   const c = await E.previsualizarImportacion(g1, validas(CSV));
   assert.deepEqual(c.nuevos.map((f) => f.email), [correo("nuevo")]);
   assert.deepEqual(
     c.cambianGeneracion.map((f) => [f.email, f.generacion_actual]),
     [[correo("beto"), "Dos"]],
   );
-  assert.deepEqual(
-    c.actualizanManychat.map((f) => [f.email, f.manychat_actual, f.manychat_id]),
-    [[correo("ana"), "111", "222"]],
-  );
+  assert.deepEqual(c.sinCambios.map((f) => f.email), [correo("ana")]);
   assert.deepEqual(c.inactivos.map((f) => f.email), [correo("carla")]);
   assert.deepEqual(c.delStaff.map((f) => f.email), [correo("staff")]);
-  assert.equal(c.sinCambios.length, 0);
   // La vista previa no guarda nada.
   assert.equal(await fila(correo("nuevo")), undefined);
 });
 
 await caso("importar: una transacción; mueve, actualiza, no reactiva, no borra ni toca a los demás", async () => {
   const r = await E.importarEstudiantes(g1, validas(CSV));
-  assert.deepEqual(r, { creados: 1, movidos: 1, manychatActualizados: 1, inactivos: 1, sinCambios: 0, delStaff: 1 });
-  assert.deepEqual(await fila(correo("nuevo")), { generacion_id: g1, activo: true, manychat_id: "999" });
-  assert.deepEqual(await fila(correo("ana")), { generacion_id: g1, activo: true, manychat_id: "222" });
-  assert.deepEqual(await fila(correo("beto")), { generacion_id: g1, activo: true, manychat_id: null });
-  assert.deepEqual(await fila(correo("carla")), { generacion_id: g1, activo: false, manychat_id: "333" });
-  assert.deepEqual(await fila(correo("diana")), { generacion_id: g1, activo: true, manychat_id: null });
+  assert.deepEqual(r, { creados: 1, movidos: 1, inactivos: 1, sinCambios: 1, delStaff: 1 });
+  assert.deepEqual(await fila(correo("nuevo")), { generacion_id: g1, activo: true });
+  assert.deepEqual(await fila(correo("ana")), { generacion_id: g1, activo: true });
+  assert.deepEqual(await fila(correo("beto")), { generacion_id: g1, activo: true });
+  assert.deepEqual(await fila(correo("carla")), { generacion_id: g1, activo: false });
+  assert.deepEqual(await fila(correo("diana")), { generacion_id: g1, activo: true });
   const [s] = await sql<{ n: number }>(`SELECT count(*)::int AS n FROM estudiantes WHERE email = $1`, [correo("staff")]);
   assert.equal(s.n, 0, "un correo del staff no se vuelve estudiante");
 });
 
-await caso("reimportar el mismo archivo: sin cambios; un manychat_id vacío no borra el que hay", async () => {
+await caso("reimportar el mismo archivo: sin cambios", async () => {
   const r = await E.importarEstudiantes(g1, validas(CSV));
-  assert.deepEqual(r, { creados: 0, movidos: 0, manychatActualizados: 0, inactivos: 1, sinCambios: 3, delStaff: 1 });
-  await E.importarEstudiantes(g1, validas(`correo\n${correo("ana")}`));
-  assert.equal((await fila(correo("ana"))).manychat_id, "222");
+  assert.deepEqual(r, { creados: 0, movidos: 0, inactivos: 1, sinCambios: 3, delStaff: 1 });
 });
 
 await caso("dos importaciones a la vez del mismo correo nuevo: una lo crea, la otra lo ve (sin error)", async () => {
@@ -118,14 +113,13 @@ await caso("generación que no existe o archivo sin correos válidos: error clar
   await assert.rejects(E.importarEstudiantes(g1, []), /no tiene correos válidos/);
 });
 
-await caso("lista: búsqueda por correo y nombre (comodines literales), activar/desactivar y editar", async () => {
+await caso("lista: búsqueda por correo y nombre (comodines literales) y activar/desactivar", async () => {
   let l = await E.listarEstudiantes(g1, { q: "BETO" });
   assert.deepEqual([l.total, l.filas[0]?.email], [1, correo("beto")]);
   assert.equal((await E.listarEstudiantes(g1, { q: "%" })).total, 0, "% no es comodín");
   await E.cambiarActivoEstudiante(idDiana, false);
-  await E.actualizarEstudiante(idDiana, { email: correo("diana"), generacionId: g1, manychat_id: "777" });
   l = await E.listarEstudiantes(g1, { q: "diana" });
-  assert.deepEqual([l.filas[0].activo, l.filas[0].manychat_id, l.filas[0].intentos], [false, "777", 0]);
+  assert.deepEqual([l.filas[0].activo, l.filas[0].intentos], [false, 0]);
   await E.cambiarActivoEstudiante(idDiana, true);
   await assert.rejects(E.cambiarActivoEstudiante(999_999, true), /no existe/);
 });
@@ -434,15 +428,11 @@ await caso("eliminar: borra la generación con todo lo suyo y no toca lo demás"
 // ---------------------------------------------------------------------------
 let idSuelto = 0;
 let intentoSuelto = 0;
-const datos = (n: string, generacionId: number, manychat_id: string | null = null) => ({
-  email: correo(n),
-  generacionId,
-  manychat_id,
-});
+const datos = (n: string, generacionId: number) => ({ email: correo(n), generacionId });
 
 await caso("agregar: activo en su generación; correo del staff, ya inscrito o generación inexistente, rechazados", async () => {
-  idSuelto = await E.crearEstudiante(datos("suelto", g1, "555"));
-  assert.deepEqual(await fila(correo("suelto")), { generacion_id: g1, activo: true, manychat_id: "555" });
+  idSuelto = await E.crearEstudiante(datos("suelto", g1));
+  assert.deepEqual(await fila(correo("suelto")), { generacion_id: g1, activo: true });
   await assert.rejects(E.crearEstudiante(datos("staff", g1)), (e: { campo?: string; message: string }) =>
     e.campo === "email" && /es del staff/.test(e.message),
   );
@@ -461,11 +451,11 @@ await caso("agregar el mismo correo dos veces a la vez: uno lo crea y el otro re
   assert.match(String((rs.find((r) => r.status === "rejected") as PromiseRejectedResult).reason), /ya está inscrito/);
 });
 
-await caso("editar: correo, generación (conserva sus intentos) y manychat_id; correo repetido o del staff, rechazados", async () => {
+await caso("editar: correo y generación (conserva sus intentos); correo repetido o del staff, rechazados", async () => {
   await E.actualizarEstudiante(idSuelto, datos("suelto2", gy));
-  assert.deepEqual(await fila(correo("suelto2")), { generacion_id: gy, activo: true, manychat_id: null });
+  assert.deepEqual(await fila(correo("suelto2")), { generacion_id: gy, activo: true });
   intentoSuelto = await presentar({ id: idSuelto, nombre: "Suelto" }, evY, "am");
-  await E.actualizarEstudiante(idSuelto, datos("suelto2", g2, "9"));
+  await E.actualizarEstudiante(idSuelto, datos("suelto2", g2));
   const [i] = await sql<{ estudiante_id: number }>(`SELECT estudiante_id FROM intentos WHERE id = $1`, [intentoSuelto]);
   assert.equal(i.estudiante_id, idSuelto, "moverlo conserva sus intentos");
   await assert.rejects(E.actualizarEstudiante(idSuelto, datos("ana", g2)), (e: { constraint?: string }) =>
@@ -474,7 +464,7 @@ await caso("editar: correo, generación (conserva sus intentos) y manychat_id; c
   await assert.rejects(E.actualizarEstudiante(idSuelto, datos("staff", g2)), /es del staff/);
   await assert.rejects(E.actualizarEstudiante(idSuelto, datos("suelto2", 999_999)), /La generación no existe/);
   await assert.rejects(E.actualizarEstudiante(999_999, datos("nadie", g2)), /no existe/);
-  assert.deepEqual(await fila(correo("suelto2")), { generacion_id: g2, activo: true, manychat_id: "9" });
+  assert.deepEqual(await fila(correo("suelto2")), { generacion_id: g2, activo: true });
 });
 
 await caso("eliminar: el resumen cuenta sus intentos; se va con sus respuestas y códigos, y nadie más", async () => {
