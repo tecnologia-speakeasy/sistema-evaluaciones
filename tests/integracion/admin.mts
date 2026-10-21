@@ -220,7 +220,7 @@ await caso("desactivar a otro y reactivarlo; listarStaff con su estado", async (
 // ---------------------------------------------------------------------------
 const g3 = await generacion("Tres");
 const [m1, m2] = await sql<{ id: number; slug: string }>(
-  `SELECT id, slug FROM evaluaciones WHERE generacion_id = $1 ORDER BY tipo, numero LIMIT 2`,
+  `SELECT id, slug FROM evaluaciones WHERE generacion_id = $1 AND tipo = 'mensual' ORDER BY numero LIMIT 2`,
   [g3],
 );
 for (const ev of [m1, m2]) {
@@ -342,12 +342,31 @@ await caso("editar generación: nombre y fechas; la que no existe da error", asy
   await assert.rejects(G.actualizarGeneracion(999_999, { nombre: "x", fecha_inicio: "2026-01-01", fecha_fin: null }), /no existe/);
 });
 
+await caso("crear generación: el código se asigna solo (gen-AAAA-MM; -2, -3… si se repite el mes), con sus 17", async () => {
+  const { rows: [staff] } = await query<{ id: number }>(`SELECT id FROM staff ORDER BY id LIMIT 1`);
+  const crear = (nombre: string, fecha_inicio: string) => G.crearGeneracion({ nombre, fecha_inicio, fecha_fin: null }, staff.id);
+  const a = await crear("Marzo A", "2031-03-02");
+  const b = await crear("Marzo B", "2031-03-20");
+  // Dos a la vez el mismo mes: el candado las pone en fila y no chocan.
+  const [c, d] = await Promise.all([crear("Marzo C", "2031-03-05"), crear("Marzo D", "2031-03-06")]);
+  assert.deepEqual(
+    [a.codigo, b.codigo, [c.codigo, d.codigo].sort()],
+    ["gen-2031-03", "gen-2031-03-2", ["gen-2031-03-3", "gen-2031-03-4"]],
+  );
+  const { rows } = await query(
+    `SELECT count(*)::int AS n, min(slug) FILTER (WHERE tipo = 'bienvenida') AS bienvenida
+       FROM evaluaciones WHERE generacion_id = $1`,
+    [b.id],
+  );
+  assert.deepEqual(rows[0], { n: 17, bienvenida: "gen-2031-03-2-bienvenida" });
+});
+
 // ---------------------------------------------------------------------------
 // Eliminar una generación (todo lo suyo, confirmando con su código)
 // ---------------------------------------------------------------------------
 async function m1Publicada(generacionId: number) {
   const [ev] = await sql<{ id: number }>(
-    `SELECT id FROM evaluaciones WHERE generacion_id = $1 ORDER BY tipo, numero LIMIT 1`,
+    `SELECT id FROM evaluaciones WHERE generacion_id = $1 AND tipo = 'mensual' ORDER BY numero LIMIT 1`,
     [generacionId],
   );
   await sql(
@@ -381,7 +400,7 @@ await caso("eliminar: el resumen cuenta evaluaciones, preguntas, estudiantes e i
   assert.deepEqual(await G.resumenEliminacion(gx), {
     codigo: `gen-borrar-${sufijo}`,
     nombre: "Borrar",
-    evaluaciones: 16,
+    evaluaciones: 17,
     preguntas: 1,
     estudiantes: 3, // x1, x2 y "entra"
     intentos: 3, // x1 y "sale" en sus evaluaciones + "entra" en otra generación
@@ -420,7 +439,7 @@ await caso("eliminar: borra la generación con todo lo suyo y no toca lo demás"
   );
   // La otra generación sigue entera.
   assert.equal(await existe("intentos", intentoY1), true);
-  assert.equal((await G.resumenEliminacion(gy))?.evaluaciones, 16);
+  assert.equal((await G.resumenEliminacion(gy))?.evaluaciones, 17);
 });
 
 // ---------------------------------------------------------------------------

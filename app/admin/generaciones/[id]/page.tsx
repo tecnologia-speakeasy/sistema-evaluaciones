@@ -6,6 +6,7 @@ import { staffParaPagina } from "@/lib/auth/guards";
 import { obtenerGeneracion, resumenGeneracion } from "@/lib/datos/generaciones";
 import { listarPorGeneracion, type EvaluacionResumen } from "@/lib/datos/evaluaciones";
 import { formatearFecha } from "@/lib/fechas";
+import { EVALUACIONES_POR_GENERACION } from "@/lib/tipos";
 import { idUrlSchema } from "@/lib/validacion";
 import { Aviso } from "@/app/components/ui/Aviso";
 import { TituloPagina } from "@/app/components/ui/Encabezado";
@@ -40,9 +41,11 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   ]);
   if (!generacion) notFound();
 
+  const bienvenida = evaluaciones.filter((e) => e.tipo === "bienvenida");
   const mensuales = evaluaciones.filter((e) => e.tipo === "mensual");
   const trimestrales = evaluaciones.filter((e) => e.tipo === "trimestral");
   const publicadas = evaluaciones.filter((e) => e.publicada).length;
+  const faltan = EVALUACIONES_POR_GENERACION - evaluaciones.length;
 
   return (
     <>
@@ -64,9 +67,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         acciones={
           esAdmin && resumen ? (
             <>
-              {evaluaciones.length < 16 && (
-                <GenerarFaltantes generacionId={generacion.id} faltan={16 - evaluaciones.length} />
-              )}
+              {faltan > 0 && <GenerarFaltantes generacionId={generacion.id} faltan={faltan} />}
               <EditarGeneracion generacion={generacion} />
               <InterruptorGeneracion
                 generacionId={generacion.id}
@@ -88,6 +89,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         </Aviso>
       )}
 
+      <Seccion titulo="Bienvenida" evaluaciones={bienvenida} />
       <Seccion titulo="Mensuales" evaluaciones={mensuales} />
       <Seccion titulo="Trimestrales" evaluaciones={trimestrales} />
     </>

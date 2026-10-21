@@ -19,7 +19,7 @@ const [gen] = await sql<{ id: number }>(
 );
 await sql(`SELECT generar_evaluaciones($1)`, [gen.id]);
 const evs = await sql<{ id: number; slug: string }>(
-  `SELECT id, slug FROM evaluaciones WHERE generacion_id = $1 ORDER BY tipo, numero`,
+  `SELECT id, slug FROM evaluaciones WHERE generacion_id = $1 AND tipo = 'mensual' ORDER BY numero`,
   [gen.id],
 );
 const ins = (ev: number, orden: number, tipo: string, categoria: string, enunciado: string, opciones: unknown, aceptadas: unknown, rubrica: string | null = null, puntaje = 10) =>

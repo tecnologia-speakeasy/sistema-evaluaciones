@@ -1,0 +1,1690 @@
+{
+  "preguntas": [
+    {
+      "orden": 1,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Canadá ______ a very cold country in winter.",
+      "pista": null,
+      "opciones": [
+        "are",
+        "is",
+        "am",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "is"
+      ]
+    },
+    {
+      "orden": 2,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My sister ______ English every night.",
+      "pista": null,
+      "opciones": [
+        "study",
+        "studying",
+        "studies",
+        "is study"
+      ],
+      "respuestas_aceptadas": [
+        "studies"
+      ]
+    },
+    {
+      "orden": 3,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The dogs ______ in the park right now.",
+      "pista": null,
+      "opciones": [
+        "run",
+        "runs",
+        "are running",
+        "is running"
+      ],
+      "respuestas_aceptadas": [
+        "are running"
+      ]
+    },
+    {
+      "orden": 4,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Marcos ______ coffee in the morning.",
+      "pista": null,
+      "opciones": [
+        "don't drinks",
+        "doesn't drinks",
+        "doesn't drink",
+        "isn't drink"
+      ],
+      "respuestas_aceptadas": [
+        "doesn't drink"
+      ]
+    },
+    {
+      "orden": 5,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ Brazil produce good coffee?",
+      "pista": null,
+      "opciones": [
+        "Do",
+        "Does",
+        "Is",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Does"
+      ]
+    },
+    {
+      "orden": 6,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The baby ______ now.",
+      "pista": null,
+      "opciones": [
+        "sleeps",
+        "sleep",
+        "is sleeping",
+        "are sleeping"
+      ],
+      "respuestas_aceptadas": [
+        "is sleeping"
+      ]
+    },
+    {
+      "orden": 7,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My parents ______ at home today.",
+      "pista": null,
+      "opciones": [
+        "is",
+        "am",
+        "are",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "are"
+      ]
+    },
+    {
+      "orden": 8,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Laura ______ to music in the morning.",
+      "pista": null,
+      "opciones": [
+        "listen",
+        "listens",
+        "listening",
+        "is listen"
+      ],
+      "respuestas_aceptadas": [
+        "listens"
+      ]
+    },
+    {
+      "orden": 9,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ your teacher speak English?",
+      "pista": null,
+      "opciones": [
+        "Do",
+        "Does",
+        "Is",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Does"
+      ]
+    },
+    {
+      "orden": 10,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Mexico and Colombia ______ beautiful countries.",
+      "pista": null,
+      "opciones": [
+        "is",
+        "are",
+        "am",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "are"
+      ]
+    },
+    {
+      "orden": 11,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Samuel ______ his homework right now.",
+      "pista": null,
+      "opciones": [
+        "does",
+        "do",
+        "is doing",
+        "are doing"
+      ],
+      "respuestas_aceptadas": [
+        "is doing"
+      ]
+    },
+    {
+      "orden": 12,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The cat ______ rice every day.",
+      "pista": null,
+      "opciones": [
+        "don't eat",
+        "doesn't eats",
+        "doesn't eat",
+        "isn't eat"
+      ],
+      "respuestas_aceptadas": [
+        "doesn't eat"
+      ]
+    },
+    {
+      "orden": 13,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The bird ______ every morning.",
+      "pista": null,
+      "opciones": [
+        "sing",
+        "sings",
+        "singing",
+        "is sing"
+      ],
+      "respuestas_aceptadas": [
+        "sings"
+      ]
+    },
+    {
+      "orden": 14,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ the students studying now?",
+      "pista": null,
+      "opciones": [
+        "Do",
+        "Does",
+        "Is",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Are"
+      ]
+    },
+    {
+      "orden": 15,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Germany ______ in Europe.",
+      "pista": null,
+      "opciones": [
+        "are",
+        "is",
+        "am",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "is"
+      ]
+    },
+    {
+      "orden": 16,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My brother ______ soccer on Sundays.",
+      "pista": null,
+      "opciones": [
+        "play",
+        "plays",
+        "playing",
+        "is play"
+      ],
+      "respuestas_aceptadas": [
+        "plays"
+      ]
+    },
+    {
+      "orden": 17,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Camila and Juan ______ cold weather.",
+      "pista": null,
+      "opciones": [
+        "doesn't like",
+        "don't likes",
+        "don't like",
+        "aren't like"
+      ],
+      "respuestas_aceptadas": [
+        "don't like"
+      ]
+    },
+    {
+      "orden": 18,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "I ______ from Colombia.",
+      "pista": null,
+      "opciones": [
+        "is",
+        "are",
+        "am",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "am"
+      ]
+    },
+    {
+      "orden": 19,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The elephant ______ a lot of water every day.",
+      "pista": null,
+      "opciones": [
+        "drink",
+        "drinks",
+        "drinking",
+        "is drink"
+      ],
+      "respuestas_aceptadas": [
+        "drinks"
+      ]
+    },
+    {
+      "orden": 20,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ Ana and Pedro watching a movie?",
+      "pista": null,
+      "opciones": [
+        "Is",
+        "Am",
+        "Are",
+        "Do"
+      ],
+      "respuestas_aceptadas": [
+        "Are"
+      ]
+    },
+    {
+      "orden": 21,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My phone ______ on the desk.",
+      "pista": null,
+      "opciones": [
+        "am",
+        "are",
+        "is",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "is"
+      ]
+    },
+    {
+      "orden": 22,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The children ______ in the garden right now.",
+      "pista": null,
+      "opciones": [
+        "play",
+        "plays",
+        "are playing",
+        "is playing"
+      ],
+      "respuestas_aceptadas": [
+        "are playing"
+      ]
+    },
+    {
+      "orden": 23,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Japan ______ many cars.",
+      "pista": null,
+      "opciones": [
+        "make",
+        "makes",
+        "making",
+        "is make"
+      ],
+      "respuestas_aceptadas": [
+        "makes"
+      ]
+    },
+    {
+      "orden": 24,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "I ______ vegetables every day.",
+      "pista": null,
+      "opciones": [
+        "doesn't eat",
+        "don't eats",
+        "don't eat",
+        "am not eat"
+      ],
+      "respuestas_aceptadas": [
+        "don't eat"
+      ]
+    },
+    {
+      "orden": 25,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ the fish swimming in the water?",
+      "pista": null,
+      "opciones": [
+        "Are",
+        "Is",
+        "Do",
+        "Does"
+      ],
+      "respuestas_aceptadas": [
+        "Is"
+      ]
+    },
+    {
+      "orden": 26,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My friends ______ very happy today.",
+      "pista": null,
+      "opciones": [
+        "is",
+        "am",
+        "are",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "are"
+      ]
+    },
+    {
+      "orden": 27,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Sofia ______ her room on Saturdays.",
+      "pista": null,
+      "opciones": [
+        "clean",
+        "cleans",
+        "cleaning",
+        "is clean"
+      ],
+      "respuestas_aceptadas": [
+        "cleans"
+      ]
+    },
+    {
+      "orden": 28,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ your dog sleep in the kitchen?",
+      "pista": null,
+      "opciones": [
+        "Do",
+        "Does",
+        "Is",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Does"
+      ]
+    },
+    {
+      "orden": 29,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "We ______ English at this moment.",
+      "pista": null,
+      "opciones": [
+        "speak",
+        "speaks",
+        "are speaking",
+        "is speaking"
+      ],
+      "respuestas_aceptadas": [
+        "are speaking"
+      ]
+    },
+    {
+      "orden": 30,
+      "seccion": "Part 1 – Present Continuous and simple",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The sun ______ in the morning.",
+      "pista": null,
+      "opciones": [
+        "shine",
+        "shines",
+        "shining",
+        "is shine"
+      ],
+      "respuestas_aceptadas": [
+        "shines"
+      ]
+    },
+    {
+      "orden": 31,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I am doing ______ homework now.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "my"
+        ]
+      ]
+    },
+    {
+      "orden": 32,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Sofia doesn't have ______ notebook today.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "her"
+        ]
+      ]
+    },
+    {
+      "orden": 33,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Does your brother clean ______ room on Saturdays?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "his"
+        ]
+      ]
+    },
+    {
+      "orden": 34,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We are studying English with ______ teacher.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "our"
+        ]
+      ]
+    },
+    {
+      "orden": 35,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "The dog is eating ______ food in the kitchen.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "its"
+        ]
+      ]
+    },
+    {
+      "orden": 36,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Are you talking to ______ mother right now?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "your"
+        ]
+      ]
+    },
+    {
+      "orden": 37,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Colombia is famous for ______ coffee.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "its"
+        ]
+      ]
+    },
+    {
+      "orden": 38,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My parents don't use ______ car every day.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "their"
+        ]
+      ]
+    },
+    {
+      "orden": 39,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Camila is wearing ______ new shoes today.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "her"
+        ]
+      ]
+    },
+    {
+      "orden": 40,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Do you and Daniel like ______ English class?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "your"
+        ]
+      ]
+    },
+    {
+      "orden": 41,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "The students are opening ______ books.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "their"
+        ]
+      ]
+    },
+    {
+      "orden": 42,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I don't drink coffee in ______ house.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "my"
+        ]
+      ]
+    },
+    {
+      "orden": 43,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Pedro is helping ______ sister with English.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "his"
+        ]
+      ]
+    },
+    {
+      "orden": 44,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We don't have ______ notebooks on the table.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "our"
+        ]
+      ]
+    },
+    {
+      "orden": 45,
+      "seccion": "Part 2 – Possessive Adjectives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Is Laura reading ______ book in ______ room?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "her"
+        ],
+        [
+          "her"
+        ]
+      ]
+    },
+    {
+      "orden": 46,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ is my phone here in my hand.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "this"
+        ]
+      ]
+    },
+    {
+      "orden": 47,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ are my books here on my desk.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "these"
+        ]
+      ]
+    },
+    {
+      "orden": 48,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Is ______ your backpack over there near the door?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "that"
+        ]
+      ]
+    },
+    {
+      "orden": 49,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I don't like ______ shoes over there in the store window.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "those"
+        ]
+      ]
+    },
+    {
+      "orden": 50,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ dog here next to me is very small.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "this"
+        ]
+      ]
+    },
+    {
+      "orden": 51,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Are ______ your pencils here on the table?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "these"
+        ]
+      ]
+    },
+    {
+      "orden": 52,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ isn't my chair over there.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "that"
+        ]
+      ]
+    },
+    {
+      "orden": 53,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My sister is reading ______ book here.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "this"
+        ]
+      ]
+    },
+    {
+      "orden": 54,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ apples over there are not fresh.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "those"
+        ]
+      ]
+    },
+    {
+      "orden": 55,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Do you want ______ sandwich here on my plate?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "this"
+        ]
+      ]
+    },
+    {
+      "orden": 56,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ students here in this classroom are studying right now.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "these"
+        ]
+      ]
+    },
+    {
+      "orden": 57,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I don't understand ______ word here in the sentence.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "this"
+        ]
+      ]
+    },
+    {
+      "orden": 58,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Are ______ your friends over there?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "those"
+        ]
+      ]
+    },
+    {
+      "orden": 59,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ is not our classroom over there.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "that"
+        ]
+      ]
+    },
+    {
+      "orden": 60,
+      "seccion": "Part 3 – Demonstratives",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My parents don't use ______ old computers over there.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "those"
+        ]
+      ]
+    },
+    {
+      "orden": 61,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "book → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "books"
+        ]
+      ]
+    },
+    {
+      "orden": 62,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "box → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "boxes"
+        ]
+      ]
+    },
+    {
+      "orden": 63,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "city → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "cities"
+        ]
+      ]
+    },
+    {
+      "orden": 64,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "baby → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "babies"
+        ]
+      ]
+    },
+    {
+      "orden": 65,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "bus → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "buses"
+        ]
+      ]
+    },
+    {
+      "orden": 66,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "story → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "stories"
+        ]
+      ]
+    },
+    {
+      "orden": 67,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "tomato → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "tomatoes"
+        ]
+      ]
+    },
+    {
+      "orden": 68,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "potato → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "potatoes"
+        ]
+      ]
+    },
+    {
+      "orden": 69,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "knife → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "knives"
+        ]
+      ]
+    },
+    {
+      "orden": 70,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "leaf → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "leaves"
+        ]
+      ]
+    },
+    {
+      "orden": 71,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "child → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "children",
+          "kids"
+        ]
+      ]
+    },
+    {
+      "orden": 72,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "person → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "people"
+        ]
+      ]
+    },
+    {
+      "orden": 73,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "man → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "men"
+        ]
+      ]
+    },
+    {
+      "orden": 74,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "woman → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "women"
+        ]
+      ]
+    },
+    {
+      "orden": 75,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "foot → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "feet"
+        ]
+      ]
+    },
+    {
+      "orden": 76,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "tooth → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "teeth"
+        ]
+      ]
+    },
+    {
+      "orden": 77,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "mouse → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "mice"
+        ]
+      ]
+    },
+    {
+      "orden": 78,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "country → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "countries"
+        ]
+      ]
+    },
+    {
+      "orden": 79,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "toy → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "toys"
+        ]
+      ]
+    },
+    {
+      "orden": 80,
+      "seccion": "Part 4 – Plurals",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "family → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "families"
+        ]
+      ]
+    },
+    {
+      "orden": 81,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ a book on the table.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there is"
+        ]
+      ]
+    },
+    {
+      "orden": 82,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ three chairs in the kitchen.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there are"
+        ]
+      ]
+    },
+    {
+      "orden": 83,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ any milk in the fridge. (-)",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there isn't",
+          "there is not"
+        ]
+      ]
+    },
+    {
+      "orden": 84,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ two dogs in the park? (?)",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "are there"
+        ]
+      ]
+    },
+    {
+      "orden": 85,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ a pencil in my backpack.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there is"
+        ]
+      ]
+    },
+    {
+      "orden": 86,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ any students in the classroom. (-)",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there aren't",
+          "there are not"
+        ]
+      ]
+    },
+    {
+      "orden": 87,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ a phone on the desk? (?)",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "is there"
+        ]
+      ]
+    },
+    {
+      "orden": 88,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ many apples in the bag.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there are"
+        ]
+      ]
+    },
+    {
+      "orden": 89,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ any water in the bottle. (-)",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "there isn't",
+          "there is not"
+        ]
+      ]
+    },
+    {
+      "orden": 90,
+      "seccion": "Part 5 – There is / There are + Many / Much · A. Complete with There is or There are",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "______ a restaurant near the school? (?)",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "is there"
+        ]
+      ]
+    },
+    {
+      "orden": 91,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There are ______ books on the shelf.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "many"
+        ]
+      ]
+    },
+    {
+      "orden": 92,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There isn't ______ water in the glass.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "much"
+        ]
+      ]
+    },
+    {
+      "orden": 93,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Are there ______ students in your class?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "many"
+        ]
+      ]
+    },
+    {
+      "orden": 94,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I don't have ______ money today.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "much"
+        ]
+      ]
+    },
+    {
+      "orden": 95,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There aren't ______ chairs in the room.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "many"
+        ]
+      ]
+    },
+    {
+      "orden": 96,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Does your sister drink ______ coffee?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "much"
+        ]
+      ]
+    },
+    {
+      "orden": 97,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There are ______ pencils on the desk.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "many"
+        ]
+      ]
+    },
+    {
+      "orden": 98,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We don't eat ______ bread at night.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "much"
+        ]
+      ]
+    },
+    {
+      "orden": 99,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Are there ______ apples in the kitchen?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "many"
+        ]
+      ]
+    },
+    {
+      "orden": 100,
+      "seccion": "Part 5 – There is / There are + Many / Much · B. Complete with Many or Much",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My brother doesn't drink ______ milk in the morning.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "much"
+        ]
+      ]
+    },
+    {
+      "orden": 101,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Mi hermana estudia inglés todos los días.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "my sister studies english every day."
+      ]
+    },
+    {
+      "orden": 102,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Carlos no trabaja los domingos.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "carlos doesn't work on sundays.",
+        "carlos does not work on sundays."
+      ]
+    },
+    {
+      "orden": 103,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "¿Tu mamá vive en Colombia?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "does your mom live in colombia?"
+      ]
+    },
+    {
+      "orden": 104,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "No hay huevos en la cocina.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "there aren't any eggs in the kitchen.",
+        "there are not any eggs in the kitchen.",
+        "there are no eggs in the kitchen."
+      ]
+    },
+    {
+      "orden": 105,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Maria debería estudiar inglés.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "maria should study english."
+      ]
+    },
+    {
+      "orden": 106,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Hay muchos libros en la mesa.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "there are many books on the table."
+      ]
+    },
+    {
+      "orden": 107,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Necesito comprar un celular, pero no tengo dinero.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "i need to buy a phone, but i don't have money.",
+        "i need to buy a phone, but i do not have money."
+      ]
+    },
+    {
+      "orden": 108,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "¿Hay estudiantes en la clase?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "are there students in the class?",
+        "are there any students in the class?"
+      ]
+    },
+    {
+      "orden": 109,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Laura está leyendo su libro favorito.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "laura is reading her favorite book."
+      ]
+    },
+    {
+      "orden": 110,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Juan puede viajar con sus amigos, porque su papá tiene mucho dinero.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "juan can travel with his friends because his dad has a lot of money.",
+        "juan can travel with his friends, because his dad has a lot of money."
+      ]
+    },
+    {
+      "orden": 111,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Tú deberías practicar estas palabras en casa.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "you should practice these words at home."
+      ]
+    },
+    {
+      "orden": 112,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Ellos deben limpiar su habitación hoy.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "they must clean their room today."
+      ]
+    },
+    {
+      "orden": 113,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Tú no puedes dormir, tienes que estudiar para el exámen.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "you can't sleep. you have to study for the exam.",
+        "you can't sleep, you have to study for the exam.",
+        "you cannot sleep. you have to study for the exam."
+      ]
+    },
+    {
+      "orden": 114,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "¿Sofía quiere aprender inglés?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "does sofia want to learn english?"
+      ]
+    },
+    {
+      "orden": 115,
+      "seccion": "Part 6 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Los niños en Colombia deben practicar un deporte.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "children in colombia must practice a sport.",
+        "kids in colombia must practice a sport."
+      ]
+    }
+  ]
+}

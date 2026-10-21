@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { generarFaltantesAction } from "@/app/admin/acciones/generaciones";
 import { Boton } from "@/app/components/ui/Boton";
 
-// Solo admin: crea las evaluaciones que falten de las 16 (no toca las existentes).
+// Solo admin: crea las evaluaciones que falten de las 17 (no toca las existentes).
 export default function GenerarFaltantes({
   generacionId,
   faltan,
@@ -27,7 +27,7 @@ export default function GenerarFaltantes({
           })
         }
       >
-        {pendiente ? "Generando…" : `Generar las ${faltan} evaluaciones faltantes`}
+        {pendiente ? "Generando…" : faltan === 1 ? "Generar la evaluación faltante" : `Generar las ${faltan} evaluaciones faltantes`}
       </Boton>
       {error && <p className="text-[13px] text-error-texto">{error}</p>}
     </div>

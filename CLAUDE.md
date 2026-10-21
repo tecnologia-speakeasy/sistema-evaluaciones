@@ -3,10 +3,10 @@
 Plataforma centralizada de evaluaciones de inglés. Reemplaza el modelo "un proyecto + un esquema por evaluación" (ver `../evaluacion-a2`, que queda congelado: NO modificarlo, solo usarlo como referencia).
 
 ## Contexto de negocio
-- Cada **generación** (cohorte) tiene 16 evaluaciones: 12 mensuales + 4 trimestrales.
+- Cada **generación** (cohorte) tiene 17 evaluaciones: 1 de bienvenida + 12 mensuales + 4 trimestrales. La de bienvenida funciona igual que las demás (preguntas, puntaje, IA y correo); va primero y su código es «B» (las otras, M1…M12 y T1…T4: `codigoEvaluacion()` en `lib/tipos.ts`).
 - **Estudiantes**: pertenecen a una sola generación. Estar en la tabla = estar autorizado. En la BD el estudiante es solo su **correo** (+ `activo`): el **nombre lo escribe al entrar**, como en a2, viaja en la sesión y se guarda en cada intento (`intentos.nombre`); ese es el que se usa en pantallas, feedback de IA y correos. El admin los agrega uno a uno o por CSV (no hay registro público).
 - **Staff**: `admin` (todo) y `docente` (evaluaciones, preguntas, resultados). Login con contraseña.
-- Las evaluaciones A1/A2 viven en otro sistema; se migrarán después. No hay agendamiento ni speaking.
+- Las evaluaciones A1/A2 de la Generación 1 ya se migraron aquí (T1 y T2 de `gen-2026-03`; ver «Migración de las evaluaciones A1 y A2»). No hay agendamiento ni speaking (el speaking de la A1 quedó solo en `agendamiento.speaking_scores`).
 
 ## Stack
 - Next.js (App Router) + TypeScript + Tailwind.
@@ -46,7 +46,7 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 - `staff` (005): `debe_cambiar_password` (entró con contraseña temporal) y `sesion_version` (viaja en la cookie; restablecer o cambiar la contraseña la incrementa y cierra las sesiones anteriores).
 - `generaciones.activa`: desactivada = sus estudiantes entran y ven su historial, pero no ven evaluaciones ni empiezan o continúan intentos (ver "Administración").
 
-Funciones: `generar_evaluaciones(generacion_id, staff_id)`, `clonar_preguntas(origen, destino)`.
+Funciones: `generar_evaluaciones(generacion_id, staff_id)` (las 17 desde la 007; idempotente), `clonar_preguntas(origen, destino)`.
 Vistas: `v_preguntas_publicas`, `v_evaluaciones_resumen`, `v_resultados`, `v_dificultad_preguntas`.
 Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amigables):
 - `validar_pregunta`: forma de `opciones` / `respuestas_aceptadas` según el tipo.
@@ -94,7 +94,7 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 - Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (intro + presentar), `/evaluacion/[slug]/intentos/[n]` (resultado del intento + "Tus intentos"), `/evaluacion/[slug]/intentos/[n]/respuestas` (revisión pregunta por pregunta), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público, solo resumen).
 - API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar), `GET /api/intentos/[id]/estado` (la pantalla espera a la IA).
 - Reproceso: `GET /api/cron/procesar` (opcional y **sin programar**, ver "IA y correo").
-- Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 16 evaluaciones; el admin la edita, la activa/desactiva y la elimina), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados` (+ `/admin/resultados/exportar`, CSV de lo filtrado), `/admin/estudiantes` y `/admin/staff` (solo admin), `/admin/cuenta/contrasena` (cambio obligatorio de la temporal y "Cambiar mi contraseña" del menú del avatar).
+- Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 17 evaluaciones: bienvenida, mensuales y trimestrales; el admin la edita, la activa/desactiva y la elimina), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados` (+ `/admin/resultados/exportar`, CSV de lo filtrado), `/admin/estudiantes` y `/admin/staff` (solo admin), `/admin/cuenta/contrasena` (cambio obligatorio de la temporal y "Cambiar mi contraseña" del menú del avatar).
 
 ## Reglas del examen del estudiante (Fase 4)
 - **Intento**: empieza al tocar "Comenzar" (no en la intro). Recargar o abrir otra pestaña retoma el mismo intento `en_progreso` (índice único): no crea otro ni gasta otro.
@@ -164,7 +164,7 @@ Todo solo para admin, salvo Resultados (admin y docente). Acciones en `app/admin
 - **Resultados** (`/admin/resultados`): arriba "Intentos por revisar" (Fase 5); debajo, los intentos de `v_resultados`.
   - Filtros en la URL (`lib/resultados.ts`, puro): generación → evaluación, estado (por defecto "Enviados": sin los en progreso) y búsqueda por correo o nombre. 50 por página, más recientes primero; tabla desde 1024 px y tarjetas en celular. "Ver ↗" abre `/resultado/[token]`.
   - "Exportar CSV" (`/admin/resultados/exportar`, mismos filtros): separador `;`, UTF-8 con BOM, CRLF y horas de Colombia, para que Excel en español lo abra en columnas y con tildes. Los textos que empiezan con `= + - @` llevan un apóstrofo (inyección de fórmulas). Tope de 50.000 filas.
-- **Generaciones**: el admin edita nombre y fechas (el código no: va en los slugs) y la activa/desactiva con confirmación y resumen (estudiantes activos, intentos en curso). Desactivada: el estudiante entra y ve su historial y resultados, pero no ve evaluaciones ni empieza o continúa intentos (`lib/datos/intentos.ts` y `validar_intento`); el intento en curso se conserva con lo guardado y se retoma al reactivarla.
+- **Generaciones**: al crearla, el admin escribe nombre y fechas; el **código se asigna solo** (`crearGeneracion` en `lib/datos/generaciones.ts`): `gen-AAAA-MM` según la fecha de inicio y, si ya hay otra ese mes, `-2`, `-3`… (un candado evita que dos creaciones a la vez elijan el mismo). El admin edita nombre y fechas (el código no: va en los slugs) y la activa/desactiva con confirmación y resumen (estudiantes activos, intentos en curso). Desactivada: el estudiante entra y ve su historial y resultados, pero no ve evaluaciones ni empieza o continúa intentos (`lib/datos/intentos.ts` y `validar_intento`); el intento en curso se conserva con lo guardado y se retoma al reactivarla.
 - **Eliminar una generación** (solo admin, irreversible; `eliminarGeneracion()` en `lib/datos/generaciones.ts`): borra la generación, sus evaluaciones con sus preguntas, sus estudiantes y todos los intentos con sus resultados (los de sus evaluaciones y los que sus estudiantes tengan en otras generaciones; un estudiante que ya se pasó a otra generación se queda). La confirmación muestra el resumen (pedido al abrirla) con el enlace para exportar sus resultados antes, y exige escribir el código de la generación. Todo en una transacción y en este orden, porque `respuestas → preguntas` es `RESTRICT`: intentos de sus evaluaciones → estudiantes → generación (evaluaciones y preguntas en cascada). Para que sus estudiantes solo dejen de verla, se desactiva.
 
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
@@ -209,6 +209,19 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
   - Irreversible. Si se quieren guardar los ids, antes: `\copy (SELECT email, manychat_id FROM evaluacion.estudiantes WHERE manychat_id IS NOT NULL) TO 'manychat.csv' CSV HEADER`.
   - Comprobar: `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND ((table_name = 'estudiantes' AND column_name = 'manychat_id') OR (table_name = 'intentos' AND column_name = 'whatsapp_enviado'));` (0).
   - En Vercel: borrar `MANYCHAT_API_TOKEN` y `MANYCHAT_FLOW_RESULTADO` (ya no se leen).
+- [x] `db/007_bienvenida.sql` (evaluación de bienvenida): agrega `'bienvenida'` a `tipo_evaluacion` (antes de `'mensual'`, así `ORDER BY tipo` la pone primero), cambia `evaluaciones_check` (bienvenida solo con `numero = 1`), `generar_evaluaciones` crea las 17 y le crea su bienvenida (sin publicar y sin preguntas) a cada generación que ya existe; las demás evaluaciones no se tocan.
+  - Orden en producción: 007 → desplegar el código. Va **antes**: el código anterior no se rompe con la bienvenida (solo no la muestra en el panel), pero el nuevo espera 17 por generación.
+  - Dos pasos en el mismo archivo: el `ALTER TYPE` se confirma solo (Postgres no deja usar un valor nuevo de un enum en la misma transacción) y lo demás va en una transacción. Con psql, el `COMMIT` del paso 1 avisa "there is no transaction in progress": es normal. Se puede correr otra vez sin cambiar nada.
+  - Comprobar: `SELECT g.codigo, count(e.id) FROM evaluacion.generaciones g LEFT JOIN evaluacion.evaluaciones e ON e.generacion_id = g.id GROUP BY g.codigo;` (17 en cada una) y `SELECT count(*) FROM evaluacion.evaluaciones WHERE tipo = 'bienvenida';` (= número de generaciones).
+  - Sin variables nuevas en Vercel. El portal (`inventario-speakeasy`, Academia → Evaluaciones) lee el mismo schema: desplegarlo también.
+
+## Migración de las evaluaciones A1 y A2 (hecha el 21 oct 2026)
+Las evaluaciones viejas de la Generación 1 vivían en otros schemas de la misma BD, con las preguntas en el código de cada proyecto: A1 en `agendamiento` (proyecto `Evaluaciondos-main`) y A2 en `evaluacionados` (`../evaluacion-a2`). Se pasaron a `gen-2026-03` con `scripts/migracion-a1-a2/` (ver el encabezado de `migrar.mts`):
+- A1 → `gen-2026-03-t1` («Evaluación A1», cerrada, 1 intento) y A2 → `gen-2026-03-t2` («Evaluación A2», abierta, intentos ilimitados); 115 y 120 preguntas de 10 puntos, con las "Part" como secciones. Las preguntas salen de `a1.json` / `a2.json` (`extraer-preguntas.mts`: lo que vio el estudiante + la clave de `lib/exam.js`).
+- 697 estudiantes (los autorizados de los dos schemas; se omitieron un correo del staff y una entrada con dos correos en un campo). Intentos: A1 488 y A2 247 (se omitió uno de prueba del staff), con nombre, token, feedback, cambios de pestaña y fechas; todos `listo` y `email_enviado` (no se mandó ningún correo).
+- Puntaje, Grammar y Writing son los **originales**. Cada respuesta se marcó con la clave: en la A2, los intentos del 28 sep al 1 oct con la de antes del commit 6b37ae9 (cuadran exacto); en la A1 no hay historial de la clave de los primeros días, así que en 22 intentos (1–5 jul) las respuestas marcadas no suman exactamente el puntaje guardado.
+- No se migró: el speaking de la A1 (`agendamiento.speaking_scores`, no hay dónde) ni las instrucciones propias de cada "Part" (el examen muestra la instrucción por tipo de pregunta). Los schemas viejos quedan intactos (solo se leyeron).
+- Volver a correrlo no duplica nada (reconoce los intentos por token) y respeta la configuración actual de la T1/T2: sirve para traer intentos tardíos de los sistemas viejos. `npx tsx scripts/migracion-a1-a2/migrar.mts` simula; con `--aplicar` guarda.
 
 ## Pruebas
 - `npm test`: pruebas unitarias (vitest, `tests/*.test.ts`).
@@ -216,7 +229,7 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
   - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI y el SMTP (`simuladores.mjs`).
   - **Dependencias aparte**: `embedded-postgres` (~100 MB), `smtp-server` y `mailparser` van en `tests/integracion/package.json` (con su propio lockfile), **no** en el de la app, así Vercel nunca las instala. El runner las instala la primera vez o si cambia ese lockfile (`tests/integracion/node_modules` está en `.gitignore`). No usar `optionalDependencies`: `npm ci` también las instala, y `--omit=optional` rompería el build (los binarios de Next, Tailwind y lightningcss son opcionales).
   - **Aislamiento**: cada suite corre en su propio proceso con un entorno armado desde cero, nunca el `.env`. Si una suite se corre por fuera del runner, se niega a arrancar (`comun.mts`). Al terminar se borra todo.
-  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada) y `migraciones.mts` (004, 005 y 006 sobre datos de la Fase 4).
+  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada) y `migraciones.mts` (004, 005, 006 y 007 sobre datos de la Fase 4).
   - **Configuración por defecto**: abiertas apagadas. La prueba que necesita abiertas las enciende ella misma, solo mientras corre (`conAbiertas()`).
   - **Suites nuevas**: van en `tests/integracion/*.mts` y se agregan a `SUITES` en `ejecutar.mjs`. Una migración nueva en `db/` se aplica sola.
 
