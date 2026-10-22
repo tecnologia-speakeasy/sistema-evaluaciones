@@ -54,6 +54,7 @@ export default function FormPregunta({
   secciones,
   seccionSugerida,
   abiertasActivas,
+  pesosPorPregunta,
   onListo,
   onCancelar,
 }: {
@@ -64,6 +65,8 @@ export default function FormPregunta({
   seccionSugerida: string;
   /** Apagadas: "Abierta" no se ofrece (el servidor también la rechaza). */
   abiertasActivas: boolean;
+  /** Apagado: no se pide el puntaje; se guarda el que tenía (10 si es nueva). */
+  pesosPorPregunta: boolean;
   onListo: () => void;
   onCancelar: () => void;
 }) {
@@ -84,7 +87,8 @@ export default function FormPregunta({
     setError(null);
   };
   const errorDe = (campo: string) => (error?.campo === campo ? error.mensaje : null);
-  const visibles = [...CAMPOS_COMUNES, ...CAMPOS_TIPO[e.tipo]];
+  // Sin pesos el puntaje no se ve: su error (si lo hubiera) va arriba, como general.
+  const visibles = [...CAMPOS_COMUNES.filter((c) => pesosPorPregunta || c !== "puntaje"), ...CAMPOS_TIPO[e.tipo]];
   const errorGeneral = error && (!error.campo || !visibles.includes(error.campo)) ? error.mensaje : null;
 
   function cambiarTipo(tipo: TipoPregunta) {
@@ -186,7 +190,7 @@ export default function FormPregunta({
           </div>
         </Campo>
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_150px]">
+        <div className={`grid gap-4 ${pesosPorPregunta ? "sm:grid-cols-[1fr_150px]" : ""}`}>
           <Campo etiqueta="Categoría" htmlFor="p-categoria" error={errorDe("categoria")}>
             <Selector
               id="p-categoria"
@@ -198,19 +202,21 @@ export default function FormPregunta({
               <option value="writing">Writing</option>
             </Selector>
           </Campo>
-          <Campo etiqueta="Puntaje" htmlFor="p-puntaje" error={errorDe("puntaje")}>
-            <Entrada
-              id="p-puntaje"
-              type="number"
-              inputMode="decimal"
-              min={0.01}
-              step="any"
-              value={e.puntaje}
-              readOnly={soloAgregar}
-              onChange={(x) => cambiar({ puntaje: x.target.value })}
-              invalida={!!errorDe("puntaje")}
-            />
-          </Campo>
+          {pesosPorPregunta && (
+            <Campo etiqueta="Puntaje" htmlFor="p-puntaje" error={errorDe("puntaje")}>
+              <Entrada
+                id="p-puntaje"
+                type="number"
+                inputMode="decimal"
+                min={0.01}
+                step="any"
+                value={e.puntaje}
+                readOnly={soloAgregar}
+                onChange={(x) => cambiar({ puntaje: x.target.value })}
+                invalida={!!errorDe("puntaje")}
+              />
+            </Campo>
+          )}
         </div>
 
         <Campo

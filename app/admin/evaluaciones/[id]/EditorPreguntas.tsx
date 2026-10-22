@@ -17,21 +17,27 @@ export default function EditorPreguntas({
   preguntas,
   candidatasClonar,
   abiertasActivas,
+  pesosPorPregunta,
 }: {
   evaluacionId: number;
   preguntas: PreguntaStaff[];
   candidatasClonar: CandidataClonar[];
   /** PREGUNTAS_ABIERTAS_ACTIVAS: apagadas, no se crean y el estudiante no ve las que haya. */
   abiertasActivas: boolean;
+  /** PESOS_POR_PREGUNTA: apagado, todas valen lo mismo y no se pide el puntaje. */
+  pesosPorPregunta: boolean;
 }) {
   const [edicion, setEdicion] = useState<Edicion>(null);
   const activas = preguntas.filter((p) => p.activa);
   const desactivadas = preguntas.filter((p) => !p.activa);
   const secciones = [...new Set(preguntas.map((p) => p.seccion).filter((s): s is string => !!s))];
-  // Lo que vale la evaluación para el estudiante (sin las abiertas si están apagadas).
-  const puntos = activas
-    .filter((p) => abiertasActivas || p.tipo !== "open")
-    .reduce((s, p) => s + p.puntaje, 0);
+  // Las que cuentan para el estudiante (sin las abiertas si están apagadas) y lo
+  // que vale la evaluación: la suma de sus puntajes, o 100 repartido entre todas.
+  const cuentan = activas.filter((p) => abiertasActivas || p.tipo !== "open");
+  const valor = pesosPorPregunta
+    ? `${cuentan.reduce((s, p) => s + p.puntaje, 0)} puntos en total`
+    : cuentan.length > 0 &&
+      `cada una vale ${(100 / cuentan.length).toLocaleString("es-CO", { maximumFractionDigits: 2 })} puntos`;
   // Una pregunta nueva sugiere la sección de la última.
   const seccionSugerida = activas.at(-1)?.seccion ?? "";
   // Si cambian los datos del servidor (orden, altas, bajas), la lista arranca de nuevo.
@@ -51,7 +57,8 @@ export default function EditorPreguntas({
         <div>
           <h2 className="text-xl font-extrabold text-titulo">Preguntas</h2>
           <p className="text-sm text-gris-oscuro">
-            {activas.length} {activas.length === 1 ? "activa" : "activas"} · {puntos} puntos en total
+            {activas.length} {activas.length === 1 ? "activa" : "activas"}
+            {valor && ` · ${valor}`}
             {activas.length > 1 && " · arrastra ⠿ para reordenar"}
           </p>
         </div>
@@ -77,6 +84,7 @@ export default function EditorPreguntas({
           activas={activas}
           desactivadas={desactivadas}
           abiertasActivas={abiertasActivas}
+          pesosPorPregunta={pesosPorPregunta}
           onEditar={(p) => setEdicion({ pregunta: p })}
         />
       )}
@@ -94,6 +102,7 @@ export default function EditorPreguntas({
             secciones={secciones}
             seccionSugerida={seccionSugerida}
             abiertasActivas={abiertasActivas}
+            pesosPorPregunta={pesosPorPregunta}
             onListo={() => setEdicion(null)}
             onCancelar={() => setEdicion(null)}
           />

@@ -87,10 +87,10 @@ try {
   simuladores = await iniciarSimuladores(correos);
 
   // Entorno desde cero: fuera las variables de la app que vinieran del shell
-  // (así las abiertas quedan apagadas, como por defecto) y solo valores de prueba.
+  // (así las abiertas y los pesos quedan apagados, como por defecto) y solo valores de prueba.
   const entorno = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(DATABASE_|SESSION_|OPENAI_|SMTP_|MAIL_|CRON_|OTP_|PREGUNTAS_|VERCEL)/.test(k),
+      ([k]) => !/^(DATABASE_|SESSION_|OPENAI_|SMTP_|MAIL_|CRON_|OTP_|PREGUNTAS_|PESOS_|VERCEL)/.test(k),
     ),
   );
   Object.assign(entorno, {

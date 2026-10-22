@@ -28,7 +28,7 @@ export function BotonCopiarEnlace({ ruta }: { ruta: string }) {
         className="inline-flex cursor-pointer items-center gap-2 rounded-xl border-[1.5px] border-white/45 bg-white/12 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/18"
       >
         <Icono nombre={estado === "copiado" ? "listo" : "copiar"} className="size-[18px]" />
-        Copiar enlace para compartir
+        Compartir mi resultado
       </button>
       <p aria-live="polite" className="mt-2 h-5 text-[13px] font-semibold">
         {estado === "copiado" && <span className="text-[#86efac]">Enlace copiado</span>}

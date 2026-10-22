@@ -7,8 +7,9 @@ if (!local(process.env.DATABASE_URL) || !local(process.env.OPENAI_BASE_URL) || !
   console.error("Las suites de integración se corren con: npm run test:integracion");
   process.exit(1);
 }
-// Configuración por defecto: preguntas abiertas apagadas.
+// Configuración por defecto: preguntas abiertas y pesos por pregunta apagados.
 delete process.env.PREGUNTAS_ABIERTAS_ACTIVAS;
+delete process.env.PESOS_POR_PREGUNTA;
 
 export function casos() {
   let ok = 0;

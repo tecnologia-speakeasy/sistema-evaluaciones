@@ -65,7 +65,12 @@ Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amig
 - Las que ya existan en la BD se quedan (en el editor dicen "No la ven los estudiantes"), pero el estudiante no las ve ni cuentan en el puntaje (filtro `sqlSinAbiertas()` al presentar, al calificar y en la vista previa).
 - Nunca se llama a calificar abiertas: **una sola llamada a OpenAI por intento** (el feedback general), como a2. Si un intento trae una abierta sin nota de antes de apagarlas, no se califica ni cuenta.
 
-`categoria` (grammar | writing) alimenta `grammar_score` / `writing_score`. `puntaje_total` va de 0 a 100 = suma de puntajes obtenidos / suma de puntajes posibles × 100.
+`categoria` (grammar | writing) alimenta `grammar_score` / `writing_score`. `puntaje_total` va de 0 a 100 (`resumirIntento()` en `lib/grading/calificar.ts`, que usan tanto el envío como la IA).
+
+**Pesos por pregunta: desactivados.** Por ahora todas las preguntas valen lo mismo: 100 ÷ número de preguntas (10 preguntas = 10 puntos cada una). `PESOS_POR_PREGUNTA` (por defecto `false`; `lib/preguntas/pesos.ts`) los vuelve a encender sin tocar código. Apagados:
+- El editor (aquí y en el portal) no pide el puntaje ni lo muestra en cada pregunta; arriba dice cuánto vale cada una. El `puntaje` se sigue guardando (10 si es nueva, o el que ya tenía) para cuando se enciendan.
+- Cada pregunta aporta la parte que obtuvo de su propio puntaje (1 o 0; una abierta, nota/10) y el total es el promedio × 100. Por eso da lo mismo con qué puntaje se guardó una respuesta, también las de antes (p. ej. al "Reintentar IA" un intento viejo).
+- Encendidos: suma de puntajes obtenidos / suma de puntajes posibles × 100. Con todas las preguntas en 10 (la T1 y la T2 migradas, por ejemplo) los dos modos dan lo mismo.
 
 ### Normalización de respuestas
 Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/normalize.ts` (mayúsculas, tildes, apóstrofes, contracciones, puntuación, sinónimos mom/mother, etc.) y cubrirla con tests.
@@ -198,6 +203,7 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
     - `OPENAI_API_KEY` y `OPENAI_MODEL` (opcional).
     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`: ahora obligatorias; sin ellas el correo del resultado queda con "SMTP no configurado".
     - `PREGUNTAS_ABIERTAS_ACTIVAS`: no definirla (o `false`).
+    - `PESOS_POR_PREGUNTA`: no definirla (o `false`): todas las preguntas valen lo mismo. Si algún día se enciende, ponerla igual en el portal.
     - `CRON_SECRET`: no hace falta (reproceso sin programar).
     - Nunca `OPENAI_BASE_URL` (solo pruebas).
   - Las rutas de la IA usan `maxDuration = 300`, que exige Fluid compute (activado por defecto en Vercel; comprobar en Settings → Functions).
