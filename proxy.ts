@@ -34,5 +34,6 @@ export function proxy(req: NextRequest) {
 export const config = {
   // /login, /resultado/[token] (público) y /api/* quedan fuera:
   // los route handlers autorizan por su cuenta.
-  matcher: ["/", "/admin/:path*", "/evaluacion/:path*", "/historial"],
+  // (/historial redirige a / desde next.config.ts.)
+  matcher: ["/", "/admin/:path*", "/evaluacion/:path*"],
 };
