@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { BotonHistorial } from "@/app/components/historial/BotonHistorial";
 import { BotonEnlace } from "@/app/components/ui/Boton";
 import { Encabezado } from "@/app/components/ui/Encabezado";
 import { Insignia, type TonoInsignia } from "@/app/components/ui/InsigniaEstado";
@@ -8,16 +9,18 @@ import { estudianteParaPagina } from "@/lib/auth/guards";
 import {
   cerrarVencidos,
   evaluacionesDelEstudiante,
-  historial,
+  mejoresPorEvaluacion,
   puedePresentar,
   type EvaluacionEstudiante,
 } from "@/lib/datos/intentos";
 import { formatearFechaHora } from "@/lib/fechas";
+import { enMantenimiento } from "@/lib/mantenimiento";
 import { codigoEvaluacion } from "@/lib/tipos";
 import { textoDuracion } from "@/lib/intentos/reloj";
 
 // Inicio del estudiante (styles.hubPage de a2): sus evaluaciones publicadas de
-// su generación, con estado, mejor puntaje e intentos usados.
+// su generación, con estado, mejor puntaje e intentos usados. Si su generación
+// está en mantenimiento (lib/mantenimiento.ts), solo el saludo y el aviso.
 export default function Inicio() {
   return (
     <div className="fondo-pagina flex min-h-screen flex-1 flex-col text-tinta">
@@ -31,12 +34,16 @@ export default function Inicio() {
 async function Contenido() {
   const estudiante = await estudianteParaPagina();
   await cerrarVencidos(estudiante.id);
-  const evaluaciones = await evaluacionesDelEstudiante(estudiante.id, estudiante.generacion_id);
+  if (enMantenimiento(estudiante.generacion_codigo)) {
+    return <Mantenimiento nombre={estudiante.nombre} generacion={estudiante.generacion_nombre} />;
+  }
+  const [evaluaciones, mejores] = await Promise.all([
+    evaluacionesDelEstudiante(estudiante.id, estudiante.generacion_id),
+    mejoresPorEvaluacion(estudiante.id),
+  ]);
   // Generación desactivada: no ve evaluaciones, pero sí su historial.
   const inactiva = !estudiante.generacion_activa;
-  const hayIntentos = inactiva
-    ? (await historial(estudiante.id)).length > 0
-    : evaluaciones.some((e) => e.ultimo_numero !== null);
+  const hayIntentos = mejores.length > 0;
 
   return (
     <>
@@ -52,23 +59,16 @@ async function Contenido() {
               {evaluaciones.length ? "Estas son tus evaluaciones." : "Aquí verás tus evaluaciones publicadas."}
             </p>
           </div>
-          {hayIntentos && (
-            <BotonEnlace href="/historial" variante="secundario">
-              Mi historial
-            </BotonEnlace>
-          )}
+          {hayIntentos && <BotonHistorial mejores={mejores} />}
         </div>
 
         {evaluaciones.length === 0 ? (
           <Tarjeta className="mx-auto flex max-w-[580px] flex-col items-center text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element -- igual que a2 */}
-            <img src="/Felipe_test.png" alt="" className="mb-4 h-auto w-full max-w-[360px]" />
-            <p className="text-[15px] text-gris-oscuro">
+            <p className="text-lg font-bold text-titulo">No hay evaluaciones disponibles</p>
+            <p className="mt-1.5 text-[15px] text-gris-oscuro">
               {inactiva
-                ? `Tu generación está desactivada por ahora: no hay evaluaciones disponibles.${
-                    hayIntentos ? " Tus resultados siguen en «Mi historial»." : ""
-                  }`
-                : "Todavía no hay evaluaciones publicadas. Cuando tu coordinador publique una, aparecerá aquí."}
+                ? `Tu generación está desactivada por ahora.${hayIntentos ? " Tus resultados siguen en «Mi historial»." : ""}`
+                : "Cuando tu coordinador publique una, aparecerá aquí."}
             </p>
           </Tarjeta>
         ) : (
@@ -148,5 +148,26 @@ function TarjetaEvaluacion({ e }: { e: EvaluacionEstudiante }) {
         </BotonEnlace>
       )}
     </Tarjeta>
+  );
+}
+
+// Generación en mantenimiento: el saludo y Spiky con el aviso, sin evaluaciones
+// ni "Mi historial".
+function Mantenimiento({ nombre, generacion }: { nombre: string; generacion: string }) {
+  return (
+    <>
+      <Encabezado nombre={nombre} detalle={generacion} salir />
+      <main className="mx-auto w-full max-w-[1180px] flex-1 px-[18px] pt-8 pb-12 md:px-7 md:pt-10">
+        <p className="mb-1.5 text-sm font-semibold text-gris">{generacion}</p>
+        <h1 className="text-[clamp(26px,4vw,34px)] leading-tight font-extrabold text-marca">Hola, {nombre}</h1>
+        <div className="mt-20 flex flex-col items-center text-center md:mt-36">
+          {/* eslint-disable-next-line @next/next/no-img-element -- como las demás imágenes de a2 */}
+          <img src="/spiky-mantenimiento.png" alt="" className="h-auto w-full max-w-[460px]" />
+          <p className="mt-10 max-w-[1040px] text-[clamp(18px,2.6vw,27px)] font-medium tracking-[0.06em] text-gris-hub uppercase">
+            Estamos trabajando para brindarte una mejor experiencia
+          </p>
+        </div>
+      </main>
+    </>
   );
 }

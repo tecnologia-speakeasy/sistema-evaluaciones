@@ -574,36 +574,24 @@ async function intentosEnviados(evaluacionId: number, estudianteId: number) {
   );
 }
 
-export type IntentoHistorial = ResumenIntentoEnviado & {
-  grammar_score: number;
-  writing_score: number;
-  grammar_total: number;
-  writing_total: number;
-  /** Para la gráfica (ms). */
-  completado_ms: number;
-  slug: string;
-  titulo: string;
+export type MejorPorEvaluacion = {
   tipo: TipoEvaluacion;
-  eval_numero: number;
+  numero: number;
+  /** null: sus intentos aún no tienen puntaje (abierta pendiente). */
+  mejor: number | null;
 };
 
-export async function historial(estudianteId: number): Promise<IntentoHistorial[]> {
-  const { rows } = await query<IntentoHistorial>(
-    `SELECT i.numero_intento AS numero, i.estado, i.puntaje_total,
-            ${sqlALocal("i.completed_at")} AS completado,
-            (extract(epoch FROM i.completed_at) * 1000)::float8 AS completado_ms,
-            coalesce(i.grammar_score, 0) AS grammar_score, coalesce(i.writing_score, 0) AS writing_score,
-            t.grammar_total, t.writing_total,
-            e.slug, e.titulo, e.tipo, e.numero AS eval_numero
+// "Mi historial": su mejor puntaje en cada evaluación que presentó (una fila por
+// evaluación: B, M1…M12, T1…T4). Por tipo y número, así que si cambió de
+// generación también cuentan los de la anterior.
+export async function mejoresPorEvaluacion(estudianteId: number): Promise<MejorPorEvaluacion[]> {
+  const { rows } = await query<MejorPorEvaluacion>(
+    `SELECT e.tipo, e.numero, max(i.puntaje_total)::int AS mejor
        FROM intentos i
        JOIN evaluaciones e ON e.id = i.evaluacion_id
-       CROSS JOIN LATERAL (
-         SELECT count(*) FILTER (WHERE p.categoria = 'grammar' AND r.es_correcta IS NOT NULL)::int AS grammar_total,
-                count(*) FILTER (WHERE p.categoria = 'writing' AND r.es_correcta IS NOT NULL)::int AS writing_total
-           FROM respuestas r JOIN preguntas p ON p.id = r.pregunta_id
-          WHERE r.intento_id = i.id) t
       WHERE i.estudiante_id = $1 AND i.estado <> 'en_progreso'
-      ORDER BY i.completed_at, i.id`,
+      GROUP BY e.tipo, e.numero
+      ORDER BY e.tipo, e.numero`,
     [estudianteId],
   );
   return rows;

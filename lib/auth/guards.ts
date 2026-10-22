@@ -25,6 +25,7 @@ export type EstudianteActual = {
   email: string;
   nombre: string;
   generacion_id: number;
+  generacion_codigo: string;
   generacion_nombre: string;
   /** Generación desactivada: entra y ve su historial, pero no evaluaciones. */
   generacion_activa: boolean;
@@ -72,7 +73,7 @@ export const getEstudianteActual = cache(
     const sesion = await getSession();
     if (sesion?.tipo !== "estudiante") return null;
     const { rows } = await query<Omit<EstudianteActual, "nombre">>(
-      `SELECT e.id, e.email, e.generacion_id, g.nombre AS generacion_nombre,
+      `SELECT e.id, e.email, e.generacion_id, g.codigo AS generacion_codigo, g.nombre AS generacion_nombre,
               g.activa AS generacion_activa
          FROM estudiantes e
          JOIN generaciones g ON g.id = e.generacion_id

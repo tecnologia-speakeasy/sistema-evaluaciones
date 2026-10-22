@@ -1,5 +1,5 @@
 // Integración de lib/datos/intentos.ts (Fase 4): iniciar, retomar, guardar,
-// enviar y calificar, plazos, revisión, hub, historial y resultado público.
+// enviar y calificar, plazos, revisión, hub, historial (mejor por evaluación) y resultado público.
 // Se corre con `npm run test:integracion` (ver tests/integracion/ejecutar.mjs).
 import assert from "node:assert/strict";
 import { casos, conAbiertas } from "./comun.mjs";
@@ -274,13 +274,21 @@ async function main() {
     assert.equal(lista.some((e) => e.id === evs[5].id), false, "las no publicadas no aparecen");
   });
 
-  await caso("historial y resultado público (solo resumen; token inválido o en curso → nada)", async () => {
-    const h = await I.historial(ana.id);
-    assert.deepEqual(h.map((x) => [x.slug, x.numero, x.puntaje_total]), [
-      [m1.slug, 1, null],
-      [m2.slug, 1, 50],
-      [m2.slug, 2, 50],
+  await caso("historial (mejor puntaje por evaluación) y resultado público (solo resumen; token inválido o en curso → nada)", async () => {
+    // M1: un intento con la abierta pendiente (sin puntaje); M2: dos intentos de 50.
+    assert.deepEqual(await I.mejoresPorEvaluacion(ana.id), [
+      { tipo: "mensual", numero: 1, mejor: null },
+      { tipo: "mensual", numero: 2, mejor: 50 },
     ]);
+    // Con solo un intento en curso (no cuenta): nada.
+    const [soloEnCurso] = await sql<{ estudiante_id: number }>(
+      `SELECT i.estudiante_id FROM intentos i
+        WHERE i.estado = 'en_progreso'
+          AND NOT EXISTS (SELECT 1 FROM intentos o WHERE o.estudiante_id = i.estudiante_id AND o.estado <> 'en_progreso')
+        LIMIT 1`,
+    );
+    assert.ok(soloEnCurso, "hay un estudiante con solo un intento en curso");
+    assert.deepEqual(await I.mejoresPorEvaluacion(soloEnCurso.estudiante_id), []);
     const [t] = await sql<{ token: string }>(`SELECT token FROM intentos WHERE evaluacion_id = $1 AND estudiante_id = $2 AND numero_intento = 2`, [m2.id, ana.id]);
     const pub = await I.resultadoPublico(t.token);
     assert.equal(pub?.nombre, "Estudiante ana");

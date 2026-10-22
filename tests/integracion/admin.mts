@@ -314,8 +314,8 @@ await caso("generación desactivada: sin evaluaciones; no empieza, no continúa,
     ]),
     /generación de la evaluación .* está desactivada/,
   );
-  // Su historial y sus resultados siguen visibles; ya no puede repetir.
-  assert.equal((await I.historial(flor.id)).length, 2);
+  // Su historial (M1 y M2) y sus resultados siguen visibles; ya no puede repetir.
+  assert.equal((await I.mejoresPorEvaluacion(flor.id)).length, 2);
   const d = await I.detalleIntento(m1.slug, 1, flor.id);
   assert.deepEqual([d?.numero, d?.puedeRepetir], [1, false]);
 });
