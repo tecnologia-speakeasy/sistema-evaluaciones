@@ -13,6 +13,7 @@ import {
   type EvaluacionEstudiante,
 } from "@/lib/datos/intentos";
 import { formatearFechaHora } from "@/lib/fechas";
+import { codigoEvaluacion } from "@/lib/tipos";
 import { textoDuracion } from "@/lib/intentos/reloj";
 
 // Inicio del estudiante (styles.hubPage de a2): sus evaluaciones publicadas de
@@ -93,7 +94,7 @@ function estadoParaEstudiante(e: EvaluacionEstudiante): { texto: string; tono: T
 }
 
 function TarjetaEvaluacion({ e }: { e: EvaluacionEstudiante }) {
-  const codigo = `${e.tipo === "mensual" ? "M" : "T"}${e.numero}`;
+  const codigo = codigoEvaluacion(e.tipo, e.numero);
   const estado = estadoParaEstudiante(e);
   const puede = puedePresentar(e);
   const resultado = e.ultimo_numero ? `/evaluacion/${e.slug}/intentos/${e.ultimo_numero}` : null;

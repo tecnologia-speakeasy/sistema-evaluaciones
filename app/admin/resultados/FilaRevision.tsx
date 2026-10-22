@@ -9,6 +9,7 @@ import { Insignia, type TonoInsignia } from "@/app/components/ui/InsigniaEstado"
 import { Tarjeta } from "@/app/components/ui/Tarjeta";
 import type { IntentoPorRevisar } from "@/lib/datos/revision";
 import { formatearFechaHora } from "@/lib/fechas";
+import { codigoEvaluacion } from "@/lib/tipos";
 
 const ESTADO: Record<string, { texto: string; tono: TonoInsignia }> = {
   error: { texto: "Error de IA", tono: "rojo" },
@@ -29,7 +30,7 @@ export default function FilaRevision({ intento: i }: { intento: IntentoPorRevisa
     return () => clearTimeout(t);
   }, [resultado, router]);
   const estado = ESTADO[i.estado] ?? { texto: i.estado, tono: "gris" as const };
-  const codigo = `${i.tipo === "mensual" ? "M" : "T"}${i.eval_numero}`;
+  const codigo = codigoEvaluacion(i.tipo, i.eval_numero);
 
   function reintentar() {
     setResultado(null);

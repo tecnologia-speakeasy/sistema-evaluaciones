@@ -4,16 +4,26 @@ import type { FilaValida } from "@/lib/estudiantes/importar";
 import { sqlALocal } from "@/lib/fechas";
 
 // Estudiantes (Fase 6, solo admin). Sin autorización: la hacen las Server Actions
-// y la página. Nunca se borran: se desactivan. En la BD el estudiante es solo su
-// correo (+ manychat_id y activo); su nombre es el que escribe al entrar y queda
-// en cada intento (aquí se muestra el último que usó).
+// y la página. Por CSV nunca se borran; uno a uno, el admin puede eliminarlos.
+// En la BD el estudiante es solo su correo (+ activo); su nombre es el que
+// escribe al entrar y queda en cada intento (aquí se muestra el último).
 
 export const POR_PAGINA_ESTUDIANTES = 50;
+
+type Consultor = Pick<Tx, "query">;
+
+async function exigirGeneracion(db: Consultor, generacionId: number, bloquear = false) {
+  const { rows } = await db.query<{ nombre: string }>(
+    `SELECT nombre FROM generaciones WHERE id = $1 ${bloquear ? "FOR UPDATE" : ""}`,
+    [generacionId],
+  );
+  if (!rows[0]) throw new ErrorNegocio("La generación no existe.", "generacion");
+  return rows[0];
+}
 
 export type EstudianteLista = {
   id: number;
   email: string;
-  manychat_id: string | null;
   activo: boolean;
   /** El último nombre con el que entró (de sus intentos). */
   ultimo_nombre: string | null;
@@ -30,7 +40,7 @@ export async function listarEstudiantes(
   { q = "", pagina = 1 }: { q?: string; pagina?: number } = {},
 ): Promise<{ filas: EstudianteLista[]; total: number }> {
   const { rows } = await query<EstudianteLista & { total: number }>(
-    `SELECT s.id, s.email::text AS email, s.manychat_id, s.activo,
+    `SELECT s.id, s.email::text AS email, s.activo,
             (SELECT i.nombre FROM intentos i WHERE i.estudiante_id = s.id
               ORDER BY i.started_at DESC LIMIT 1) AS ultimo_nombre,
             (SELECT count(*)::int FROM intentos i WHERE i.estudiante_id = s.id) AS intentos,
@@ -38,7 +48,7 @@ export async function listarEstudiantes(
             count(*) OVER ()::int AS total
        FROM estudiantes s
       WHERE s.generacion_id = $1
-        AND ($2 = '' OR s.email ILIKE $3 OR s.manychat_id ILIKE $3
+        AND ($2 = '' OR s.email ILIKE $3
              OR EXISTS (SELECT 1 FROM intentos i WHERE i.estudiante_id = s.id AND i.nombre ILIKE $3))
       ORDER BY s.email
       LIMIT $4 OFFSET $5`,
@@ -53,8 +63,75 @@ export async function cambiarActivoEstudiante(id: number, activo: boolean): Prom
   if (!rowCount) throw new ErrorNegocio("El estudiante no existe.");
 }
 
-export async function guardarManychat(id: number, manychatId: string | null): Promise<void> {
-  const { rowCount } = await query(`UPDATE estudiantes SET manychat_id = $2 WHERE id = $1`, [id, manychatId]);
+// ---------------------------------------------------------------------------
+// Uno a uno (solo admin): agregar, editar y eliminar. Mismas reglas que el CSV:
+// un correo del staff no puede ser estudiante y cada correo está una sola vez.
+// Agregar y editar se ponen en fila con las importaciones (mismo candado).
+// ---------------------------------------------------------------------------
+
+const SQL_CANDADO = `SELECT pg_advisory_xact_lock(hashtext('importar-estudiantes'))`;
+
+export type DatosEstudiante = { email: string; generacionId: number };
+
+// El correo del staff tiene prioridad en el login: no puede ser también estudiante.
+async function rechazarCorreoStaff(db: Consultor, email: string) {
+  const { rowCount } = await db.query(`SELECT 1 FROM staff WHERE email = $1`, [email]);
+  if (rowCount) throw new ErrorNegocio("Ese correo es del staff: no puede ser estudiante.", "email");
+}
+
+export async function crearEstudiante(d: DatosEstudiante): Promise<number> {
+  return transaction(async (tx) => {
+    await tx.query(SQL_CANDADO);
+    await exigirGeneracion(tx, d.generacionId);
+    await rechazarCorreoStaff(tx, d.email);
+    const { rows: existe } = await tx.query<{ generacion: string }>(
+      `SELECT g.nombre AS generacion FROM estudiantes s JOIN generaciones g ON g.id = s.generacion_id
+        WHERE s.email = $1`,
+      [d.email],
+    );
+    if (existe[0]) {
+      throw new ErrorNegocio(`Ese correo ya está inscrito en ${existe[0].generacion}. Búscalo y edítalo allí.`, "email");
+    }
+    const { rows } = await tx.query<{ id: number }>(
+      `INSERT INTO estudiantes (generacion_id, email) VALUES ($1, $2) RETURNING id`,
+      [d.generacionId, d.email],
+    );
+    return rows[0].id;
+  });
+}
+
+// Correo y generación (moverlo conserva sus intentos). El activo se cambia
+// aparte (cambiarActivoEstudiante).
+export async function actualizarEstudiante(id: number, d: DatosEstudiante): Promise<void> {
+  await transaction(async (tx) => {
+    await tx.query(SQL_CANDADO);
+    const { rows } = await tx.query<{ email: string }>(
+      `SELECT email::text AS email FROM estudiantes WHERE id = $1 FOR UPDATE`,
+      [id],
+    );
+    if (!rows[0]) throw new ErrorNegocio("El estudiante no existe.");
+    await exigirGeneracion(tx, d.generacionId);
+    if (rows[0].email.toLowerCase() !== d.email) await rechazarCorreoStaff(tx, d.email);
+    // Un correo repetido lo frena el UNIQUE (estudiantes_email_key → db-errores).
+    await tx.query(`UPDATE estudiantes SET email = $2, generacion_id = $3 WHERE id = $1`, [id, d.email, d.generacionId]);
+  });
+}
+
+// Lo que se muestra antes de eliminar.
+export async function resumenEliminarEstudiante(id: number): Promise<{ email: string; intentos: number } | null> {
+  const { rows } = await query<{ email: string; intentos: number }>(
+    `SELECT s.email::text AS email,
+            (SELECT count(*)::int FROM intentos i WHERE i.estudiante_id = s.id) AS intentos
+       FROM estudiantes s WHERE s.id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+// Irreversible: se van también sus intentos con sus resultados y sus códigos de
+// acceso (ON DELETE CASCADE). Para que solo no pueda entrar, se desactiva.
+export async function eliminarEstudiante(id: number): Promise<void> {
+  const { rowCount } = await query(`DELETE FROM estudiantes WHERE id = $1`, [id]);
   if (!rowCount) throw new ErrorNegocio("El estudiante no existe.");
 }
 
@@ -63,25 +140,21 @@ export async function guardarManychat(id: number, manychatId: string | null): Pr
 // analiza el archivo; aquí se compara con la BD). Nunca borra.
 //   · nuevo: se crea activo en la generación elegida.
 //   · existente activo de otra generación: se mueve (sus intentos se conservan).
-//   · existente de la misma generación: sin cambios, salvo el manychat_id si
-//     el CSV trae uno distinto (vacío no borra el que tiene).
-//   · existente inactivo: se mueve / actualiza igual, pero sigue inactivo (se
-//     reactiva desde la lista).
+//   · existente de la misma generación: sin cambios.
+//   · existente inactivo: se mueve igual, pero sigue inactivo (se reactiva desde
+//     la lista).
 //   · correo del staff: se rechaza (el login le daría prioridad al staff).
 // ---------------------------------------------------------------------------
 
-export type FilaExistente = FilaValida & { generacion_actual: string; manychat_actual: string | null };
+export type FilaExistente = FilaValida & { generacion_actual: string };
 
 export type Clasificacion = {
   nuevos: FilaValida[];
   cambianGeneracion: FilaExistente[];
-  actualizanManychat: FilaExistente[];
   sinCambios: FilaExistente[];
   inactivos: FilaExistente[];
   delStaff: FilaValida[];
 };
-
-type Consultor = Pick<Tx, "query">;
 
 async function clasificar(
   db: Consultor,
@@ -91,8 +164,8 @@ async function clasificar(
 ): Promise<Clasificacion> {
   const emails = validas.map((v) => v.email);
   const [{ rows: existentes }, { rows: staff }] = await Promise.all([
-    db.query<{ email: string; generacion_id: number; generacion: string; activo: boolean; manychat_id: string | null }>(
-      `SELECT s.email::text AS email, s.generacion_id, g.nombre AS generacion, s.activo, s.manychat_id
+    db.query<{ email: string; generacion_id: number; generacion: string; activo: boolean }>(
+      `SELECT s.email::text AS email, s.generacion_id, g.nombre AS generacion, s.activo
          FROM estudiantes s JOIN generaciones g ON g.id = s.generacion_id
         WHERE s.email = ANY($1::citext[])
         ${bloquear ? "FOR UPDATE OF s" : ""}`,
@@ -103,14 +176,7 @@ async function clasificar(
   const porEmail = new Map(existentes.map((e) => [e.email.toLowerCase(), e]));
   const delStaff = new Set(staff.map((s) => s.email.toLowerCase()));
 
-  const c: Clasificacion = {
-    nuevos: [],
-    cambianGeneracion: [],
-    actualizanManychat: [],
-    sinCambios: [],
-    inactivos: [],
-    delStaff: [],
-  };
+  const c: Clasificacion = { nuevos: [], cambianGeneracion: [], sinCambios: [], inactivos: [], delStaff: [] };
   for (const v of validas) {
     if (delStaff.has(v.email)) {
       c.delStaff.push(v);
@@ -121,22 +187,12 @@ async function clasificar(
       c.nuevos.push(v);
       continue;
     }
-    const fila: FilaExistente = { ...v, generacion_actual: e.generacion, manychat_actual: e.manychat_id };
+    const fila: FilaExistente = { ...v, generacion_actual: e.generacion };
     if (!e.activo) c.inactivos.push(fila);
     else if (e.generacion_id !== generacionId) c.cambianGeneracion.push(fila);
-    else if (v.manychat_id && v.manychat_id !== e.manychat_id) c.actualizanManychat.push(fila);
     else c.sinCambios.push(fila);
   }
   return c;
-}
-
-async function exigirGeneracion(db: Consultor, generacionId: number, bloquear = false) {
-  const { rows } = await db.query<{ nombre: string }>(
-    `SELECT nombre FROM generaciones WHERE id = $1 ${bloquear ? "FOR UPDATE" : ""}`,
-    [generacionId],
-  );
-  if (!rows[0]) throw new ErrorNegocio("La generación no existe.", "generacion");
-  return rows[0];
 }
 
 export async function previsualizarImportacion(generacionId: number, validas: FilaValida[]): Promise<Clasificacion> {
@@ -148,7 +204,6 @@ export async function previsualizarImportacion(generacionId: number, validas: Fi
 export type ResultadoImportacion = {
   creados: number;
   movidos: number;
-  manychatActualizados: number;
   inactivos: number;
   sinCambios: number;
   delStaff: number;
@@ -160,32 +215,26 @@ export type ResultadoImportacion = {
 export async function importarEstudiantes(generacionId: number, validas: FilaValida[]): Promise<ResultadoImportacion> {
   if (validas.length === 0) throw new ErrorNegocio("El archivo no tiene correos válidos para importar.");
   return transaction(async (tx) => {
-    await tx.query(`SELECT pg_advisory_xact_lock(hashtext('importar-estudiantes'))`);
+    await tx.query(SQL_CANDADO);
     await exigirGeneracion(tx, generacionId, true);
     const c = await clasificar(tx, generacionId, validas, true);
 
     if (c.nuevos.length) {
-      await tx.query(
-        `INSERT INTO estudiantes (generacion_id, email, manychat_id)
-         SELECT $1, x.email, x.manychat_id
-           FROM jsonb_to_recordset($2::jsonb) AS x(email text, manychat_id text)`,
-        [generacionId, JSON.stringify(c.nuevos.map(({ email, manychat_id }) => ({ email, manychat_id })))],
-      );
+      await tx.query(`INSERT INTO estudiantes (generacion_id, email) SELECT $1, unnest($2::citext[])`, [
+        generacionId,
+        c.nuevos.map((f) => f.email),
+      ]);
     }
-    const actualizar = [...c.cambianGeneracion, ...c.actualizanManychat, ...c.inactivos];
-    if (actualizar.length) {
-      await tx.query(
-        `UPDATE estudiantes s
-            SET generacion_id = $1, manychat_id = COALESCE(x.manychat_id, s.manychat_id)
-           FROM jsonb_to_recordset($2::jsonb) AS x(email text, manychat_id text)
-          WHERE s.email = x.email::citext`,
-        [generacionId, JSON.stringify(actualizar.map(({ email, manychat_id }) => ({ email, manychat_id })))],
-      );
+    const mover = [...c.cambianGeneracion, ...c.inactivos];
+    if (mover.length) {
+      await tx.query(`UPDATE estudiantes SET generacion_id = $1 WHERE email = ANY($2::citext[])`, [
+        generacionId,
+        mover.map((f) => f.email),
+      ]);
     }
     return {
       creados: c.nuevos.length,
       movidos: c.cambianGeneracion.length,
-      manychatActualizados: c.actualizanManychat.length,
       inactivos: c.inactivos.length,
       sinCambios: c.sinCambios.length,
       delStaff: c.delStaff.length,

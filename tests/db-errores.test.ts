@@ -43,6 +43,7 @@ describe("traducirErrorBD: constraints", () => {
     ["23514", "evaluaciones_duracion_min_check", "duracion_min"],
     ["23514", "evaluaciones_intentos_permitidos_check", "intentos_permitidos"],
     ["23514", "preguntas_puntaje_check", "puntaje"],
+    ["23505", "estudiantes_email_key", "email"],
   ])("%s %s → %s", (code, nombre, campo) => {
     expect(traducirErrorBD(constraint(code, nombre))?.campo).toBe(campo);
   });

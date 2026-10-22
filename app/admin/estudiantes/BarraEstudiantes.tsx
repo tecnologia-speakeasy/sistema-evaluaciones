@@ -40,7 +40,7 @@ export default function BarraEstudiantes({
       </Campo>
       <Campo etiqueta="Buscar" htmlFor="est-q" className="flex-1">
         <div className="flex gap-2">
-          <Entrada id="est-q" name="q" type="search" defaultValue={q} placeholder="Correo, nombre o manychat_id" />
+          <Entrada id="est-q" name="q" type="search" defaultValue={q} placeholder="Correo o nombre" />
           <Boton type="submit" variante="secundario">
             Buscar
           </Boton>

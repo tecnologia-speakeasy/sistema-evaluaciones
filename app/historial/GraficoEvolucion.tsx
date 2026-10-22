@@ -1,4 +1,5 @@
 import type { IntentoHistorial } from "@/lib/datos/intentos";
+import { codigoEvaluacion } from "@/lib/tipos";
 
 // Evolución de sus puntajes (SVG, sin librerías): un punto por intento ya
 // calificado, en orden. Los colores son los del degradado de progreso de a2.
@@ -14,7 +15,7 @@ export function GraficoEvolucion({ intentos }: { intentos: IntentoHistorial[] })
   const porEvaluacion = new Map<string, number>();
   for (const i of intentos) porEvaluacion.set(i.slug, (porEvaluacion.get(i.slug) ?? 0) + 1);
   const codigo = (p: IntentoHistorial) =>
-    `${p.tipo === "mensual" ? "M" : "T"}${p.eval_numero}${(porEvaluacion.get(p.slug) ?? 0) > 1 ? `·${p.numero}` : ""}`;
+    `${codigoEvaluacion(p.tipo, p.eval_numero)}${(porEvaluacion.get(p.slug) ?? 0) > 1 ? `·${p.numero}` : ""}`;
 
   const ancho = ANCHO - M.izq - M.der;
   const alto = ALTO - M.arriba - M.abajo;

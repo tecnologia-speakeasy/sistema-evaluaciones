@@ -11,6 +11,7 @@ import { InsigniaEstado } from "@/app/components/ui/InsigniaEstado";
 import { Tarjeta } from "@/app/components/ui/Tarjeta";
 import type { EvaluacionResumen } from "@/lib/datos/evaluaciones";
 import { formatearFechaHora } from "@/lib/fechas";
+import { codigoEvaluacion } from "@/lib/tipos";
 
 // Una evaluación de la cuadrícula.
 //   ≥ 640px: tarjeta; toda la tarjeta lleva a Preguntas (enlace estirado sobre
@@ -20,7 +21,7 @@ import { formatearFechaHora } from "@/lib/fechas";
 export default function TarjetaEvaluacion({ evaluacion: e }: { evaluacion: EvaluacionResumen }) {
   const [configurando, setConfigurando] = useState(false);
   const [expandida, setExpandida] = useState(false);
-  const codigo = `${e.tipo === "mensual" ? "M" : "T"}${e.numero}`;
+  const codigo = codigoEvaluacion(e.tipo, e.numero);
   const hrefPreguntas = `/admin/evaluaciones/${e.id}`;
   const idDetalle = `detalle-evaluacion-${e.id}`;
 

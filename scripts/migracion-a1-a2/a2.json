@@ -1,0 +1,2360 @@
+{
+  "preguntas": [
+    {
+      "orden": 1,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Carlos ______ at home yesterday.",
+      "pista": null,
+      "opciones": [
+        "were",
+        "was",
+        "is",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "was"
+      ]
+    },
+    {
+      "orden": 2,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My friends ______ watching a movie when I called them.",
+      "pista": null,
+      "opciones": [
+        "was",
+        "were",
+        "are",
+        "did"
+      ],
+      "respuestas_aceptadas": [
+        "were"
+      ]
+    },
+    {
+      "orden": 3,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "There ______ many people at the supermarket last night.",
+      "pista": null,
+      "opciones": [
+        "was",
+        "were",
+        "is",
+        "are"
+      ],
+      "respuestas_aceptadas": [
+        "were"
+      ]
+    },
+    {
+      "orden": 4,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "I think Sofia ______ call you tomorrow.",
+      "pista": null,
+      "opciones": [
+        "is",
+        "was",
+        "will",
+        "did"
+      ],
+      "respuestas_aceptadas": [
+        "will"
+      ]
+    },
+    {
+      "orden": 5,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Daniel ______ to work by bus yesterday.",
+      "pista": null,
+      "opciones": [
+        "go",
+        "goes",
+        "went",
+        "going"
+      ],
+      "respuestas_aceptadas": [
+        "went"
+      ]
+    },
+    {
+      "orden": 6,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My sister ______ studying when my mom arrived.",
+      "pista": null,
+      "opciones": [
+        "were",
+        "was",
+        "is",
+        "did"
+      ],
+      "respuestas_aceptadas": [
+        "was"
+      ]
+    },
+    {
+      "orden": 7,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ there any milk in the fridge yesterday?",
+      "pista": null,
+      "opciones": [
+        "Was",
+        "Were",
+        "Is",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Was"
+      ]
+    },
+    {
+      "orden": 8,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "They ______ visit their grandparents next weekend.",
+      "pista": null,
+      "opciones": [
+        "are going to",
+        "was going to",
+        "going to",
+        "went to"
+      ],
+      "respuestas_aceptadas": [
+        "are going to"
+      ]
+    },
+    {
+      "orden": 9,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Laura didn’t ______ dinner at home last night.",
+      "pista": null,
+      "opciones": [
+        "ate",
+        "eats",
+        "eat",
+        "eating"
+      ],
+      "respuestas_aceptadas": [
+        "eat"
+      ]
+    },
+    {
+      "orden": 10,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My brother can help ______ with your homework.",
+      "pista": null,
+      "opciones": [
+        "you",
+        "yourself",
+        "your",
+        "yours"
+      ],
+      "respuestas_aceptadas": [
+        "you"
+      ]
+    },
+    {
+      "orden": 11,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The children ______ happy after the class.",
+      "pista": null,
+      "opciones": [
+        "was",
+        "were",
+        "did",
+        "are being"
+      ],
+      "respuestas_aceptadas": [
+        "were"
+      ]
+    },
+    {
+      "orden": 12,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "We ______ soccer when it started to rain.",
+      "pista": null,
+      "opciones": [
+        "played",
+        "play",
+        "were playing",
+        "was playing"
+      ],
+      "respuestas_aceptadas": [
+        "were playing"
+      ]
+    },
+    {
+      "orden": 13,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "There ______ a big dog in front of the house.",
+      "pista": null,
+      "opciones": [
+        "were",
+        "was",
+        "are",
+        "be"
+      ],
+      "respuestas_aceptadas": [
+        "was"
+      ]
+    },
+    {
+      "orden": 14,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Maria ______ travel to Canada next year.",
+      "pista": null,
+      "opciones": [
+        "is going to",
+        "are going to",
+        "going to",
+        "went to"
+      ],
+      "respuestas_aceptadas": [
+        "is going to"
+      ]
+    },
+    {
+      "orden": 15,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Did your teacher ______ the lesson again?",
+      "pista": null,
+      "opciones": [
+        "explained",
+        "explains",
+        "explain",
+        "explaining"
+      ],
+      "respuestas_aceptadas": [
+        "explain"
+      ]
+    },
+    {
+      "orden": 16,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "You should ______ more water.",
+      "pista": null,
+      "opciones": [
+        "drinks",
+        "drink",
+        "drinking",
+        "to drink"
+      ],
+      "respuestas_aceptadas": [
+        "drink"
+      ]
+    },
+    {
+      "orden": 17,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The cat cleaned ______ after eating.",
+      "pista": null,
+      "opciones": [
+        "himself",
+        "herself",
+        "itself",
+        "themselves"
+      ],
+      "respuestas_aceptadas": [
+        "itself"
+      ]
+    },
+    {
+      "orden": 18,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Colombia ______ play against Brazil next month.",
+      "pista": null,
+      "opciones": [
+        "will",
+        "was",
+        "did",
+        "were"
+      ],
+      "respuestas_aceptadas": [
+        "will"
+      ]
+    },
+    {
+      "orden": 19,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My parents didn’t ______ TV yesterday.",
+      "pista": null,
+      "opciones": [
+        "watched",
+        "watches",
+        "watch",
+        "watching"
+      ],
+      "respuestas_aceptadas": [
+        "watch"
+      ]
+    },
+    {
+      "orden": 20,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Samuel and I ______ at school last Friday.",
+      "pista": null,
+      "opciones": [
+        "was",
+        "were",
+        "is",
+        "did"
+      ],
+      "respuestas_aceptadas": [
+        "were"
+      ]
+    },
+    {
+      "orden": 21,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ you studying English at 8 p.m.?",
+      "pista": null,
+      "opciones": [
+        "Was",
+        "Were",
+        "Did",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Were"
+      ]
+    },
+    {
+      "orden": 22,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "There weren’t ______ chairs in the classroom.",
+      "pista": null,
+      "opciones": [
+        "some",
+        "any",
+        "much",
+        "a"
+      ],
+      "respuestas_aceptadas": [
+        "any"
+      ]
+    },
+    {
+      "orden": 23,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "My sister must ______ her room today.",
+      "pista": null,
+      "opciones": [
+        "cleans",
+        "cleaned",
+        "clean",
+        "cleaning"
+      ],
+      "respuestas_aceptadas": [
+        "clean"
+      ]
+    },
+    {
+      "orden": 24,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "I saw Pedro, but he didn’t see ______.",
+      "pista": null,
+      "opciones": [
+        "I",
+        "my",
+        "me",
+        "myself"
+      ],
+      "respuestas_aceptadas": [
+        "me"
+      ]
+    },
+    {
+      "orden": 25,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "The students ______ a test yesterday.",
+      "pista": null,
+      "opciones": [
+        "have",
+        "had",
+        "has",
+        "having"
+      ],
+      "respuestas_aceptadas": [
+        "had"
+      ]
+    },
+    {
+      "orden": 26,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "______ there a restaurant near the hotel?",
+      "pista": null,
+      "opciones": [
+        "Were",
+        "Was",
+        "Did",
+        "Are"
+      ],
+      "respuestas_aceptadas": [
+        "Was"
+      ]
+    },
+    {
+      "orden": 27,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Camila is going to ______ English tonight.",
+      "pista": null,
+      "opciones": [
+        "studies",
+        "studied",
+        "study",
+        "studying"
+      ],
+      "respuestas_aceptadas": [
+        "study"
+      ]
+    },
+    {
+      "orden": 28,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "They hurt ______ during the game.",
+      "pista": null,
+      "opciones": [
+        "himself",
+        "herself",
+        "ourselves",
+        "themselves"
+      ],
+      "respuestas_aceptadas": [
+        "themselves"
+      ]
+    },
+    {
+      "orden": 29,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "We ______ buy a new computer next month.",
+      "pista": null,
+      "opciones": [
+        "will",
+        "was",
+        "did",
+        "were"
+      ],
+      "respuestas_aceptadas": [
+        "will"
+      ]
+    },
+    {
+      "orden": 30,
+      "seccion": "Part 1 – Multiple Choice",
+      "tipo": "multiple_choice",
+      "categoria": "grammar",
+      "enunciado": "Did Mariana ______ her homework yesterday?",
+      "pista": null,
+      "opciones": [
+        "finished",
+        "finishes",
+        "finish",
+        "finishing"
+      ],
+      "respuestas_aceptadas": [
+        "finish"
+      ]
+    },
+    {
+      "orden": 31,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "go → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "went"
+        ]
+      ]
+    },
+    {
+      "orden": 32,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "clean → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "cleaned"
+        ]
+      ]
+    },
+    {
+      "orden": 33,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "eat → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "ate"
+        ]
+      ]
+    },
+    {
+      "orden": 34,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "study → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "studied"
+        ]
+      ]
+    },
+    {
+      "orden": 35,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "have → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "had"
+        ]
+      ]
+    },
+    {
+      "orden": 36,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "watch → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "watched"
+        ]
+      ]
+    },
+    {
+      "orden": 37,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "see → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "saw"
+        ]
+      ]
+    },
+    {
+      "orden": 38,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "live → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "lived"
+        ]
+      ]
+    },
+    {
+      "orden": 39,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "buy → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "bought"
+        ]
+      ]
+    },
+    {
+      "orden": 40,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "visit → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "visited"
+        ]
+      ]
+    },
+    {
+      "orden": 41,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "take → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "took"
+        ]
+      ]
+    },
+    {
+      "orden": 42,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "call → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "called"
+        ]
+      ]
+    },
+    {
+      "orden": 43,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "make → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "made"
+        ]
+      ]
+    },
+    {
+      "orden": 44,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "play → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "played"
+        ]
+      ]
+    },
+    {
+      "orden": 45,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "come → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "came"
+        ]
+      ]
+    },
+    {
+      "orden": 46,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "need → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "needed"
+        ]
+      ]
+    },
+    {
+      "orden": 47,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "drink → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "drank"
+        ]
+      ]
+    },
+    {
+      "orden": 48,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "work → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "worked"
+        ]
+      ]
+    },
+    {
+      "orden": 49,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "write → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "wrote"
+        ]
+      ]
+    },
+    {
+      "orden": 50,
+      "seccion": "Part 2 – Past Simple Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "travel → ______",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "traveled",
+          "travelled"
+        ]
+      ]
+    },
+    {
+      "orden": 51,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My mom ______ very tired yesterday.",
+      "pista": "(be)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "was"
+        ]
+      ]
+    },
+    {
+      "orden": 52,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "The kids ______ in the park when it started to rain.",
+      "pista": "(play)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "were playing"
+        ]
+      ]
+    },
+    {
+      "orden": 53,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There ______ many books on the table last night.",
+      "pista": "(be)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "were"
+        ]
+      ]
+    },
+    {
+      "orden": 54,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I ______ my friend after class yesterday.",
+      "pista": "(call)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "called"
+        ]
+      ]
+    },
+    {
+      "orden": 55,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Daniel didn’t ______ to the gym last weekend.",
+      "pista": "(go)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "go"
+        ]
+      ]
+    },
+    {
+      "orden": 56,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Sofia ______ dinner when her dad arrived.",
+      "pista": "(cook)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "was cooking"
+        ]
+      ]
+    },
+    {
+      "orden": 57,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We ______ at home last Sunday.",
+      "pista": "(be)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "were"
+        ]
+      ]
+    },
+    {
+      "orden": 58,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There ______ any students in the room yesterday. (-)",
+      "pista": "(be)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "weren’t",
+          "were not"
+        ]
+      ]
+    },
+    {
+      "orden": 59,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My brother ______ his phone yesterday.",
+      "pista": "(lose)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "lost"
+        ]
+      ]
+    },
+    {
+      "orden": 60,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "They ______ visit their family tomorrow.",
+      "pista": "(be going to)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "are going to",
+          "’re going to"
+        ]
+      ]
+    },
+    {
+      "orden": 61,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Carlos ______ his keys yesterday.",
+      "pista": "(lose)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "lost"
+        ]
+      ]
+    },
+    {
+      "orden": 62,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I ______ working when you called me.",
+      "pista": "(be)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "was"
+        ]
+      ]
+    },
+    {
+      "orden": 63,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Laura ______ coffee this morning.",
+      "pista": "(drink)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "drank"
+        ]
+      ]
+    },
+    {
+      "orden": 64,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "There ______ a problem with my phone last night.",
+      "pista": "(be)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "was"
+        ]
+      ]
+    },
+    {
+      "orden": 65,
+      "seccion": "Part 3 – Complete the Sentences",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My friends ______ a movie next Friday.",
+      "pista": "(will / watch)",
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "will watch",
+          "’ll watch"
+        ]
+      ]
+    },
+    {
+      "orden": 66,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "This exercise is difficult. I don’t understand ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "it"
+        ]
+      ]
+    },
+    {
+      "orden": 67,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Laura is my friend. I always help ______ with English.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "her"
+        ]
+      ]
+    },
+    {
+      "orden": 68,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Pedro is calling you. Please answer ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "him"
+        ]
+      ]
+    },
+    {
+      "orden": 69,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My parents are at the door. Can you see ______?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "them"
+        ]
+      ]
+    },
+    {
+      "orden": 70,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We are lost. Can you help ______?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "us"
+        ]
+      ]
+    },
+    {
+      "orden": 71,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I need your number. Can you send ______ a message?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "me"
+        ]
+      ]
+    },
+    {
+      "orden": 72,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "That dog is very friendly. I like ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "it"
+        ]
+      ]
+    },
+    {
+      "orden": 73,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Daniel doesn’t know the answer. The teacher is helping ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "him"
+        ]
+      ]
+    },
+    {
+      "orden": 74,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "These exercises are difficult. I don’t understand ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "them"
+        ]
+      ]
+    },
+    {
+      "orden": 75,
+      "seccion": "Part 4 – Object Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "You are speaking too fast. I can’t understand ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "you"
+        ]
+      ]
+    },
+    {
+      "orden": 76,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "You ______ study for the exam. The exam is tomorrow, and you need a good grade.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "should"
+        ]
+      ]
+    },
+    {
+      "orden": 77,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My sister ______ speak English very well.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "can"
+        ]
+      ]
+    },
+    {
+      "orden": 78,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Students ______ turn off their phones during the exam. It is a school rule.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "must"
+        ]
+      ]
+    },
+    {
+      "orden": 79,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "You ______ drink more water. It is good for your health.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "should"
+        ]
+      ]
+    },
+    {
+      "orden": 80,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Carlos ______ play the guitar, but he can’t sing.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "can"
+        ]
+      ]
+    },
+    {
+      "orden": 81,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We ______ be quiet in the library. It is not allowed to make noise there.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "must"
+        ]
+      ]
+    },
+    {
+      "orden": 82,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "You ______ practice every day if you want to improve your English.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "should"
+        ]
+      ]
+    },
+    {
+      "orden": 83,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I ______ help you after class. I have free time today.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "can"
+        ]
+      ]
+    },
+    {
+      "orden": 84,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "They ______ clean their room today. Their mom said it is necessary.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "must"
+        ]
+      ]
+    },
+    {
+      "orden": 85,
+      "seccion": "Part 5 – Modal Verbs",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "She ______ visit a doctor because she feels sick.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "should"
+        ]
+      ]
+    },
+    {
+      "orden": 86,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I prepared the presentation by ______.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "myself"
+        ]
+      ]
+    },
+    {
+      "orden": 87,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Sofia looked at ______ in the mirror.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "herself"
+        ]
+      ]
+    },
+    {
+      "orden": 88,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Carlos hurt ______ during the soccer game.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "himself"
+        ]
+      ]
+    },
+    {
+      "orden": 89,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "The children dressed ______ for school.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "themselves"
+        ]
+      ]
+    },
+    {
+      "orden": 90,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We did the project by ____________.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "ourselves"
+        ]
+      ]
+    },
+    {
+      "orden": 91,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Did you make this cake by ______?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "yourself"
+        ]
+      ]
+    },
+    {
+      "orden": 92,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "The cat cleaned ______ after eating.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "itself"
+        ]
+      ]
+    },
+    {
+      "orden": 93,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "You and your brother should prepare ______ for the test.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "yourselves"
+        ]
+      ]
+    },
+    {
+      "orden": 94,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I don’t want to repeat ______ again.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "myself"
+        ]
+      ]
+    },
+    {
+      "orden": 95,
+      "seccion": "Part 6 – Reflexive Pronouns",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My parents introduced ______ to the new teacher.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "themselves"
+        ]
+      ]
+    },
+    {
+      "orden": 96,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Look at those clouds. It ______ rain.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "is going to",
+          "’s going to"
+        ]
+      ]
+    },
+    {
+      "orden": 97,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I think Colombia ______ win the game.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "will",
+          "’ll"
+        ]
+      ]
+    },
+    {
+      "orden": 98,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "We ______ visit my grandmother this weekend. We already have the tickets.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "are going to",
+          "’re going to"
+        ]
+      ]
+    },
+    {
+      "orden": 99,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "She is tired. She ______ bed early tonight.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "is going to",
+          "’s going to"
+        ]
+      ]
+    },
+    {
+      "orden": 100,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Maybe I ______ study medicine in the future.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "will",
+          "’ll"
+        ]
+      ]
+    },
+    {
+      "orden": 101,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "They bought food and drinks. They ______ have a party.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "are going to",
+          "’re going to"
+        ]
+      ]
+    },
+    {
+      "orden": 102,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "I’m sure you ______ like this movie.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "will",
+          "’ll"
+        ]
+      ]
+    },
+    {
+      "orden": 103,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "He has a plane ticket. He ______ travel tomorrow.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "is going to",
+          "’s going to"
+        ]
+      ]
+    },
+    {
+      "orden": 104,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "Don’t worry. I ______ help you.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "will",
+          "’ll"
+        ]
+      ]
+    },
+    {
+      "orden": 105,
+      "seccion": "Part 7 – Choose the Correct Future Form",
+      "tipo": "fill_blank",
+      "categoria": "writing",
+      "enunciado": "My sister is pregnant. She ______ have her baby soon.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        [
+          "is going to",
+          "’s going to"
+        ]
+      ]
+    },
+    {
+      "orden": 106,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Yo estaba en la casa ayer.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "I was at home yesterday.",
+        "I was in the house yesterday."
+      ]
+    },
+    {
+      "orden": 107,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Mi hermana no fue al colegio el lunes.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "My sister didn’t go to school on Monday.",
+        "My sister did not go to school on Monday.",
+        "My sister wasn’t at school on Monday.",
+        "My sister was not at school on Monday."
+      ]
+    },
+    {
+      "orden": 108,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "¿Había muchos estudiantes en la clase?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Were there many students in the class?",
+        "Were there a lot of students in the class?",
+        "Were there many students in the classroom?",
+        "Were there a lot of students in the classroom?"
+      ]
+    },
+    {
+      "orden": 109,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Carlos estaba viendo televisión cuando su mamá llegó.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Carlos was watching TV when his mom arrived.",
+        "Carlos was watching television when his mom arrived.",
+        "Carlos was watching TV when his mother arrived.",
+        "Carlos was watching television when his mother arrived.",
+        "Carlos was watching TV when his mom came.",
+        "Carlos was watching television when his mom came.",
+        "Carlos was watching TV when his mother came.",
+        "Carlos was watching television when his mother came.",
+        "Carlos was watching TV when his mom got home.",
+        "Carlos was watching television when his mom got home.",
+        "Carlos was watching TV when his mother got home.",
+        "Carlos was watching television when his mother got home."
+      ]
+    },
+    {
+      "orden": 110,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Nosotros vamos a estudiar inglés esta noche.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "We are going to study English tonight.",
+        "We’re going to study English tonight."
+      ]
+    },
+    {
+      "orden": 111,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "No había agua en la botella.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "There wasn’t any water in the bottle.",
+        "There was not any water in the bottle.",
+        "There was no water in the bottle."
+      ]
+    },
+    {
+      "orden": 112,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Laura no compró comida ayer.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Laura didn’t buy food yesterday.",
+        "Laura did not buy food yesterday.",
+        "Laura didn’t buy any food yesterday.",
+        "Laura did not buy any food yesterday."
+      ]
+    },
+    {
+      "orden": 113,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "¿Tu hermano puede ayudarme con esta tarea?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Can your brother help me with this homework?",
+        "Can your brother help me with this task?",
+        "Can your brother help me with this assignment?"
+      ]
+    },
+    {
+      "orden": 114,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Ellos deben limpiar su habitación hoy.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "They must clean their room today.",
+        "They have to clean their room today."
+      ]
+    },
+    {
+      "orden": 115,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Tú deberías practicar inglés todos los días.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "You should practice English every day.",
+        "You should practise English every day."
+      ]
+    },
+    {
+      "orden": 116,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "María se lastimó mientras estaba cocinando.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Maria hurt herself while she was cooking.",
+        "María hurt herself while she was cooking.",
+        "Maria injured herself while she was cooking.",
+        "María injured herself while she was cooking."
+      ]
+    },
+    {
+      "orden": 117,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Yo los vi en el supermercado.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "I saw them at the supermarket.",
+        "I saw them in the supermarket."
+      ]
+    },
+    {
+      "orden": 118,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Mis amigos viajarán a México el próximo año.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "My friends will travel to Mexico next year.",
+        "My friends’ll travel to Mexico next year.",
+        "My friends will go to Mexico next year.",
+        "My friends’ll go to Mexico next year."
+      ]
+    },
+    {
+      "orden": 119,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "¿Estabas trabajando ayer?",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Were you working yesterday?"
+      ]
+    },
+    {
+      "orden": 120,
+      "seccion": "Part 8 – Translation",
+      "tipo": "translation",
+      "categoria": "writing",
+      "enunciado": "Sofía quería aprender a cocinar.",
+      "pista": null,
+      "opciones": null,
+      "respuestas_aceptadas": [
+        "Sofia wanted to learn to cook.",
+        "Sofía wanted to learn to cook.",
+        "Sofia wanted to learn how to cook.",
+        "Sofía wanted to learn how to cook."
+      ]
+    }
+  ],
+  "claveAnterior": {
+    "1": [
+      "was"
+    ],
+    "2": [
+      "were"
+    ],
+    "3": [
+      "were"
+    ],
+    "4": [
+      "will"
+    ],
+    "5": [
+      "went"
+    ],
+    "6": [
+      "was"
+    ],
+    "7": [
+      "Was"
+    ],
+    "8": [
+      "are going to"
+    ],
+    "9": [
+      "eat"
+    ],
+    "10": [
+      "me"
+    ],
+    "11": [
+      "were"
+    ],
+    "12": [
+      "were playing"
+    ],
+    "13": [
+      "was"
+    ],
+    "14": [
+      "is going to"
+    ],
+    "15": [
+      "explain"
+    ],
+    "16": [
+      "drink"
+    ],
+    "17": [
+      "itself"
+    ],
+    "18": [
+      "will"
+    ],
+    "19": [
+      "watch"
+    ],
+    "20": [
+      "were"
+    ],
+    "21": [
+      "Were"
+    ],
+    "22": [
+      "any"
+    ],
+    "23": [
+      "clean"
+    ],
+    "24": [
+      "me"
+    ],
+    "25": [
+      "had"
+    ],
+    "26": [
+      "Was"
+    ],
+    "27": [
+      "study"
+    ],
+    "28": [
+      "themselves"
+    ],
+    "29": [
+      "will"
+    ],
+    "30": [
+      "finish"
+    ],
+    "31": [
+      [
+        "went"
+      ]
+    ],
+    "32": [
+      [
+        "cleaned"
+      ]
+    ],
+    "33": [
+      [
+        "ate"
+      ]
+    ],
+    "34": [
+      [
+        "studied"
+      ]
+    ],
+    "35": [
+      [
+        "had"
+      ]
+    ],
+    "36": [
+      [
+        "watched"
+      ]
+    ],
+    "37": [
+      [
+        "saw"
+      ]
+    ],
+    "38": [
+      [
+        "lived"
+      ]
+    ],
+    "39": [
+      [
+        "bought"
+      ]
+    ],
+    "40": [
+      [
+        "visited"
+      ]
+    ],
+    "41": [
+      [
+        "took"
+      ]
+    ],
+    "42": [
+      [
+        "called"
+      ]
+    ],
+    "43": [
+      [
+        "made"
+      ]
+    ],
+    "44": [
+      [
+        "played"
+      ]
+    ],
+    "45": [
+      [
+        "came"
+      ]
+    ],
+    "46": [
+      [
+        "needed"
+      ]
+    ],
+    "47": [
+      [
+        "drank"
+      ]
+    ],
+    "48": [
+      [
+        "worked"
+      ]
+    ],
+    "49": [
+      [
+        "wrote"
+      ]
+    ],
+    "50": [
+      [
+        "traveled",
+        "travelled"
+      ]
+    ],
+    "51": [
+      [
+        "was"
+      ]
+    ],
+    "52": [
+      [
+        "were playing"
+      ]
+    ],
+    "53": [
+      [
+        "were"
+      ]
+    ],
+    "54": [
+      [
+        "called"
+      ]
+    ],
+    "55": [
+      [
+        "go"
+      ]
+    ],
+    "56": [
+      [
+        "was cooking"
+      ]
+    ],
+    "57": [
+      [
+        "were"
+      ]
+    ],
+    "58": [
+      [
+        "weren’t",
+        "were not"
+      ]
+    ],
+    "59": [
+      [
+        "lost"
+      ]
+    ],
+    "60": [
+      [
+        "are going to",
+        "’re going to"
+      ]
+    ],
+    "61": [
+      [
+        "lost"
+      ]
+    ],
+    "62": [
+      [
+        "was"
+      ]
+    ],
+    "63": [
+      [
+        "drank"
+      ]
+    ],
+    "64": [
+      [
+        "was"
+      ]
+    ],
+    "65": [
+      [
+        "will watch",
+        "’ll watch"
+      ]
+    ],
+    "66": [
+      [
+        "it"
+      ]
+    ],
+    "67": [
+      [
+        "her"
+      ]
+    ],
+    "68": [
+      [
+        "him"
+      ]
+    ],
+    "69": [
+      [
+        "them"
+      ]
+    ],
+    "70": [
+      [
+        "us"
+      ]
+    ],
+    "71": [
+      [
+        "me"
+      ]
+    ],
+    "72": [
+      [
+        "it"
+      ]
+    ],
+    "73": [
+      [
+        "him"
+      ]
+    ],
+    "74": [
+      [
+        "them"
+      ]
+    ],
+    "75": [
+      [
+        "you"
+      ]
+    ],
+    "76": [
+      [
+        "should"
+      ]
+    ],
+    "77": [
+      [
+        "can"
+      ]
+    ],
+    "78": [
+      [
+        "must"
+      ]
+    ],
+    "79": [
+      [
+        "should"
+      ]
+    ],
+    "80": [
+      [
+        "can"
+      ]
+    ],
+    "81": [
+      [
+        "must"
+      ]
+    ],
+    "82": [
+      [
+        "should"
+      ]
+    ],
+    "83": [
+      [
+        "can"
+      ]
+    ],
+    "84": [
+      [
+        "must"
+      ]
+    ],
+    "85": [
+      [
+        "should"
+      ]
+    ],
+    "86": [
+      [
+        "myself"
+      ]
+    ],
+    "87": [
+      [
+        "herself"
+      ]
+    ],
+    "88": [
+      [
+        "himself"
+      ]
+    ],
+    "89": [
+      [
+        "themselves"
+      ]
+    ],
+    "90": [
+      [
+        "ourselves"
+      ]
+    ],
+    "91": [
+      [
+        "yourself"
+      ]
+    ],
+    "92": [
+      [
+        "itself"
+      ]
+    ],
+    "93": [
+      [
+        "yourselves"
+      ]
+    ],
+    "94": [
+      [
+        "myself"
+      ]
+    ],
+    "95": [
+      [
+        "themselves"
+      ]
+    ],
+    "96": [
+      [
+        "is going to",
+        "’s going to"
+      ]
+    ],
+    "97": [
+      [
+        "will",
+        "’ll"
+      ]
+    ],
+    "98": [
+      [
+        "are going to",
+        "’re going to"
+      ]
+    ],
+    "99": [
+      [
+        "is going to",
+        "’s going to"
+      ]
+    ],
+    "100": [
+      [
+        "will",
+        "’ll"
+      ]
+    ],
+    "101": [
+      [
+        "are going to",
+        "’re going to"
+      ]
+    ],
+    "102": [
+      [
+        "will",
+        "’ll"
+      ]
+    ],
+    "103": [
+      [
+        "is going to",
+        "’s going to"
+      ]
+    ],
+    "104": [
+      [
+        "will",
+        "’ll"
+      ]
+    ],
+    "105": [
+      [
+        "is going to",
+        "’s going to"
+      ]
+    ],
+    "106": [
+      "I was at home yesterday.",
+      "I was in the house yesterday."
+    ],
+    "107": [
+      "My sister didn’t go to school on Monday.",
+      "My sister did not go to school on Monday.",
+      "My sister wasn’t at school on Monday.",
+      "My sister was not at school on Monday."
+    ],
+    "108": [
+      "Were there many students in the class?",
+      "Were there a lot of students in the class?",
+      "Were there many students in the classroom?",
+      "Were there a lot of students in the classroom?"
+    ],
+    "109": [
+      "Carlos was watching TV when his mom arrived.",
+      "Carlos was watching television when his mom arrived.",
+      "Carlos was watching TV when his mother arrived.",
+      "Carlos was watching television when his mother arrived.",
+      "Carlos was watching TV when his mom came.",
+      "Carlos was watching television when his mom came.",
+      "Carlos was watching TV when his mother came.",
+      "Carlos was watching television when his mother came.",
+      "Carlos was watching TV when his mom got home.",
+      "Carlos was watching television when his mom got home.",
+      "Carlos was watching TV when his mother got home.",
+      "Carlos was watching television when his mother got home."
+    ],
+    "110": [
+      "We are going to study English tonight.",
+      "We’re going to study English tonight."
+    ],
+    "111": [
+      "There wasn’t any water in the bottle.",
+      "There was not any water in the bottle.",
+      "There was no water in the bottle."
+    ],
+    "112": [
+      "Laura didn’t buy food yesterday.",
+      "Laura did not buy food yesterday.",
+      "Laura didn’t buy any food yesterday.",
+      "Laura did not buy any food yesterday."
+    ],
+    "113": [
+      "Can your brother help me with this homework?",
+      "Can your brother help me with this task?",
+      "Can your brother help me with this assignment?"
+    ],
+    "114": [
+      "They must clean their room today.",
+      "They have to clean their room today."
+    ],
+    "115": [
+      "You should practice English every day.",
+      "You should practise English every day."
+    ],
+    "116": [
+      "Maria hurt herself while she was cooking.",
+      "María hurt herself while she was cooking.",
+      "Maria injured herself while she was cooking.",
+      "María injured herself while she was cooking."
+    ],
+    "117": [
+      "I saw them at the supermarket.",
+      "I saw them in the supermarket."
+    ],
+    "118": [
+      "My friends will travel to Mexico next year.",
+      "My friends’ll travel to Mexico next year.",
+      "My friends will go to Mexico next year.",
+      "My friends’ll go to Mexico next year."
+    ],
+    "119": [
+      "Were you working yesterday?"
+    ],
+    "120": [
+      "Sofia wanted to learn to cook.",
+      "Sofía wanted to learn to cook.",
+      "Sofia wanted to learn how to cook.",
+      "Sofía wanted to learn how to cook."
+    ]
+  }
+}

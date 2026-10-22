@@ -7,7 +7,9 @@ import { Boton } from "@/app/components/ui/Boton";
 import { Campo, Entrada } from "@/app/components/ui/Campo";
 import { Dialogo } from "@/app/components/ui/Dialogo";
 
-// Crea la generación y sus 16 evaluaciones (generar_evaluaciones), y abre su cuadrícula.
+// Crea la generación y sus 17 evaluaciones (generar_evaluaciones), y abre su
+// cuadrícula. El código no se escribe: el servidor lo asigna a partir de la
+// fecha de inicio (lib/datos/generaciones.ts).
 export default function CrearGeneracion() {
   const [abierto, setAbierto] = useState(false);
   return (
@@ -21,11 +23,12 @@ export default function CrearGeneracion() {
 }
 
 function Formulario() {
-  const [datos, setDatos] = useState({ codigo: "", nombre: "", fecha_inicio: "", fecha_fin: "" });
-  const [codigoTocado, setCodigoTocado] = useState(false);
+  const [datos, setDatos] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "" });
   const [error, setError] = useState<{ mensaje: string; campo?: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
   const errorDe = (c: string) => (error?.campo === c ? error.mensaje : null);
+  // Lo que asignará el servidor (o con -2, -3… si ya hay otra ese mes).
+  const codigo = datos.fecha_inicio ? `gen-${datos.fecha_inicio.slice(0, 7)}` : null;
 
   function enviar(e: FormEvent) {
     e.preventDefault();
@@ -39,40 +42,6 @@ function Formulario() {
 
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
-      <Campo etiqueta="Fecha de inicio" htmlFor="gen-inicio" error={errorDe("fecha_inicio")}>
-        <Entrada
-          id="gen-inicio"
-          type="date"
-          value={datos.fecha_inicio}
-          onChange={(e) => {
-            const v = e.target.value;
-            setDatos((d) => ({
-              ...d,
-              fecha_inicio: v,
-              // Sugerencia: gen-AAAA-MM, mientras no escriban un código propio.
-              codigo: !codigoTocado && v ? `gen-${v.slice(0, 7)}` : d.codigo,
-            }));
-          }}
-          invalida={!!errorDe("fecha_inicio")}
-        />
-      </Campo>
-      <Campo
-        etiqueta="Código"
-        htmlFor="gen-codigo"
-        error={errorDe("codigo")}
-        ayuda="Minúsculas, números y guiones. Va en el enlace de cada evaluación (ej. gen-2026-10-m01)."
-      >
-        <Entrada
-          id="gen-codigo"
-          value={datos.codigo}
-          placeholder="gen-2026-10"
-          onChange={(e) => {
-            setCodigoTocado(true);
-            setDatos((d) => ({ ...d, codigo: e.target.value }));
-          }}
-          invalida={!!errorDe("codigo")}
-        />
-      </Campo>
       <Campo etiqueta="Nombre" htmlFor="gen-nombre" error={errorDe("nombre")}>
         <Entrada
           id="gen-nombre"
@@ -80,6 +49,24 @@ function Formulario() {
           placeholder="Generación octubre 2026"
           onChange={(e) => setDatos((d) => ({ ...d, nombre: e.target.value }))}
           invalida={!!errorDe("nombre")}
+        />
+      </Campo>
+      <Campo
+        etiqueta="Fecha de inicio"
+        htmlFor="gen-inicio"
+        error={errorDe("fecha_inicio")}
+        ayuda={
+          codigo
+            ? `Su código será ${codigo} (o ${codigo}-2 si ya hay otra ese mes). Se asigna solo.`
+            : "El código de la generación se asigna solo a partir de esta fecha."
+        }
+      >
+        <Entrada
+          id="gen-inicio"
+          type="date"
+          value={datos.fecha_inicio}
+          onChange={(e) => setDatos((d) => ({ ...d, fecha_inicio: e.target.value }))}
+          invalida={!!errorDe("fecha_inicio")}
         />
       </Campo>
       <Campo
@@ -100,7 +87,7 @@ function Formulario() {
       {error && !error.campo && <Aviso tono="error">{error.mensaje}</Aviso>}
 
       <p className="text-sm text-gris-oscuro">
-        Se crearán las 16 evaluaciones sin publicar y sin preguntas.
+        Se crearán las 17 evaluaciones (bienvenida, 12 mensuales y 4 trimestrales) sin publicar y sin preguntas.
       </p>
       <Boton type="submit" disabled={pendiente} ancho>
         {pendiente ? "Creando…" : "Crear generación"}

@@ -18,7 +18,7 @@ import type { OpcionGeneracion } from "./BarraEstudiantes";
 
 const MAX_BYTES = 1024 * 1024;
 const MAX_VISIBLES = 100;
-const EJEMPLO = "\uFEFFcorreo;manychat_id\r\nana.perez@ejemplo.com;1234567890\r\nbeto.gomez@ejemplo.com;\r\n";
+const EJEMPLO = "\uFEFFcorreo\r\nana.perez@ejemplo.com\r\nbeto.gomez@ejemplo.com\r\n";
 
 export default function ImportarCsv({
   generaciones,
@@ -126,7 +126,7 @@ function Importador({
 
   const c = vista?.clasificacion;
   const aGuardar = c
-    ? c.nuevos.length + c.cambianGeneracion.length + c.actualizanManychat.length + c.inactivos.length
+    ? c.nuevos.length + c.cambianGeneracion.length + c.inactivos.length
     : 0;
   const grupos: Grupo[] =
     vista && c
@@ -135,11 +135,7 @@ function Importador({
             titulo: "Nuevos",
             tono: "verde",
             explicacion: `Se crean activos en ${nombre}.`,
-            filas: c.nuevos.map((f) => ({
-              clave: f.email,
-              texto: f.email,
-              detalle: f.manychat_id && `manychat_id ${f.manychat_id}`,
-            })),
+            filas: c.nuevos.map((f) => ({ clave: f.email, texto: f.email })),
           },
           {
             titulo: "Cambian de generación",
@@ -148,19 +144,9 @@ function Importador({
             filas: c.cambianGeneracion.map((f) => ({ clave: f.email, texto: f.email, detalle: `estaba en ${f.generacion_actual}` })),
           },
           {
-            titulo: "Actualizan el manychat_id",
-            tono: "lavanda",
-            explicacion: `Ya están en ${nombre}; cambia su manychat_id.`,
-            filas: c.actualizanManychat.map((f) => ({
-              clave: f.email,
-              texto: f.email,
-              detalle: `${f.manychat_actual ?? "sin manychat_id"} → ${f.manychat_id}`,
-            })),
-          },
-          {
             titulo: "Inactivos",
             tono: "gris",
-            explicacion: `Se pasan a ${nombre} (y se actualiza su manychat_id si viene), pero siguen inactivos: actívalos desde la lista si corresponde.`,
+            explicacion: `Se pasan a ${nombre}, pero siguen inactivos: actívalos desde la lista si corresponde.`,
             filas: c.inactivos.map((f) => ({ clave: f.email, texto: f.email, detalle: `en ${f.generacion_actual}` })),
           },
           {
@@ -172,7 +158,7 @@ function Importador({
           {
             titulo: "No se importan",
             tono: "rojo",
-            explicacion: "Correos inválidos, manychat_id con letras o correos del staff.",
+            explicacion: "Filas sin correo, correos inválidos o correos del staff.",
             filas: [
               ...vista.invalidas.map((f) => ({
                 clave: `i${f.fila}`,
@@ -230,8 +216,8 @@ function Importador({
         </Campo>
       </div>
       <p className="text-[13px] leading-snug text-gris-oscuro">
-        Una columna <strong>correo</strong> y, opcional, <strong>manychat_id</strong>. Coma o punto y coma, con o sin
-        encabezado (sin encabezado: 1.ª columna correo, 2.ª manychat_id). Máximo 5.000 filas o 1 MB.{" "}
+        Una columna <strong>correo</strong> (las demás se ignoran). Coma o punto y coma, con o sin encabezado (sin
+        encabezado, el correo va en la 1.ª columna). Máximo 5.000 filas o 1 MB.{" "}
         <a
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(EJEMPLO)}`}
           download="estudiantes-ejemplo.csv"
@@ -246,10 +232,9 @@ function Importador({
 
       {hecho && (
         <Aviso tono="exito">
-          Listo: {hecho.creados} {hecho.creados === 1 ? "nuevo" : "nuevos"}, {hecho.movidos} cambiaron de generación,{" "}
-          {hecho.manychatActualizados} con manychat_id actualizado
-          {hecho.inactivos > 0 && `, ${hecho.inactivos} inactivos actualizados`}. Los que no estaban en el archivo no se
-          tocaron.
+          Listo: {hecho.creados} {hecho.creados === 1 ? "nuevo" : "nuevos"} y {hecho.movidos} cambiaron de generación
+          {hecho.inactivos > 0 && ` (y ${hecho.inactivos} inactivos actualizados)`}. Los que no estaban en el archivo no
+          se tocaron.
         </Aviso>
       )}
 

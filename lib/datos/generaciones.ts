@@ -1,4 +1,4 @@
-import { query, transaction } from "@/lib/db";
+import { query, transaction, type Tx } from "@/lib/db";
 import { ErrorNegocio } from "@/lib/errores";
 
 // Consultas de generaciones. Sin autorización: la hacen las Server Actions/páginas.
@@ -44,22 +44,43 @@ export async function obtenerGeneracion(id: number): Promise<Generacion | null> 
   return rows[0] ?? null;
 }
 
-// Crea la generación y sus 16 evaluaciones en la misma transacción: nunca queda
-// una generación a medias.
+// El código no lo escribe el admin: se asigna solo al crear la generación.
+// gen-AAAA-MM según la fecha de inicio y, si ya hay otra con ese código (dos el
+// mismo mes), gen-AAAA-MM-2, -3… Va en el enlace de cada evaluación y no cambia
+// después; solo se pide escribirlo para confirmar que se elimina.
+export const codigoBase = (fechaInicio: string) => `gen-${fechaInicio.slice(0, 7)}`;
+
+async function codigoLibre(tx: Tx, fechaInicio: string): Promise<string> {
+  const base = codigoBase(fechaInicio);
+  const { rows } = await tx.query<{ codigo: string }>(
+    `SELECT codigo FROM generaciones WHERE codigo = $1 OR codigo LIKE $1 || '-%'`,
+    [base],
+  );
+  const usados = new Set(rows.map((r) => r.codigo));
+  let codigo = base;
+  for (let n = 2; usados.has(codigo); n++) codigo = `${base}-${n}`;
+  return codigo;
+}
+
+// Crea la generación (con su código) y sus 17 evaluaciones en la misma
+// transacción: nunca queda una generación a medias.
 export async function crearGeneracion(
-  datos: { codigo: string; nombre: string; fecha_inicio: string; fecha_fin: string | null },
+  datos: { nombre: string; fecha_inicio: string; fecha_fin: string | null },
   staffId: number,
-): Promise<number> {
+): Promise<{ id: number; codigo: string }> {
   return transaction(async (tx) => {
+    // Dos creaciones a la vez no deben elegir el mismo código: se ponen en fila.
+    await tx.query(`SELECT pg_advisory_xact_lock(hashtext('crear-generacion'))`);
+    const codigo = await codigoLibre(tx, datos.fecha_inicio);
     const { rows } = await tx.query<{ id: number }>(
       `INSERT INTO generaciones (codigo, nombre, fecha_inicio, fecha_fin)
        VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [datos.codigo, datos.nombre, datos.fecha_inicio, datos.fecha_fin],
+      [codigo, datos.nombre, datos.fecha_inicio, datos.fecha_fin],
     );
     const id = rows[0].id;
     await tx.query(`SELECT generar_evaluaciones($1, $2)`, [id, staffId]);
-    return id;
+    return { id, codigo };
   });
 }
 

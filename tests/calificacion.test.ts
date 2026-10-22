@@ -110,28 +110,52 @@ describe("resumirIntento", () => {
     calificacion: { respuesta: "x", es_correcta, puntaje: es_correcta === null ? null : es_correcta ? puntaje : 0 },
   });
 
-  it("puntaje ponderado por el puntaje de cada pregunta, 0–100 redondeado", () => {
-    // 10 + 5 de 10 + 5 + 15 = 15/30 = 50
+  it("sin pesos (por defecto): todas valen lo mismo, sin importar su puntaje", () => {
+    // 2 de 3 preguntas = 67, aunque la que falló «pesaba» 15 de 30.
     expect(resumirIntento([item("grammar", 10, true), item("writing", 5, true), item("writing", 15, false)])).toEqual({
+      pendiente: false,
+      puntaje_total: 67,
+      grammar_score: 1,
+      writing_score: 1,
+    });
+    // 10 preguntas: 10 puntos cada una.
+    const diez = Array.from({ length: 10 }, (_, i) => item("grammar", i === 0 ? 20 : 10, i < 7));
+    expect(resumirIntento(diez).puntaje_total).toBe(70);
+  });
+
+  it("sin pesos: una abierta aporta su nota (8 de 10 → 0,8 de una pregunta)", () => {
+    const abierta = { pregunta: { categoria: "writing" as const, puntaje: 20 }, calificacion: { respuesta: "x", es_correcta: true, puntaje: 16 } };
+    // (1 + 0,8) / 2 = 90
+    expect(resumirIntento([item("grammar", 10, true), abierta]).puntaje_total).toBe(90);
+  });
+
+  it("con PESOS_POR_PREGUNTA: ponderado por el puntaje de cada pregunta, 0–100 redondeado", () => {
+    // 10 + 5 de 10 + 5 + 15 = 15/30 = 50
+    expect(
+      resumirIntento([item("grammar", 10, true), item("writing", 5, true), item("writing", 15, false)], true),
+    ).toEqual({
       pendiente: false,
       puntaje_total: 50,
       grammar_score: 1,
       writing_score: 1,
     });
-    expect(resumirIntento([item("grammar", 1, true), item("grammar", 1, true), item("grammar", 1, false)]).puntaje_total).toBe(67);
+    expect(resumirIntento([item("grammar", 1, true), item("grammar", 1, true), item("grammar", 1, false)], true).puntaje_total).toBe(67);
   });
 
   it("con una abierta pendiente: sin puntaje final; los aciertos cerrados sí cuentan", () => {
-    expect(resumirIntento([item("grammar", 10, true), item("writing", 10, null)])).toEqual({
-      pendiente: true,
-      puntaje_total: null,
-      grammar_score: 1,
-      writing_score: 0,
-    });
+    for (const pesos of [false, true]) {
+      expect(resumirIntento([item("grammar", 10, true), item("writing", 10, null)], pesos)).toEqual({
+        pendiente: true,
+        puntaje_total: null,
+        grammar_score: 1,
+        writing_score: 0,
+      });
+    }
   });
 
   it("sin preguntas: 0", () => {
     expect(resumirIntento([]).puntaje_total).toBe(0);
+    expect(resumirIntento([], true).puntaje_total).toBe(0);
   });
 });
 

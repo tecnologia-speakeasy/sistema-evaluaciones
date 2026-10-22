@@ -85,7 +85,8 @@ const MENSAJES_CONSTRAINT: Record<string, ErrorTraducido> = {
     mensaje: "Ya hay un miembro del staff con ese correo.",
   },
   estudiantes_email_key: {
-    mensaje: "Otro cambio agregó a uno de estos estudiantes al mismo tiempo. Vuelve a intentarlo.",
+    campo: "email",
+    mensaje: "Ya hay un estudiante con ese correo.",
   },
   generaciones_codigo_check: {
     campo: "codigo",

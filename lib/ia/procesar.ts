@@ -3,7 +3,6 @@ import { query, transaction, type Tx } from "@/lib/db";
 import { correoResultado } from "@/lib/email/correo-resultado";
 import { enviarCorreo, smtpConfigurado } from "@/lib/email/enviar";
 import { resumirIntento } from "@/lib/grading/calificar";
-import { enviarWhatsApp, manychatConfigurado } from "@/lib/manychat";
 import { abiertasActivas } from "@/lib/preguntas/abiertas";
 import type { TipoPregunta } from "@/lib/preguntas/tipos";
 import { llamarOpenAI } from "./openai";
@@ -19,10 +18,10 @@ import {
 
 // Fase 5: después de enviar (fuera de cualquier transacción) la IA califica las
 // abiertas (solo con PREGUNTAS_ABIERTAS_ACTIVAS) y escribe el feedback; luego
-// salen el correo y el WhatsApp. Con las abiertas apagadas (por defecto): una
-// sola llamada a OpenAI por intento, como a2.
+// sale el correo. Con las abiertas apagadas (por defecto): una sola llamada a
+// OpenAI por intento, como a2.
 //
-//   pendiente ──tomar──▶ calificando ──▶ listo ──▶ correo / WhatsApp (una vez cada uno)
+//   pendiente ──tomar──▶ calificando ──▶ listo ──▶ correo (una sola vez)
 //                             │
 //                             └─ falla ─▶ pendiente (ia_intentos + 1) ─ al 3.º ─▶ error
 //
@@ -190,26 +189,22 @@ async function guardarPuntajes(tx: Tx, intentoId: number, filas: Fila[]) {
 }
 
 // ---------------------------------------------------------------------------
-// Correo y WhatsApp: solo con el intento 'listo' y una sola vez cada uno. Se
-// marca antes de enviar (dos procesos a la vez no mandan dos) y, si falla, se
-// desmarca (queda envio_error) para reintentarlo: "Reintentar envío" del staff
-// o el reproceso opcional.
+// Correo del resultado: solo con el intento 'listo' y una sola vez. Se marca
+// antes de enviar (dos procesos a la vez no mandan dos) y, si falla, se desmarca
+// (queda envio_error) para reintentarlo: "Reintentar envío" del staff o el
+// reproceso opcional.
 // ---------------------------------------------------------------------------
 
 export type ResultadoEnvio = "enviado" | "no_aplica" | "fallo";
 
-export async function notificarIntento(intentoId: number): Promise<{ correo: ResultadoEnvio; whatsapp: ResultadoEnvio }> {
-  return { correo: await enviarCorreoResultado(intentoId), whatsapp: await enviarWhatsAppResultado(intentoId) };
-}
-
-async function registrarFalloEnvio(intentoId: number, columna: "email_enviado" | "whatsapp_enviado", error: string) {
-  await query(`UPDATE intentos SET ${columna} = FALSE, envio_error = $2 WHERE id = $1`, [
+async function registrarFalloEnvio(intentoId: number, error: string) {
+  await query(`UPDATE intentos SET email_enviado = FALSE, envio_error = $2 WHERE id = $1`, [
     intentoId,
     error.slice(0, 500),
   ]).catch(() => {});
 }
 
-async function enviarCorreoResultado(intentoId: number): Promise<ResultadoEnvio> {
+export async function notificarIntento(intentoId: number): Promise<ResultadoEnvio> {
   const { rows } = await query<{
     puntaje_total: number;
     grammar_score: number;
@@ -245,7 +240,7 @@ async function enviarCorreoResultado(intentoId: number): Promise<ResultadoEnvio>
     if (process.env.NODE_ENV !== "production") {
       console.info(`[correo-resultado] SMTP no configurado (desarrollo): no se envía a ${d.email}`);
     }
-    await registrarFalloEnvio(intentoId, "email_enviado", "SMTP no configurado");
+    await registrarFalloEnvio(intentoId, "SMTP no configurado");
     return "fallo";
   }
   try {
@@ -264,35 +259,7 @@ async function enviarCorreoResultado(intentoId: number): Promise<ResultadoEnvio>
   } catch (e) {
     const mensaje = e instanceof Error ? e.message : String(e);
     console.error(`[correo-resultado] intento ${intentoId}: ${mensaje}`);
-    await registrarFalloEnvio(intentoId, "email_enviado", `Correo: ${mensaje}`);
-    return "fallo";
-  }
-}
-
-async function enviarWhatsAppResultado(intentoId: number): Promise<ResultadoEnvio> {
-  if (!manychatConfigurado()) return "no_aplica";
-  const { rows } = await query<{ manychat_id: string; puntaje_total: number; token: string }>(
-    `UPDATE intentos i SET whatsapp_enviado = TRUE
-       FROM estudiantes s
-      WHERE i.id = $1 AND s.id = i.estudiante_id
-        AND i.estado = 'listo' AND i.feedback IS NOT NULL AND NOT i.whatsapp_enviado
-        AND coalesce(trim(s.manychat_id), '') <> ''
-      RETURNING s.manychat_id, i.puntaje_total, i.token`,
-    [intentoId],
-  );
-  const d = rows[0];
-  if (!d) return "no_aplica";
-  try {
-    // Como a2: la plantilla arma el botón /resultado/<token> con el campo "feedback".
-    await enviarWhatsApp(d.manychat_id, process.env.MANYCHAT_FLOW_RESULTADO!.trim(), {
-      se_puntaje: d.puntaje_total,
-      feedback: d.token,
-    });
-    return "enviado";
-  } catch (e) {
-    const mensaje = e instanceof Error ? e.message : String(e);
-    console.error(`[whatsapp] intento ${intentoId}: ${mensaje}`);
-    await registrarFalloEnvio(intentoId, "whatsapp_enviado", `WhatsApp: ${mensaje}`);
+    await registrarFalloEnvio(intentoId, `Correo: ${mensaje}`);
     return "fallo";
   }
 }
@@ -335,20 +302,17 @@ export async function reprocesarPendientes({
     else r.ocupados += 1;
   }
 
-  // Correos / WhatsApp que no salieron (de la última semana).
+  // Correos que no salieron (de la última semana).
   const { rows: envios } = await query<{ id: number }>(
-    `SELECT i.id FROM intentos i JOIN estudiantes s ON s.id = i.estudiante_id
-      WHERE i.estado = 'listo' AND i.feedback IS NOT NULL AND i.completed_at > now() - interval '7 days'
-        AND (NOT i.email_enviado
-             OR ($1 AND NOT i.whatsapp_enviado AND coalesce(trim(s.manychat_id), '') <> ''))
-      ORDER BY i.completed_at
+    `SELECT id FROM intentos
+      WHERE estado = 'listo' AND feedback IS NOT NULL AND completed_at > now() - interval '7 days'
+        AND NOT email_enviado
+      ORDER BY completed_at
       LIMIT 20`,
-    [manychatConfigurado()],
   );
   for (const { id } of envios) {
     if (Date.now() - inicio > presupuestoMs) break;
-    const e = await notificarIntento(id);
-    if (e.correo === "enviado" || e.whatsapp === "enviado") r.envios += 1;
+    if ((await notificarIntento(id)) === "enviado") r.envios += 1;
   }
   return r;
 }

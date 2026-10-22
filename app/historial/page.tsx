@@ -6,6 +6,7 @@ import { Tarjeta } from "@/app/components/ui/Tarjeta";
 import { estudianteParaPagina } from "@/lib/auth/guards";
 import { cerrarVencidos, historial, type IntentoHistorial } from "@/lib/datos/intentos";
 import { formatearFechaHora } from "@/lib/fechas";
+import { codigoEvaluacion } from "@/lib/tipos";
 import { GraficoEvolucion } from "./GraficoEvolucion";
 
 export const metadata: Metadata = { title: "Mi historial" };
@@ -74,7 +75,7 @@ async function Contenido() {
 }
 
 function FilaIntento({ i }: { i: IntentoHistorial }) {
-  const codigo = `${i.tipo === "mensual" ? "M" : "T"}${i.eval_numero}`;
+  const codigo = codigoEvaluacion(i.tipo, i.eval_numero);
   return (
     <Tarjeta
       relleno="p-4"

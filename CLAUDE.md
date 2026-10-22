@@ -3,10 +3,10 @@
 Plataforma centralizada de evaluaciones de inglés. Reemplaza el modelo "un proyecto + un esquema por evaluación" (ver `../evaluacion-a2`, que queda congelado: NO modificarlo, solo usarlo como referencia).
 
 ## Contexto de negocio
-- Cada **generación** (cohorte) tiene 16 evaluaciones: 12 mensuales + 4 trimestrales.
-- **Estudiantes**: pertenecen a una sola generación. Estar en la tabla = estar autorizado. En la BD el estudiante es solo su **correo** (+ `manychat_id` opcional y `activo`): el **nombre lo escribe al entrar**, como en a2, viaja en la sesión y se guarda en cada intento (`intentos.nombre`); ese es el que se usa en pantallas, feedback de IA y correos. Se cargan por SQL/CSV (no hay registro público).
+- Cada **generación** (cohorte) tiene 17 evaluaciones: 1 de bienvenida + 12 mensuales + 4 trimestrales. La de bienvenida funciona igual que las demás (preguntas, puntaje, IA y correo); va primero y su código es «B» (las otras, M1…M12 y T1…T4: `codigoEvaluacion()` en `lib/tipos.ts`).
+- **Estudiantes**: pertenecen a una sola generación. Estar en la tabla = estar autorizado. En la BD el estudiante es solo su **correo** (+ `activo`): el **nombre lo escribe al entrar**, como en a2, viaja en la sesión y se guarda en cada intento (`intentos.nombre`); ese es el que se usa en pantallas, feedback de IA y correos. El admin los agrega uno a uno o por CSV (no hay registro público).
 - **Staff**: `admin` (todo) y `docente` (evaluaciones, preguntas, resultados). Login con contraseña.
-- Las evaluaciones A1/A2 viven en otro sistema; se migrarán después. No hay agendamiento ni speaking.
+- Las evaluaciones A1/A2 de la Generación 1 ya se migraron aquí (T1 y T2 de `gen-2026-03`; ver «Migración de las evaluaciones A1 y A2»). No hay agendamiento ni speaking (el speaking de la A1 quedó solo en `agendamiento.speaking_scores`).
 
 ## Stack
 - Next.js (App Router) + TypeScript + Tailwind.
@@ -37,16 +37,16 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 
 ## Modelo de datos (schema `evaluacion`)
 `generaciones` · `estudiantes` · `staff` · `login_intentos` · `codigos_acceso` (002) · `evaluaciones` · `preguntas` · `intentos` · `respuestas`
-- `estudiantes`: `email`, `manychat_id`, `activo` (sin nombre desde la 003).
+- `estudiantes`: `email`, `activo` (sin nombre desde la 003; sin `manychat_id` desde la 006).
 - `evaluaciones` (003): `cierre_automatico` (al acabar el tiempo se envía sola; exige `duracion_min`) y `mostrar_correctas`.
 - `intentos` (003): `nombre` (el que escribió al entrar), `respuestas_borrador` (autoguardado mientras responde), `limite_at` (hasta cuándo se aceptan respuestas, fijado al empezar). Índice único: un solo intento `en_progreso` por estudiante y evaluación.
 - `respuestas`: solo respuestas **calificadas** (se crean al enviar). El borrador vive en el intento, así responder no bloquea editar la pregunta. En las abiertas, `feedback` guarda el comentario de la IA.
-- `intentos` (004): `procesando_hasta` (candado con vencimiento de quien llama a la IA), `ia_intentos` / `ia_error` (fallos de la IA), `whatsapp_enviado` (como `email_enviado`) y `envio_error` (último fallo de correo o WhatsApp).
-- Estados del intento: `en_progreso` → (enviar) `pendiente` → `calificando` (candado tomado) → `listo`. Si la IA falla vuelve a `pendiente`; al 3.er fallo, `error`. Ver "IA, correo y WhatsApp".
+- `intentos` (004): `procesando_hasta` (candado con vencimiento de quien llama a la IA), `ia_intentos` / `ia_error` (fallos de la IA) y `envio_error` (último fallo del correo). La 004 también creó `whatsapp_enviado`; la 006 lo quita.
+- Estados del intento: `en_progreso` → (enviar) `pendiente` → `calificando` (candado tomado) → `listo`. Si la IA falla vuelve a `pendiente`; al 3.er fallo, `error`. Ver "IA y correo".
 - `staff` (005): `debe_cambiar_password` (entró con contraseña temporal) y `sesion_version` (viaja en la cookie; restablecer o cambiar la contraseña la incrementa y cierra las sesiones anteriores).
 - `generaciones.activa`: desactivada = sus estudiantes entran y ven su historial, pero no ven evaluaciones ni empiezan o continúan intentos (ver "Administración").
 
-Funciones: `generar_evaluaciones(generacion_id, staff_id)`, `clonar_preguntas(origen, destino)`.
+Funciones: `generar_evaluaciones(generacion_id, staff_id)` (las 17 desde la 007; idempotente), `clonar_preguntas(origen, destino)`.
 Vistas: `v_preguntas_publicas`, `v_evaluaciones_resumen`, `v_resultados`, `v_dificultad_preguntas`.
 Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amigables):
 - `validar_pregunta`: forma de `opciones` / `respuestas_aceptadas` según el tipo.
@@ -65,7 +65,12 @@ Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amig
 - Las que ya existan en la BD se quedan (en el editor dicen "No la ven los estudiantes"), pero el estudiante no las ve ni cuentan en el puntaje (filtro `sqlSinAbiertas()` al presentar, al calificar y en la vista previa).
 - Nunca se llama a calificar abiertas: **una sola llamada a OpenAI por intento** (el feedback general), como a2. Si un intento trae una abierta sin nota de antes de apagarlas, no se califica ni cuenta.
 
-`categoria` (grammar | writing) alimenta `grammar_score` / `writing_score`. `puntaje_total` va de 0 a 100 = suma de puntajes obtenidos / suma de puntajes posibles × 100.
+`categoria` (grammar | writing) alimenta `grammar_score` / `writing_score`. `puntaje_total` va de 0 a 100 (`resumirIntento()` en `lib/grading/calificar.ts`, que usan tanto el envío como la IA).
+
+**Pesos por pregunta: desactivados.** Por ahora todas las preguntas valen lo mismo: 100 ÷ número de preguntas (10 preguntas = 10 puntos cada una). `PESOS_POR_PREGUNTA` (por defecto `false`; `lib/preguntas/pesos.ts`) los vuelve a encender sin tocar código. Apagados:
+- El editor (aquí y en el portal) no pide el puntaje ni lo muestra en cada pregunta; arriba dice cuánto vale cada una. El `puntaje` se sigue guardando (10 si es nueva, o el que ya tenía) para cuando se enciendan.
+- Cada pregunta aporta la parte que obtuvo de su propio puntaje (1 o 0; una abierta, nota/10) y el total es el promedio × 100. Por eso da lo mismo con qué puntaje se guardó una respuesta, también las de antes (p. ej. al "Reintentar IA" un intento viejo).
+- Encendidos: suma de puntajes obtenidos / suma de puntajes posibles × 100. Con todas las preguntas en 10 (la T1 y la T2 migradas, por ejemplo) los dos modos dan lo mismo.
 
 ### Normalización de respuestas
 Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/normalize.ts` (mayúsculas, tildes, apóstrofes, contracciones, puntuación, sinónimos mom/mother, etc.) y cubrirla con tests.
@@ -93,8 +98,8 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 ## Rutas previstas
 - Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos), `/evaluacion/[slug]` (intro + presentar), `/evaluacion/[slug]/intentos/[n]` (resultado del intento + "Tus intentos"), `/evaluacion/[slug]/intentos/[n]/respuestas` (revisión pregunta por pregunta), `/historial` (todos sus intentos de todas las evaluaciones: fecha, puntaje, grammar/writing, enlace al resultado, y evolución de puntajes en el tiempo), `/resultado/[token]` (público, solo resumen).
 - API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar), `GET /api/intentos/[id]/estado` (la pantalla espera a la IA).
-- Reproceso: `GET /api/cron/procesar` (opcional y **sin programar**, ver "IA, correo y WhatsApp").
-- Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 16 evaluaciones; el admin la edita, la activa/desactiva y la elimina), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados` (+ `/admin/resultados/exportar`, CSV de lo filtrado), `/admin/estudiantes` y `/admin/staff` (solo admin), `/admin/cuenta/contrasena` (cambio obligatorio de la temporal y "Cambiar mi contraseña" del menú del avatar).
+- Reproceso: `GET /api/cron/procesar` (opcional y **sin programar**, ver "IA y correo").
+- Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 17 evaluaciones: bienvenida, mensuales y trimestrales; el admin la edita, la activa/desactiva y la elimina), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados` (+ `/admin/resultados/exportar`, CSV de lo filtrado), `/admin/estudiantes` y `/admin/staff` (solo admin), `/admin/cuenta/contrasena` (cambio obligatorio de la temporal y "Cambiar mi contraseña" del menú del avatar).
 
 ## Reglas del examen del estudiante (Fase 4)
 - **Intento**: empieza al tocar "Comenzar" (no en la intro). Recargar o abrir otra pestaña retoma el mismo intento `en_progreso` (índice único): no crea otro ni gasta otro.
@@ -104,21 +109,21 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
   - `cierre_automatico = true`: al llegar a 0 se envía sola.
 - **Plazo en el servidor**: `limite_at` = el primero entre `started_at + duracion_min` (si `cierre_automatico`) y `fecha_cierre`. Se aceptan respuestas hasta `limite_at` + **2 min de gracia**; después se rechazan y, al enviar o al volver, se califica lo que quedó guardado. La fecha de cierre corta también los intentos en curso.
 - **"Siguiente" bloqueado** hasta responder la pregunta actual, igual que a2.
-- **Calificación** en el servidor al enviar (`lib/grading/`): selección múltiple, completar y traducción con `normalize()`. El intento queda `pendiente` y la IA escribe el feedback (y califica las **abiertas**, solo si están encendidas; ver "IA, correo y WhatsApp").
+- **Calificación** en el servidor al enviar (`lib/grading/`): selección múltiple, completar y traducción con `normalize()`. El intento queda `pendiente` y la IA escribe el feedback (y califica las **abiertas**, solo si están encendidas; ver "IA y correo").
 - **Resultado** (con sesión, `/evaluacion/[slug]/intentos/[n]`): insignia por rango como a2 (`lib/celebracion.ts`), puntaje, Grammar X/N y Writing X/N (aciertos), "Revisa tu feedback" (como a2), selector "Ver intento N" y "Ver mis respuestas".
 - **Revisión** (`/evaluacion/[slug]/intentos/[n]/respuestas`, como en a2): la MISMA pantalla del examen, de solo lectura y marcada (barra, una pregunta a la vez, pasos de la sección y Anterior / Siguiente; se puede ir a cualquiera). Lo del estudiante en verde si acertó o en rojo si no ("Tu respuesta"); en las abiertas, "Nota de la IA: X/10" y su comentario. Arriba, como en a2: "Ver calificación", "Repetir evaluación" (si puede) y "Cerrar"; en celular los dos primeros van debajo de la pregunta. Con `mostrar_correctas`, en las que falló se ve la correcta solo cuando ya no le quedan intentos o la evaluación cerró (ver regla de seguridad 1).
-- **`/resultado/[token]`** (público, para el enlace de WhatsApp): solo resumen, como a2. Nunca el detalle por pregunta.
+- **`/resultado/[token]`** (público: el enlace que copia el estudiante en su resultado y "Ver ↗" de Resultados): solo resumen, como a2. Nunca el detalle por pregunta.
 - **Calificando**: Spiky (también en celular) al menos 2,5 s.
 - **Código**: datos y reglas en `lib/datos/intentos.ts`; calificación pura en `lib/grading/` (`normalize.ts` idéntica a a2, `calificar.ts`); reloj en `lib/intentos/reloj.ts`; pantalla en `app/evaluacion/[slug]/Examen.tsx` y piezas en `app/components/examen/` (antitrampa, autoguardado, calificando, confeti, anillo, `BarraProgreso` y `PasosSeccion`, compartidas con la revisión). La pregunta: `PreguntaEstudiante` (examen y vista previa) y `PreguntaRevision` (revisión), con el mismo `EncabezadoPregunta`. Grammar/Writing = aciertos "X/N" (N cuenta solo preguntas ya calificadas).
 - Next conserva ocultas las páginas visitadas: `<Examen>` lleva una `key` que cambia con los intentos, para que "Repetir evaluación" no reaparezca el examen anterior.
 
-## IA, correo y WhatsApp (Fase 5)
-Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA, luego correo/WhatsApp; nunca perder respuestas.
+## IA y correo (Fase 5)
+Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA, luego correo; nunca perder respuestas.
 - **Flujo**: `POST /api/intentos/[id]/enviar` califica lo automático, guarda (`pendiente`) y responde. Después, con `after()` y fuera de cualquier transacción, `procesarIntento()` (`lib/ia/procesar.ts`):
   1. Toma el candado: `calificando`, `procesando_hasta` = ahora + 6 min. Dos procesos a la vez: el segundo ve "ocupado" y no llama a la IA.
   2. Solo con `PREGUNTAS_ABIERTAS_ACTIVAS=true`: califica las abiertas con su `rubrica`, todas en una llamada, y guarda notas y puntaje recalculado en una transacción corta. Las que ya tienen nota no se vuelven a pagar. Apagadas (por defecto) este paso no existe.
   3. Escribe el feedback general (prompt de a2 sin el párrafo de "gracias por intentarlo"; saluda con el primer nombre de `intentos.nombre`). Con las abiertas apagadas es la **única** llamada a OpenAI del intento.
-  4. Pasa a `listo` y llama a `notificarIntento()`: correo y WhatsApp.
+  4. Pasa a `listo` y llama a `notificarIntento()`: el correo.
 - **Abiertas** (si se encienden): nota 0–10 de la IA → puntaje = nota/10 × `preguntas.puntaje`. Cuentan como acierto (Writing X/N) con nota ≥ 6. El comentario va en `respuestas.feedback`.
 - **Prompts** en `lib/ia/prompts.ts` (puro, con tests): las respuestas del estudiante van entre `<respuesta>` (no son instrucciones) y la salida se valida con zod.
 - **Cliente** `lib/ia/openai.ts`: `OPENAI_MODEL` (por defecto gpt-4.1-mini), JSON, 3 intentos de 40 s, respeta `Retry-After` en 429/5xx; otros 4xx no se reintentan.
@@ -131,47 +136,47 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
   - Plantilla de la Fase 3 con: la insignia del rango, su título, el puntaje, Grammar/Writing y el feedback. Sin botón ni enlaces: no depende de ninguna URL.
   - La insignia va **embebida** (cid:), igual que el logo: solo la del puntaje, desde `lib/email/insignias.ts` (las de `public/calificaciones/` reducidas a 192 px, ~10 KB, en base64), así se ve siempre en Gmail sin depender de una URL pública ni de que `public/` llegue a la función de Vercel.
   - Solo con el intento `listo` y feedback, y una sola vez: `email_enviado` se marca antes de enviar y se desmarca si falla (queda `envio_error`).
-- **WhatsApp** (`lib/manychat.ts`, como a2):
-  - Solo con `MANYCHAT_API_TOKEN` + `MANYCHAT_FLOW_RESULTADO` y si el estudiante tiene `manychat_id`.
-  - Campos `se_puntaje` = `puntaje_total` y `feedback` = token, y luego el flow.
-  - `whatsapp_enviado` funciona igual que el correo.
+- **Sin WhatsApp**: ManyChat ya no se usa. Se quitaron `lib/manychat.ts` y las variables `MANYCHAT_*`; la 006 borra `estudiantes.manychat_id` e `intentos.whatsapp_enviado`. El resultado solo sale por correo.
 - **Staff**:
   - `/admin` avisa "Hay N intentos por revisar" (la IA o el correo no terminaron).
   - `/admin/resultados` los lista (`lib/datos/revision.ts`): `error`, pendientes de más de 10 min y correos sin enviar.
-  - "Reintentar IA" ignora el tope de 10 fallos; "Reintentar envío" vuelve a mandar correo/WhatsApp (`app/admin/acciones/intentos.ts`).
+  - "Reintentar IA" ignora el tope de 10 fallos; "Reintentar envío" vuelve a mandar el correo (`app/admin/acciones/intentos.ts`).
 - **Reproceso `GET /api/cron/procesar`: opcional y NO configurado.**
   - Decisión: no se programa (ni Cron de Vercel ni n8n). La ruta queda creada por si algún día hace falta.
   - `CRON_SECRET` es opcional: sin ella la app arranca y funciona igual, y esta ruta solo responde 401.
   - Si algún día se programa:
     - Llamarla con `Authorization: Bearer <CRON_SECRET>` (mínimo 16 caracteres, comparado en tiempo constante).
-    - En cada llamada retoma hasta 5 intentos `pendiente` / `error` / `calificando` con el candado vencido, enviados hace más de 1 min, y reenvía hasta 20 correos/WhatsApp pendientes de la última semana.
+    - En cada llamada retoma hasta 5 intentos `pendiente` / `error` / `calificando` con el candado vencido, enviados hace más de 1 min, y reenvía hasta 20 correos pendientes de la última semana.
     - Responde `{ revisados, listos, fallos, ocupados, envios }` (`maxDuration` 300).
     - Para llamarla cada 10 min:
       - n8n: *Schedule Trigger* + *HTTP Request* GET `https://<dominio de la app>/api/cron/procesar` con ese header y timeout 300 s.
       - Vercel Pro: `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el header si `CRON_SECRET` existe. Hobby solo admite crons diarios.
-- **Pruebas**: OpenAI, SMTP y ManyChat siempre simulados (`OPENAI_BASE_URL`, `MANYCHAT_API_URL`, SMTP local), nunca los reales del `.env`. Ver "Pruebas".
+- **Pruebas**: OpenAI y SMTP siempre simulados (`OPENAI_BASE_URL`, SMTP local), nunca los reales del `.env`. Ver "Pruebas".
 
 ## Administración (Fase 6)
 Todo solo para admin, salvo Resultados (admin y docente). Acciones en `app/admin/acciones/` (`estudiantes.ts`, `staff.ts`, `generaciones.ts`); datos en `lib/datos/`.
-- **Estudiantes** (`/admin/estudiantes`): lista por generación con buscador (correo, nombre de sus intentos, manychat_id), activar/desactivar y editar `manychat_id` (solo dígitos; vacío = sin WhatsApp). Nunca se borran.
+- **Estudiantes** (`/admin/estudiantes`): lista por generación con buscador (correo o nombre de sus intentos) y activar/desactivar. Uno a uno (`app/admin/estudiantes/FormEstudiante.tsx`; `crearEstudiante` / `actualizarEstudiante` / `eliminarEstudiante` en `lib/datos/estudiantes.ts`):
+  - **Agregar**: correo y generación. Se rechaza un correo del staff o uno ya inscrito (el aviso dice en qué generación está).
+  - **Editar** (menú "⋯"): correo y generación (moverlo conserva sus intentos).
+  - **Eliminar** (menú "⋯", irreversible): resumen con sus intentos y confirmación; se van sus intentos con sus resultados y sus códigos de acceso (FK en cascada). El diálogo ofrece "Desactivar" en su lugar: para que deje de entrar sin perder sus resultados, se desactiva.
+  - Agregar y editar se ponen en fila con las importaciones CSV (mismo candado).
 - **Carga por CSV** (`lib/csv.ts` + `lib/estudiantes/importar.ts` + `lib/datos/estudiantes.ts`):
-  - Columna `correo` y `manychat_id` opcional; coma o punto y coma (se detecta); con o sin encabezado (sin encabezado: 1.ª columna correo, 2.ª manychat_id). Máximo 5.000 filas o 1 MB (`serverActions.bodySizeLimit` = 2 MB en `next.config.ts`).
+  - Columna `correo` (las demás se ignoran, p. ej. el `manychat_id` de los archivos de antes); coma o punto y coma (se detecta); con o sin encabezado (sin encabezado, el correo va en la 1.ª columna). Máximo 5.000 filas o 1 MB (`serverActions.bodySizeLimit` = 2 MB en `next.config.ts`).
   - El navegador lee el archivo y manda el texto; el servidor lo analiza en la vista previa y **otra vez** al confirmar.
-  - Vista previa: nuevos, cambian de generación, actualizan `manychat_id`, sin cambios, inactivos, no se importan (correo inválido, `manychat_id` con letras, correo del staff) y duplicados dentro del archivo.
-  - Confirmar: una transacción (todo o nada; dos importaciones a la vez se ponen en fila). Existente de otra generación → se mueve (sus intentos se conservan). Inactivo → se mueve/actualiza pero sigue inactivo (se reactiva desde la lista). `manychat_id` vacío no borra el que hay. Los que no vienen en el archivo no se tocan.
+  - Vista previa: nuevos, cambian de generación, sin cambios, inactivos, no se importan (sin correo, correo inválido, correo del staff) y duplicados dentro del archivo.
+  - Confirmar: una transacción (todo o nada; dos importaciones a la vez se ponen en fila). Existente de otra generación → se mueve (sus intentos se conservan). Inactivo → se mueve pero sigue inactivo (se reactiva desde la lista). Los que no vienen en el archivo no se tocan.
 - **Staff** (`/admin/staff`): crear docente o admin (contraseña temporal que se ve una vez), cambiar rol, activar/desactivar y restablecer contraseña. Reglas en "Reglas de seguridad" (9).
 - **Resultados** (`/admin/resultados`): arriba "Intentos por revisar" (Fase 5); debajo, los intentos de `v_resultados`.
   - Filtros en la URL (`lib/resultados.ts`, puro): generación → evaluación, estado (por defecto "Enviados": sin los en progreso) y búsqueda por correo o nombre. 50 por página, más recientes primero; tabla desde 1024 px y tarjetas en celular. "Ver ↗" abre `/resultado/[token]`.
   - "Exportar CSV" (`/admin/resultados/exportar`, mismos filtros): separador `;`, UTF-8 con BOM, CRLF y horas de Colombia, para que Excel en español lo abra en columnas y con tildes. Los textos que empiezan con `= + - @` llevan un apóstrofo (inyección de fórmulas). Tope de 50.000 filas.
-- **Generaciones**: el admin edita nombre y fechas (el código no: va en los slugs) y la activa/desactiva con confirmación y resumen (estudiantes activos, intentos en curso). Desactivada: el estudiante entra y ve su historial y resultados, pero no ve evaluaciones ni empieza o continúa intentos (`lib/datos/intentos.ts` y `validar_intento`); el intento en curso se conserva con lo guardado y se retoma al reactivarla.
+- **Generaciones**: al crearla, el admin escribe nombre y fechas; el **código se asigna solo** (`crearGeneracion` en `lib/datos/generaciones.ts`): `gen-AAAA-MM` según la fecha de inicio y, si ya hay otra ese mes, `-2`, `-3`… (un candado evita que dos creaciones a la vez elijan el mismo). El admin edita nombre y fechas (el código no: va en los slugs) y la activa/desactiva con confirmación y resumen (estudiantes activos, intentos en curso). Desactivada: el estudiante entra y ve su historial y resultados, pero no ve evaluaciones ni empieza o continúa intentos (`lib/datos/intentos.ts` y `validar_intento`); el intento en curso se conserva con lo guardado y se retoma al reactivarla.
 - **Eliminar una generación** (solo admin, irreversible; `eliminarGeneracion()` en `lib/datos/generaciones.ts`): borra la generación, sus evaluaciones con sus preguntas, sus estudiantes y todos los intentos con sus resultados (los de sus evaluaciones y los que sus estudiantes tengan en otras generaciones; un estudiante que ya se pasó a otra generación se queda). La confirmación muestra el resumen (pedido al abrirla) con el enlace para exportar sus resultados antes, y exige escribir el código de la generación. Todo en una transacción y en este orden, porque `respuestas → preguntas` es `RESTRICT`: intentos de sus evaluaciones → estudiantes → generación (evaluaciones y preguntas en cascada). Para que sus estudiantes solo dejen de verla, se desactiva.
 
 ## Reutilizable de ../evaluacion-a2 (copiar y adaptar, no importar)
 - `lib/exam.js` → normalize + lógica de calificación.
 - `lib/openai.js` → ya portado a `lib/ia/` (`openai.ts` + `prompts.ts` + `procesar.ts`).
 - `lib/email.ts` → ya portado a `lib/email/` (`enviar.ts` + `plantilla.ts` con el diseño de Speak Easy y el logo adjunto, `correo-codigo.ts`, `correo-resultado.ts`).
-- `lib/manychat.ts` → ya portado a `lib/manychat.ts`.
-- `app/api/submit/route.js` → patrón: guardar primero (estado `pendiente`), luego IA, luego correo/WhatsApp; nunca perder respuestas.
+- `app/api/submit/route.js` → patrón: guardar primero (estado `pendiente`), luego IA, luego correo; nunca perder respuestas. (El WhatsApp por ManyChat de a2 no se usa.)
 - `app/components/EnglishExam.jsx` → UX del examen (antitrampa de cambio de pestaña, etc.). Hacerlo genérico: renderizar preguntas desde la BD según `tipo`.
 
 ## Fases
@@ -179,8 +184,8 @@ Todo solo para admin, salvo Resultados (admin y docente). Acciones en `app/admin
 2. ✅ Hecha. Dashboard staff: generaciones, evaluaciones (generar 16, publicar/despublicar, fechas), CRUD de preguntas con formulario por tipo, reordenar, clonar.
 3. ✅ Hecha. OTP por correo para estudiantes (código de 6 dígitos, 10 min de validez, máx. 5 intentos, límites de envío por correo e IP), `lib/email/`, migración `db/002_otp.sql`.
 4. ✅ Hecha. Vista estudiante: lista de evaluaciones, presentar (autoguardado, retomar, cierre automático opcional), envío y calificación en el servidor, resultado con insignia, revisión, **historial de puntajes de todos sus intentos** (`/historial` + selector "Ver intento N" como en a2) y `/resultado/[token]`. Las abiertas quedan pendientes hasta la Fase 5.
-5. ✅ Hecha. IA (feedback general como a2: una llamada por intento; abiertas con rúbrica solo con `PREGUNTAS_ABIERTAS_ACTIVAS`), correo del resultado, WhatsApp por ManyChat, la pantalla que reintenta hasta tener el feedback y "Reintentar IA" para el staff. `/api/cron/procesar` queda creado pero sin programar. Migración `db/004_ia.sql`.
-6. ✅ Hecha. Administración: estudiantes (lista, CSV con vista previa, `manychat_id`, activar), staff (contraseña temporal con cambio obligatorio, roles, restablecer que cierra sesiones, "Cambiar mi contraseña"), resultados con filtros y CSV para Excel, y generaciones (editar y desactivar). Migración `db/005_admin.sql`.
+5. ✅ Hecha. IA (feedback general como a2: una llamada por intento; abiertas con rúbrica solo con `PREGUNTAS_ABIERTAS_ACTIVAS`), correo del resultado (el WhatsApp por ManyChat se quitó después: `db/006_sin_manychat.sql`), la pantalla que reintenta hasta tener el feedback y "Reintentar IA" para el staff. `/api/cron/procesar` queda creado pero sin programar. Migración `db/004_ia.sql`.
+6. ✅ Hecha. Administración: estudiantes (lista, agregar / editar / eliminar uno a uno, CSV con vista previa, activar), staff (contraseña temporal con cambio obligatorio, roles, restablecer que cierra sesiones, "Cambiar mi contraseña"), resultados con filtros y CSV para Excel, y generaciones (editar y desactivar). Migración `db/005_admin.sql`.
 
 ## Migraciones pendientes en producción
 Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que las usa; al ejecutarlas, marcarlas aquí. Cada archivo fija su propio `search_path`.
@@ -197,23 +202,40 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
   - Variables en Vercel (Production):
     - `OPENAI_API_KEY` y `OPENAI_MODEL` (opcional).
     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`: ahora obligatorias; sin ellas el correo del resultado queda con "SMTP no configurado".
-    - `MANYCHAT_API_TOKEN` y `MANYCHAT_FLOW_RESULTADO`.
     - `PREGUNTAS_ABIERTAS_ACTIVAS`: no definirla (o `false`).
+    - `PESOS_POR_PREGUNTA`: no definirla (o `false`): todas las preguntas valen lo mismo. Si algún día se enciende, ponerla igual en el portal.
     - `CRON_SECRET`: no hace falta (reproceso sin programar).
-    - Nunca `OPENAI_BASE_URL` ni `MANYCHAT_API_URL` (solo pruebas).
+    - Nunca `OPENAI_BASE_URL` (solo pruebas).
   - Las rutas de la IA usan `maxDuration = 300`, que exige Fluid compute (activado por defecto en Vercel; comprobar en Settings → Functions).
-- [ ] `db/005_admin.sql` (Fase 6): agrega `staff.debe_cambiar_password` y `staff.sesion_version`, y `validar_intento` rechaza intentos nuevos de una generación desactivada. Va en una transacción. **Antes** de desplegar la Fase 6: sin ella, el panel no puede leer el staff y nadie del staff puede entrar.
+- [x] `db/005_admin.sql` (Fase 6): agrega `staff.debe_cambiar_password` y `staff.sesion_version`, y `validar_intento` rechaza intentos nuevos de una generación desactivada. Va en una transacción. **Antes** de desplegar la Fase 6: sin ella, el panel no puede leer el staff y nadie del staff puede entrar.
   - Comprobar: `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name = 'staff' AND column_name IN ('debe_cambiar_password', 'sesion_version');` (2).
   - El staff que ya existe queda con `debe_cambiar_password = false` y versión 0: sus sesiones abiertas siguen valiendo y no se le pide cambiar la contraseña.
   - Sin variables nuevas en Vercel.
+- [x] `db/006_sin_manychat.sql` (ManyChat quitado): borra `estudiantes.manychat_id` (con los ids que tenga) e `intentos.whatsapp_enviado`. Va en una transacción. Orden en producción: 005 → desplegar el código sin ManyChat → 006. Va **después** de desplegar: el código nuevo ya no usa esas columnas, pero el anterior sí (si se corre antes, su lista de estudiantes y su envío fallan).
+  - Irreversible. Si se quieren guardar los ids, antes: `\copy (SELECT email, manychat_id FROM evaluacion.estudiantes WHERE manychat_id IS NOT NULL) TO 'manychat.csv' CSV HEADER`.
+  - Comprobar: `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND ((table_name = 'estudiantes' AND column_name = 'manychat_id') OR (table_name = 'intentos' AND column_name = 'whatsapp_enviado'));` (0).
+  - En Vercel: borrar `MANYCHAT_API_TOKEN` y `MANYCHAT_FLOW_RESULTADO` (ya no se leen).
+- [x] `db/007_bienvenida.sql` (evaluación de bienvenida): agrega `'bienvenida'` a `tipo_evaluacion` (antes de `'mensual'`, así `ORDER BY tipo` la pone primero), cambia `evaluaciones_check` (bienvenida solo con `numero = 1`), `generar_evaluaciones` crea las 17 y le crea su bienvenida (sin publicar y sin preguntas) a cada generación que ya existe; las demás evaluaciones no se tocan.
+  - Orden en producción: 007 → desplegar el código. Va **antes**: el código anterior no se rompe con la bienvenida (solo no la muestra en el panel), pero el nuevo espera 17 por generación.
+  - Dos pasos en el mismo archivo: el `ALTER TYPE` se confirma solo (Postgres no deja usar un valor nuevo de un enum en la misma transacción) y lo demás va en una transacción. Con psql, el `COMMIT` del paso 1 avisa "there is no transaction in progress": es normal. Se puede correr otra vez sin cambiar nada.
+  - Comprobar: `SELECT g.codigo, count(e.id) FROM evaluacion.generaciones g LEFT JOIN evaluacion.evaluaciones e ON e.generacion_id = g.id GROUP BY g.codigo;` (17 en cada una) y `SELECT count(*) FROM evaluacion.evaluaciones WHERE tipo = 'bienvenida';` (= número de generaciones).
+  - Sin variables nuevas en Vercel. El portal (`inventario-speakeasy`, Academia → Evaluaciones) lee el mismo schema: desplegarlo también.
+
+## Migración de las evaluaciones A1 y A2 (hecha el 21 oct 2026)
+Las evaluaciones viejas de la Generación 1 vivían en otros schemas de la misma BD, con las preguntas en el código de cada proyecto: A1 en `agendamiento` (proyecto `Evaluaciondos-main`) y A2 en `evaluacionados` (`../evaluacion-a2`). Se pasaron a `gen-2026-03` con `scripts/migracion-a1-a2/` (ver el encabezado de `migrar.mts`):
+- A1 → `gen-2026-03-t1` («Evaluación A1», cerrada, 1 intento) y A2 → `gen-2026-03-t2` («Evaluación A2», abierta, intentos ilimitados); 115 y 120 preguntas de 10 puntos, con las "Part" como secciones. Las preguntas salen de `a1.json` / `a2.json` (`extraer-preguntas.mts`: lo que vio el estudiante + la clave de `lib/exam.js`).
+- 697 estudiantes (los autorizados de los dos schemas; se omitieron un correo del staff y una entrada con dos correos en un campo). Intentos: A1 488 y A2 247 (se omitió uno de prueba del staff), con nombre, token, feedback, cambios de pestaña y fechas; todos `listo` y `email_enviado` (no se mandó ningún correo).
+- Puntaje, Grammar y Writing son los **originales**. Cada respuesta se marcó con la clave: en la A2, los intentos del 28 sep al 1 oct con la de antes del commit 6b37ae9 (cuadran exacto); en la A1 no hay historial de la clave de los primeros días, así que en 22 intentos (1–5 jul) las respuestas marcadas no suman exactamente el puntaje guardado.
+- No se migró: el speaking de la A1 (`agendamiento.speaking_scores`, no hay dónde) ni las instrucciones propias de cada "Part" (el examen muestra la instrucción por tipo de pregunta). Los schemas viejos quedan intactos (solo se leyeron).
+- Volver a correrlo no duplica nada (reconoce los intentos por token) y respeta la configuración actual de la T1/T2: sirve para traer intentos tardíos de los sistemas viejos. `npx tsx scripts/migracion-a1-a2/migrar.mts` simula; con `--aplicar` guarda.
 
 ## Pruebas
 - `npm test`: pruebas unitarias (vitest, `tests/*.test.ts`).
 - `npm run test:integracion` (una sola suite: `npm run test:integracion -- ia`):
-  - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI, ManyChat y el SMTP (`simuladores.mjs`).
+  - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI y el SMTP (`simuladores.mjs`).
   - **Dependencias aparte**: `embedded-postgres` (~100 MB), `smtp-server` y `mailparser` van en `tests/integracion/package.json` (con su propio lockfile), **no** en el de la app, así Vercel nunca las instala. El runner las instala la primera vez o si cambia ese lockfile (`tests/integracion/node_modules` está en `.gitignore`). No usar `optionalDependencies`: `npm ci` también las instala, y `--omit=optional` rompería el build (los binarios de Next, Tailwind y lightningcss son opcionales).
   - **Aislamiento**: cada suite corre en su propio proceso con un entorno armado desde cero, nunca el `.env`. Si una suite se corre por fuera del runner, se niega a arrancar (`comun.mts`). Al terminar se borra todo.
-  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada) y `migraciones.mts` (004 y 005 sobre datos de la Fase 4).
+  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada) y `migraciones.mts` (004, 005, 006 y 007 sobre datos de la Fase 4).
   - **Configuración por defecto**: abiertas apagadas. La prueba que necesita abiertas las enciende ella misma, solo mientras corre (`conAbiertas()`).
   - **Suites nuevas**: van en `tests/integracion/*.mts` y se agregan a `SUITES` en `ejecutar.mjs`. Una migración nueva en `db/` se aplica sola.
 

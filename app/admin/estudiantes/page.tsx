@@ -11,13 +11,15 @@ import { Cargando } from "@/app/admin/components/Cargando";
 import { SoloAdmin } from "@/app/admin/components/SoloAdmin";
 import BarraEstudiantes from "./BarraEstudiantes";
 import FilaEstudiante from "./FilaEstudiante";
+import AgregarEstudiante from "./FormEstudiante";
 import ImportarCsv from "./ImportarCsv";
 
 export const metadata: Metadata = { title: "Estudiantes" };
 
-// Estudiantes por generación (solo admin): buscador, activar/desactivar,
-// manychat_id y carga por CSV. Estar en la lista = estar autorizado; nunca se
-// borran, se desactivan.
+// Estudiantes por generación (solo admin): buscador, agregar / editar / eliminar
+// uno a uno, activar/desactivar y carga por CSV. Estar en la lista = estar
+// autorizado; para que alguien deje de entrar sin perder sus resultados, se
+// desactiva.
 export default function Estudiantes({ searchParams }: PageProps<"/admin/estudiantes">) {
   return (
     <Suspense fallback={<Cargando />}>
@@ -69,8 +71,13 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/admin/est
     <>
       <TituloPagina
         titulo="Estudiantes"
-        subtitulo="Estar en la lista = estar autorizado para entrar. Se cargan por CSV y nunca se borran: se desactivan."
-        acciones={<ImportarCsv generaciones={opciones} generacionId={generacion.id} />}
+        subtitulo="Estar en la lista = estar autorizado para entrar. Agrégalos uno a uno o por CSV; para que alguien deje de entrar sin perder sus resultados, desactívalo."
+        acciones={
+          <>
+            <AgregarEstudiante generaciones={opciones} generacionId={generacion.id} />
+            <ImportarCsv generaciones={opciones} generacionId={generacion.id} />
+          </>
+        }
       />
       <BarraEstudiantes generaciones={opciones} generacionId={generacion.id} q={q} />
 
@@ -85,14 +92,14 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/admin/est
         <Tarjeta className="text-center">
           <p className="font-bold text-titulo">{q ? "Ningún estudiante coincide." : "Esta generación aún no tiene estudiantes."}</p>
           <p className="mt-1 text-sm text-gris-oscuro">
-            {q ? "Busca por correo, nombre o manychat_id." : "Cárgalos con «Cargar CSV»."}
+            {q ? "Busca por correo o nombre." : "Agrégalos uno a uno o con «Cargar CSV»."}
           </p>
         </Tarjeta>
       ) : (
         <ul className="flex flex-col gap-2.5">
           {filas.map((e) => (
             <li key={e.id}>
-              <FilaEstudiante estudiante={e} />
+              <FilaEstudiante estudiante={e} generacionId={generacion.id} generaciones={opciones} />
             </li>
           ))}
         </ul>

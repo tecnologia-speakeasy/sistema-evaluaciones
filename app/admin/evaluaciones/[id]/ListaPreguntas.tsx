@@ -48,12 +48,15 @@ export default function ListaPreguntas({
   activas,
   desactivadas,
   abiertasActivas,
+  pesosPorPregunta,
   onEditar,
 }: {
   evaluacionId: number;
   activas: PreguntaStaff[];
   desactivadas: PreguntaStaff[];
   abiertasActivas: boolean;
+  /** Apagado: todas valen lo mismo, no se muestra el puntaje de cada una. */
+  pesosPorPregunta: boolean;
   onEditar: (p: PreguntaStaff) => void;
 }) {
   const [orden, setOrden] = useState(activas);
@@ -97,6 +100,7 @@ export default function ListaPreguntas({
   const oculta = (p: PreguntaStaff) => p.tipo === "open" && !abiertasActivas;
   const acciones = (p: PreguntaStaff) => ({
     oculta: oculta(p),
+    conPuntaje: pesosPorPregunta,
     editar: () => onEditar(p),
     duplicar: () => ejecutar(() => duplicarPreguntaAction(p.id)),
     desactivar: () => ejecutar(() => cambiarActivaAction(p.id, false)),
@@ -179,6 +183,8 @@ export default function ListaPreguntas({
 type Acciones = {
   /** Abierta con las abiertas apagadas. */
   oculta: boolean;
+  /** PESOS_POR_PREGUNTA: mostrar su puntaje. */
+  conPuntaje: boolean;
   editar: () => void;
   duplicar: () => void;
   desactivar: () => void;
@@ -280,7 +286,7 @@ function Fila({
         <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
           <Insignia tono="lavanda">{ETIQUETA_TIPO[p.tipo]}</Insignia>
           <Insignia tono="gris">{ETIQUETA_CATEGORIA[p.categoria]}</Insignia>
-          <Insignia tono="gris">{p.puntaje} pts</Insignia>
+          {acciones.conPuntaje && <Insignia tono="gris">{p.puntaje} pts</Insignia>}
           {conRespuestas && (
             <Insignia tono="rosa">
               {p.respuestas} {p.respuestas === 1 ? "respuesta" : "respuestas"}

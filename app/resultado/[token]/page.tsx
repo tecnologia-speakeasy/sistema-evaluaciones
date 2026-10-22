@@ -4,8 +4,8 @@ import { AnilloProgreso } from "@/app/components/examen/AnilloProgreso";
 import { celebracionPorPuntaje } from "@/lib/celebracion";
 import { resultadoPublico, type ResultadoPublico } from "@/lib/datos/intentos";
 
-// Público (lo abre el botón de WhatsApp, Fase 5): solo el resumen, como la
-// página /resultado de a2. Nunca el detalle por pregunta ni respuestas correctas.
+// Público (el enlace que copia el estudiante en su resultado y "Ver ↗" de
+// Resultados): solo el resumen, como la página /resultado de a2. Nunca el detalle por pregunta ni respuestas correctas.
 export const metadata: Metadata = { title: "Resultado", robots: { index: false, follow: false } };
 
 export default function PaginaResultadoPublico({ params }: PageProps<"/resultado/[token]">) {

@@ -5,6 +5,7 @@ import { staffParaPagina } from "@/lib/auth/guards";
 import { listarGeneraciones } from "@/lib/datos/generaciones";
 import { contarIntentosPorRevisar } from "@/lib/datos/revision";
 import { formatearFecha } from "@/lib/fechas";
+import { EVALUACIONES_POR_GENERACION } from "@/lib/tipos";
 import { Aviso } from "@/app/components/ui/Aviso";
 import { TituloPagina } from "@/app/components/ui/Encabezado";
 import { Insignia } from "@/app/components/ui/InsigniaEstado";
@@ -33,7 +34,7 @@ async function ListaGeneraciones({ searchParams }: { searchParams: PageProps<"/a
     <>
       <TituloPagina
         titulo="Generaciones"
-        subtitulo="Cada generación tiene 12 evaluaciones mensuales y 4 trimestrales."
+        subtitulo="Cada generación tiene una evaluación de bienvenida, 12 mensuales y 4 trimestrales."
         acciones={staff.rol === "admin" ? <CrearGeneracion /> : null}
       />
 
@@ -74,8 +75,11 @@ async function ListaGeneraciones({ searchParams }: { searchParams: PageProps<"/a
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <Insignia tono="lavanda">{g.codigo}</Insignia>
                     {!g.activa && <Insignia tono="gris">Inactiva</Insignia>}
-                    {g.evaluaciones < 16 && (
-                      <Insignia tono="rojo">Faltan {16 - g.evaluaciones} evaluaciones</Insignia>
+                    {g.evaluaciones < EVALUACIONES_POR_GENERACION && (
+                      <Insignia tono="rojo">
+                        Faltan {EVALUACIONES_POR_GENERACION - g.evaluaciones}{" "}
+                        {EVALUACIONES_POR_GENERACION - g.evaluaciones === 1 ? "evaluación" : "evaluaciones"}
+                      </Insignia>
                     )}
                   </div>
                   <h2 className="text-lg font-extrabold text-titulo group-hover:text-violeta">

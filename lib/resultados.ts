@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { TipoEvaluacion } from "@/lib/tipos";
 
 // Filtros y etiquetas de Resultados (Fase 6). Puro, sin BD: lo usan la página,
 // los filtros del navegador y la exportación (lib/datos/resultados.ts consulta).
@@ -29,7 +28,8 @@ const ETIQUETA_ESTADO: Record<EstadoIntento, string> = {
 };
 export const etiquetaEstado = (e: EstadoIntento) => ETIQUETA_ESTADO[e];
 
-export const codigoEvaluacion = (tipo: TipoEvaluacion, numero: number) => `${tipo === "mensual" ? "M" : "T"}${numero}`;
+// Vive en lib/tipos.ts (sin dependencias); se reexporta para quien ya lo usa desde aquí.
+export { codigoEvaluacion } from "@/lib/tipos";
 
 const slug = z.string().trim().max(120).regex(/^[a-z0-9-]*$/);
 export const filtrosSchema = z.object({

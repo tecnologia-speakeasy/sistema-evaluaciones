@@ -18,7 +18,7 @@ async function main() {
   );
   await sql(`SELECT generar_evaluaciones($1)`, [gen.id]);
   const evs = await sql<{ id: number; slug: string }>(
-    `SELECT id, slug FROM evaluaciones WHERE generacion_id = $1 ORDER BY tipo, numero`,
+    `SELECT id, slug FROM evaluaciones WHERE generacion_id = $1 AND tipo = 'mensual' ORDER BY numero`,
     [gen.id],
   );
   const estudiante = async (n: string) => {
@@ -124,19 +124,20 @@ async function main() {
     assert.deepEqual(await I.guardarBorrador(intentoAna, ana.id, {}, 0), { ok: false, motivo: "enviado" });
   });
 
-  // M2: sin abiertas, para el puntaje final ponderado.
+  // M2: sin abiertas, para el puntaje final. Sin PESOS_POR_PREGUNTA (por
+  // defecto) las dos valen lo mismo aunque una tenga puntaje 30.
   const m2 = evs[1];
   const q1 = await ins(m2.id, 1, "multiple_choice", "grammar", "A ___", ["x", "y"], ["x"], 10);
   const q2 = await ins(m2.id, 2, "translation", "writing", "B", null, ["b"], 30);
   await sql(`UPDATE evaluaciones SET publicada = TRUE, mostrar_correctas = TRUE, intentos_permitidos = 2 WHERE id = $1`, [m2.id]);
 
-  await caso("sin abiertas: «pendiente» (espera el feedback de la IA) con el puntaje ya final (10 de 40 = 25) y vacías = incorrectas", async () => {
+  await caso("sin abiertas: «pendiente» (espera el feedback de la IA) con el puntaje ya final (1 de 2 = 50, sin pesos) y vacías = incorrectas", async () => {
     const r = await I.iniciarOReanudar(m2.id, ana);
     if (r.tipo !== "en_curso") throw new Error("no inició");
     const e = await I.enviarIntento(r.intento.id, ana.id, { [q1]: "x" }, 0);
     assert.equal(e?.estado, "pendiente");
     const [i] = await sql<{ puntaje_total: number }>(`SELECT puntaje_total FROM intentos WHERE id = $1`, [r.intento.id]);
-    assert.equal(i.puntaje_total, 25);
+    assert.equal(i.puntaje_total, 50);
     const [vacia] = await sql<{ respuesta: unknown; es_correcta: boolean }>(
       `SELECT respuesta, es_correcta FROM respuestas WHERE intento_id = $1 AND pregunta_id = $2`,
       [r.intento.id, q2],
@@ -263,8 +264,9 @@ async function main() {
       [e1.intentos_usados, e1.mejor_puntaje, e1.en_curso, e1.ultimo_numero],
       [1, null, false, 1],
     );
-    // 2.º intento: falla la de 10, acierta la de 30 → 30/40 = 75.
-    assert.deepEqual([e2.intentos_usados, e2.mejor_puntaje, e2.ultimo_numero], [2, 75, 2]);
+    // 2.º intento: falla la de 10, acierta la de 30 → sin pesos, 1 de 2 = 50
+    // (con PESOS_POR_PREGUNTA serían 30/40 = 75).
+    assert.deepEqual([e2.intentos_usados, e2.mejor_puntaje, e2.ultimo_numero], [2, 50, 2]);
     assert.equal(I.puedePresentar(e2), false);
     assert.equal(I.puedePresentar(e1), true);
     const m5 = lista.find((e) => e.id === evs[4].id)!;
@@ -276,13 +278,13 @@ async function main() {
     const h = await I.historial(ana.id);
     assert.deepEqual(h.map((x) => [x.slug, x.numero, x.puntaje_total]), [
       [m1.slug, 1, null],
-      [m2.slug, 1, 25],
-      [m2.slug, 2, 75],
+      [m2.slug, 1, 50],
+      [m2.slug, 2, 50],
     ]);
     const [t] = await sql<{ token: string }>(`SELECT token FROM intentos WHERE evaluacion_id = $1 AND estudiante_id = $2 AND numero_intento = 2`, [m2.id, ana.id]);
     const pub = await I.resultadoPublico(t.token);
     assert.equal(pub?.nombre, "Estudiante ana");
-    assert.equal(pub?.puntaje_total, 75);
+    assert.equal(pub?.puntaje_total, 50);
     assert.ok(!("preguntas" in pub!));
     assert.equal(await I.resultadoPublico("no es un token"), null);
     const [enCurso] = await sql<{ token: string }>(`SELECT token FROM intentos WHERE estado = 'en_progreso' LIMIT 1`);

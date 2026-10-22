@@ -9,9 +9,9 @@ import { cambiosPestanaSchema, respuestasSchema } from "@/lib/intentos/entrada";
 import { idUrlSchema } from "@/lib/validacion";
 
 // "Finalizar" (o el envío automático al acabar el tiempo): guarda y califica lo
-// cerrado en el servidor y responde de una vez; la IA (abiertas + feedback),
-// el correo y el WhatsApp corren después de responder (after()), fuera de
-// cualquier transacción. La pantalla espera con GET ./estado.
+// cerrado en el servidor y responde de una vez; la IA (abiertas + feedback) y
+// el correo corren después de responder (after()), fuera de cualquier
+// transacción. La pantalla espera con GET ./estado.
 // Fuera de plazo se califica lo guardado. Enviar dos veces da lo mismo.
 //   { numero, estado, slug }
 

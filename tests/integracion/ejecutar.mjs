@@ -1,6 +1,6 @@
 // Pruebas de integración: `npm run test:integracion` (una sola: `-- ia`).
 // Levanta un Postgres 17 temporal (embedded-postgres) con db/0NN_*.sql y los
-// simuladores (OpenAI, ManyChat, SMTP), y corre cada suite en su propio proceso
+// simuladores (OpenAI y SMTP), y corre cada suite en su propio proceso
 // con un entorno armado desde cero: nunca usa el .env ni servicios reales.
 // Al terminar borra todo (base, correos).
 import { spawn, spawnSync } from "node:child_process";
@@ -87,10 +87,10 @@ try {
   simuladores = await iniciarSimuladores(correos);
 
   // Entorno desde cero: fuera las variables de la app que vinieran del shell
-  // (así las abiertas quedan apagadas, como por defecto) y solo valores de prueba.
+  // (así las abiertas y los pesos quedan apagados, como por defecto) y solo valores de prueba.
   const entorno = Object.fromEntries(
     Object.entries(process.env).filter(
-      ([k]) => !/^(DATABASE_|SESSION_|OPENAI_|SMTP_|MAIL_|MANYCHAT_|CRON_|OTP_|PREGUNTAS_|VERCEL)/.test(k),
+      ([k]) => !/^(DATABASE_|SESSION_|OPENAI_|SMTP_|MAIL_|CRON_|OTP_|PREGUNTAS_|PESOS_|VERCEL)/.test(k),
     ),
   );
   Object.assign(entorno, {
@@ -105,9 +105,6 @@ try {
     SMTP_USER: "prueba",
     SMTP_PASS: "prueba",
     MAIL_FROM: "Speak Easy <no-responder@speakeasy.test>",
-    MANYCHAT_API_TOKEN: "token-manychat-prueba",
-    MANYCHAT_FLOW_RESULTADO: "content20261016",
-    MANYCHAT_API_URL: `http://127.0.0.1:${simuladores.puertoManyChat}`,
     PRUEBAS_CORREOS: correos,
   });
 

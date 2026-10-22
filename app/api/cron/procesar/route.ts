@@ -2,8 +2,8 @@ import { timingSafeEqual } from "node:crypto";
 import { reprocesarPendientes } from "@/lib/ia/procesar";
 
 // Reproceso de lo que quedó sin terminar: intentos 'pendiente' / 'error' /
-// 'calificando' atascados (hasta 10 fallos; después solo el staff) y correos o
-// WhatsApp sin enviar. OPCIONAL y hoy SIN PROGRAMAR: como a2, lo resuelven el
+// 'calificando' atascados (hasta 10 fallos; después solo el staff) y correos
+// sin enviar. OPCIONAL y hoy SIN PROGRAMAR: como a2, lo resuelven el
 // after() del envío, la pantalla que espera (relanza la IA) y el staff
 // ("Reintentar IA" / "Reintentar envío"). Queda lista por si algún día se
 // programa (Cron de Vercel o n8n, ver CLAUDE.md).

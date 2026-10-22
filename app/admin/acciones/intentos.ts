@@ -26,12 +26,11 @@ export async function reintentarIAAction(intentoId: unknown): Promise<ResultadoR
   }
 }
 
-// "Reintentar envío": el intento ya está listo pero el correo o el WhatsApp no salieron.
+// "Reintentar envío": el intento ya está listo pero el correo no salió.
 export async function reintentarEnvioAction(intentoId: unknown): Promise<ResultadoReintento> {
   try {
     await requireStaff();
-    const r = await notificarIntento(idSchema.parse(intentoId));
-    if (r.correo === "fallo" || r.whatsapp === "fallo") {
+    if ((await notificarIntento(idSchema.parse(intentoId))) === "fallo") {
       return { ok: false, error: "El envío volvió a fallar. Mira el error." };
     }
     return { ok: true, mensaje: "Enviado." };

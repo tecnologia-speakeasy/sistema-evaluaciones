@@ -19,15 +19,9 @@ import { idSchema } from "@/lib/validacion";
 
 // Generaciones: solo admin (regla 6: el docente no toca generaciones).
 
+// El código no se pide: crearGeneracion lo asigna a partir de la fecha de inicio.
 const crearSchema = z
   .object({
-    codigo: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .min(1, "Escribe el código")
-      .max(40, "El código es demasiado largo")
-      .regex(/^[a-z0-9-]+$/, "Usa solo minúsculas, números y guiones (ej. gen-2026-10)."),
     nombre: z.string().trim().min(1, "Escribe el nombre").max(120, "El nombre es demasiado largo"),
     fecha_inicio: z.string().min(1, "Elige la fecha de inicio").pipe(fechaSchema),
     fecha_fin: z
@@ -47,7 +41,7 @@ export async function crearGeneracionAction(datos: unknown): Promise<ResultadoAc
     const staff = await requireStaff(["admin"]);
     const p = crearSchema.safeParse(datos);
     if (!p.success) return errorValidacion(p.error.issues);
-    id = await crearGeneracion(p.data, staff.id);
+    id = (await crearGeneracion(p.data, staff.id)).id;
   } catch (e) {
     return aResultadoError(e);
   }
