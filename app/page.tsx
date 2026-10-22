@@ -161,8 +161,15 @@ function Mantenimiento({ nombre, generacion }: { nombre: string; generacion: str
         <p className="mb-1.5 text-sm font-semibold text-gris">{generacion}</p>
         <h1 className="text-[clamp(26px,4vw,34px)] leading-tight font-extrabold text-marca">Hola, {nombre}</h1>
         <div className="mt-20 flex flex-col items-center text-center md:mt-36">
+          {/* Spiky crece hacia arriba: el margen negativo descuenta lo que creció
+              (de 460 a 600 px), así el texto se queda donde estaba. En celular
+              ya ocupa todo el ancho y no cambia. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- como las demás imágenes de a2 */}
-          <img src="/spiky-mantenimiento.png" alt="" className="h-auto w-full max-w-[460px]" />
+          <img
+            src="/spiky-mantenimiento.png"
+            alt=""
+            className="mt-[calc(min(100%,460px)-min(100%,600px))] h-auto w-full max-w-[600px]"
+          />
           <p className="mt-10 max-w-[1040px] text-[clamp(18px,2.6vw,27px)] font-medium tracking-[0.06em] text-gris-hub uppercase">
             Estamos trabajando para brindarte una mejor experiencia
           </p>
