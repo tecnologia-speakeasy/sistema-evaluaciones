@@ -160,7 +160,7 @@ function Mantenimiento({ nombre, generacion }: { nombre: string; generacion: str
       <main className="mx-auto w-full max-w-[1180px] flex-1 px-[18px] pt-8 pb-12 md:px-7 md:pt-10">
         <p className="mb-1.5 text-sm font-semibold text-gris">{generacion}</p>
         <h1 className="text-[clamp(26px,4vw,34px)] leading-tight font-extrabold text-marca">Hola, {nombre}</h1>
-        <div className="mt-10 flex flex-col items-center text-center md:mt-14">
+        <div className="mt-20 flex flex-col items-center text-center md:mt-36">
           {/* eslint-disable-next-line @next/next/no-img-element -- como las demás imágenes de a2 */}
           <img src="/spiky-mantenimiento.png" alt="" className="h-auto w-full max-w-[460px]" />
           <p className="mt-10 max-w-[1040px] text-[clamp(18px,2.6vw,27px)] font-medium tracking-[0.06em] text-gris-hub uppercase">
