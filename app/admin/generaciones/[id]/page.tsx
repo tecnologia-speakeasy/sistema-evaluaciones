@@ -44,6 +44,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const bienvenida = evaluaciones.filter((e) => e.tipo === "bienvenida");
   const mensuales = evaluaciones.filter((e) => e.tipo === "mensual");
   const trimestrales = evaluaciones.filter((e) => e.tipo === "trimestral");
+  const final = evaluaciones.filter((e) => e.tipo === "final");
   const publicadas = evaluaciones.filter((e) => e.publicada).length;
   const faltan = EVALUACIONES_POR_GENERACION - evaluaciones.length;
 
@@ -92,6 +93,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <Seccion titulo="Bienvenida" evaluaciones={bienvenida} />
       <Seccion titulo="Mensuales" evaluaciones={mensuales} />
       <Seccion titulo="Trimestrales" evaluaciones={trimestrales} />
+      <Seccion titulo="Final" evaluaciones={final} />
     </>
   );
 }

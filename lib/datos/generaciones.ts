@@ -62,7 +62,7 @@ async function codigoLibre(tx: Tx, fechaInicio: string): Promise<string> {
   return codigo;
 }
 
-// Crea la generación (con su código) y sus 17 evaluaciones en la misma
+// Crea la generación (con su código) y sus 18 evaluaciones en la misma
 // transacción: nunca queda una generación a medias.
 export async function crearGeneracion(
   datos: { nombre: string; fecha_inicio: string; fecha_fin: string | null },

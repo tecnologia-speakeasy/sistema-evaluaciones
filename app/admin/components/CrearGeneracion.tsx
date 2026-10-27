@@ -7,7 +7,7 @@ import { Boton } from "@/app/components/ui/Boton";
 import { Campo, Entrada } from "@/app/components/ui/Campo";
 import { Dialogo } from "@/app/components/ui/Dialogo";
 
-// Crea la generación y sus 17 evaluaciones (generar_evaluaciones), y abre su
+// Crea la generación y sus 18 evaluaciones (generar_evaluaciones), y abre su
 // cuadrícula. El código no se escribe: el servidor lo asigna a partir de la
 // fecha de inicio (lib/datos/generaciones.ts).
 export default function CrearGeneracion() {
@@ -87,7 +87,7 @@ function Formulario() {
       {error && !error.campo && <Aviso tono="error">{error.mensaje}</Aviso>}
 
       <p className="text-sm text-gris-oscuro">
-        Se crearán las 17 evaluaciones (bienvenida, 12 mensuales y 4 trimestrales) sin publicar y sin preguntas.
+        Se crearán las 18 evaluaciones (bienvenida, 12 mensuales, 4 trimestrales y la final) sin publicar y sin preguntas.
       </p>
       <Boton type="submit" disabled={pendiente} ancho>
         {pendiente ? "Creando…" : "Crear generación"}

@@ -342,7 +342,7 @@ await caso("editar generación: nombre y fechas; la que no existe da error", asy
   await assert.rejects(G.actualizarGeneracion(999_999, { nombre: "x", fecha_inicio: "2026-01-01", fecha_fin: null }), /no existe/);
 });
 
-await caso("crear generación: el código se asigna solo (gen-AAAA-MM; -2, -3… si se repite el mes), con sus 17", async () => {
+await caso("crear generación: el código se asigna solo (gen-AAAA-MM; -2, -3… si se repite el mes), con sus 18", async () => {
   const { rows: [staff] } = await query<{ id: number }>(`SELECT id FROM staff ORDER BY id LIMIT 1`);
   const crear = (nombre: string, fecha_inicio: string) => G.crearGeneracion({ nombre, fecha_inicio, fecha_fin: null }, staff.id);
   const a = await crear("Marzo A", "2031-03-02");
@@ -354,11 +354,12 @@ await caso("crear generación: el código se asigna solo (gen-AAAA-MM; -2, -3…
     ["gen-2031-03", "gen-2031-03-2", ["gen-2031-03-3", "gen-2031-03-4"]],
   );
   const { rows } = await query(
-    `SELECT count(*)::int AS n, min(slug) FILTER (WHERE tipo = 'bienvenida') AS bienvenida
+    `SELECT count(*)::int AS n, min(slug) FILTER (WHERE tipo = 'bienvenida') AS bienvenida,
+            min(slug) FILTER (WHERE tipo = 'final') AS final
        FROM evaluaciones WHERE generacion_id = $1`,
     [b.id],
   );
-  assert.deepEqual(rows[0], { n: 17, bienvenida: "gen-2031-03-2-bienvenida" });
+  assert.deepEqual(rows[0], { n: 18, bienvenida: "gen-2031-03-2-bienvenida", final: "gen-2031-03-2-final" });
 });
 
 // ---------------------------------------------------------------------------
@@ -400,7 +401,7 @@ await caso("eliminar: el resumen cuenta evaluaciones, preguntas, estudiantes e i
   assert.deepEqual(await G.resumenEliminacion(gx), {
     codigo: `gen-borrar-${sufijo}`,
     nombre: "Borrar",
-    evaluaciones: 17,
+    evaluaciones: 18,
     preguntas: 1,
     estudiantes: 3, // x1, x2 y "entra"
     intentos: 3, // x1 y "sale" en sus evaluaciones + "entra" en otra generación
@@ -439,7 +440,7 @@ await caso("eliminar: borra la generación con todo lo suyo y no toca lo demás"
   );
   // La otra generación sigue entera.
   assert.equal(await existe("intentos", intentoY1), true);
-  assert.equal((await G.resumenEliminacion(gy))?.evaluaciones, 17);
+  assert.equal((await G.resumenEliminacion(gy))?.evaluaciones, 18);
 });
 
 // ---------------------------------------------------------------------------

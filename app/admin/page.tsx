@@ -34,7 +34,7 @@ async function ListaGeneraciones({ searchParams }: { searchParams: PageProps<"/a
     <>
       <TituloPagina
         titulo="Generaciones"
-        subtitulo="Cada generación tiene una evaluación de bienvenida, 12 mensuales y 4 trimestrales."
+        subtitulo="Cada generación tiene una evaluación de bienvenida, 12 mensuales, 4 trimestrales y una final."
         acciones={staff.rol === "admin" ? <CrearGeneracion /> : null}
       />
 

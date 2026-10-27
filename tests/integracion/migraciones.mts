@@ -1,4 +1,4 @@
-// db/004_ia.sql, db/005_admin.sql, db/006_sin_manychat.sql y db/007_bienvenida.sql
+// db/004_ia.sql, db/005_admin.sql, db/006_sin_manychat.sql, db/007_bienvenida.sql y db/008_final.sql
 // sobre una base "de producción" con 001 + 002 + 003 e intentos de la Fase 4. Usa una base aparte (migra004) del Postgres
 // temporal y la borra al final. Se corre con `npm run test:integracion`.
 import assert from "node:assert/strict";
@@ -207,6 +207,57 @@ try {
     await q(sqlDe("007_bienvenida.sql"));
     await q("SET search_path TO evaluacion");
     assert.deepEqual(await deTipo(), completa);
+  });
+
+  // 008 sobre la misma base: las generaciones de antes (con sus 17; la primera
+  // con una publicada e intentos) reciben solo su final. Igual que en producción.
+  const antes008 = await q("SELECT id, slug, publicada FROM evaluaciones ORDER BY id");
+  await q(sqlDe("008_final.sql"));
+  await q("SET search_path TO evaluacion");
+  // deTipo ordena por el texto del tipo (alfabético): la final va segunda.
+  const completa008 = [completa[0], { tipo: "final", n: 1 }, ...completa.slice(1)];
+
+  await caso("008: cada generación de antes recibe su final (sin publicar) y queda de última en orden", async () => {
+    assert.deepEqual(await deTipo(), completa008);
+    const [ultima] = await q(
+      "SELECT slug, titulo, numero, publicada FROM evaluaciones WHERE generacion_id = 1 ORDER BY tipo DESC, numero DESC LIMIT 1",
+    );
+    assert.deepEqual(ultima, { slug: "gen-2026-10-final", titulo: "Evaluación final", numero: 1, publicada: false });
+    const [sinFinal] = await q<{ n: number }>(
+      `SELECT count(*)::int AS n FROM generaciones g
+        WHERE NOT EXISTS (SELECT 1 FROM evaluaciones e WHERE e.generacion_id = g.id AND e.tipo = 'final')`,
+    );
+    assert.equal(sinFinal.n, 0);
+  });
+  await caso("008: las 17 de antes y sus intentos no cambian", async () => {
+    const ahora = await q("SELECT id, slug, publicada FROM evaluaciones WHERE tipo <> 'final' ORDER BY id");
+    assert.deepEqual(ahora, antes008);
+    const [r] = await q<{ n: number }>("SELECT count(*)::int AS n FROM intentos");
+    assert.equal(r.n, 4);
+  });
+  await caso("008: generar_evaluaciones crea las 18 en una generación nueva y es idempotente", async () => {
+    const [g] = await q<{ id: number }>(
+      `INSERT INTO generaciones (codigo, nombre, fecha_inicio) VALUES ('gen-2027-02', 'Febrero 2027', '2027-02-01') RETURNING id`,
+    );
+    const [c1] = await q<{ n: number }>("SELECT generar_evaluaciones($1) AS n", [g.id]);
+    const [c2] = await q<{ n: number }>("SELECT generar_evaluaciones($1) AS n", [g.id]);
+    assert.deepEqual([c1.n, c2.n], [18, 0]);
+  });
+  await caso("008: el CHECK solo deja una final con numero 1 (y la bienvenida sigue igual)", async () => {
+    for (const [tipo, slug] of [["final", "gen-2026-10-final-2"], ["bienvenida", "gen-2026-10-bienvenida-2"]]) {
+      await assert.rejects(
+        q(`INSERT INTO evaluaciones (generacion_id, slug, titulo, tipo, numero) VALUES (1, $1, 'Otra', $2, 2)`, [slug, tipo]),
+        /evaluaciones_check/,
+      );
+    }
+  });
+  await caso("008 se puede correr otra vez sin cambiar nada", async () => {
+    await q(sqlDe("008_final.sql"));
+    await q("SET search_path TO evaluacion");
+    assert.deepEqual(await deTipo(), completa008);
+    const [g] = await q<{ n: number }>("SELECT count(*)::int AS n FROM evaluaciones WHERE tipo = 'final'");
+    const [gens] = await q<{ n: number }>("SELECT count(*)::int AS n FROM generaciones");
+    assert.equal(g.n, gens.n);
   });
 } finally {
   await c.end();

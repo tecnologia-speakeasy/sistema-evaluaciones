@@ -3,7 +3,7 @@
 Plataforma centralizada de evaluaciones de inglés. Reemplaza el modelo "un proyecto + un esquema por evaluación" (ver `../evaluacion-a2`, que queda congelado: NO modificarlo, solo usarlo como referencia).
 
 ## Contexto de negocio
-- Cada **generación** (cohorte) tiene 17 evaluaciones: 1 de bienvenida + 12 mensuales + 4 trimestrales. La de bienvenida funciona igual que las demás (preguntas, puntaje, IA y correo); va primero y su código es «B» (las otras, M1…M12 y T1…T4: `codigoEvaluacion()` en `lib/tipos.ts`).
+- Cada **generación** (cohorte) tiene 18 evaluaciones: 1 de bienvenida + 12 mensuales + 4 trimestrales + 1 final. La de bienvenida y la final funcionan igual que las demás (preguntas, puntaje, IA y correo); la de bienvenida va primero (código «B») y la final de última (código «F»); las otras son M1…M12 y T1…T4 (`codigoEvaluacion()` en `lib/tipos.ts`).
 - **Estudiantes**: pertenecen a una sola generación. Estar en la tabla = estar autorizado. En la BD el estudiante es solo su **correo** (+ `activo`): el **nombre lo escribe al entrar**, como en a2, viaja en la sesión y se guarda en cada intento (`intentos.nombre`); ese es el que se usa en pantallas, feedback de IA y correos. El admin los agrega uno a uno o por CSV (no hay registro público).
 - **Staff**: `admin` (todo) y `docente` (evaluaciones, preguntas, resultados). Login con contraseña.
 - Las evaluaciones A1/A2 de la Generación 1 ya se migraron aquí (T1 y T2 de `gen-2026-03`; ver «Migración de las evaluaciones A1 y A2»). No hay agendamiento ni speaking (el speaking de la A1 quedó solo en `agendamiento.speaking_scores`).
@@ -46,7 +46,7 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 - `staff` (005): `debe_cambiar_password` (entró con contraseña temporal) y `sesion_version` (viaja en la cookie; restablecer o cambiar la contraseña la incrementa y cierra las sesiones anteriores).
 - `generaciones.activa`: desactivada = sus estudiantes entran y ven su historial, pero no ven evaluaciones ni empiezan o continúan intentos (ver "Administración").
 
-Funciones: `generar_evaluaciones(generacion_id, staff_id)` (las 17 desde la 007; idempotente), `clonar_preguntas(origen, destino)`.
+Funciones: `generar_evaluaciones(generacion_id, staff_id)` (las 18 desde la 008; idempotente), `clonar_preguntas(origen, destino)`.
 Vistas: `v_preguntas_publicas`, `v_evaluaciones_resumen`, `v_resultados`, `v_dificultad_preguntas`.
 Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amigables):
 - `validar_pregunta`: forma de `opciones` / `respuestas_aceptadas` según el tipo.
@@ -98,10 +98,10 @@ Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/n
 ## Rutas previstas
 - Estudiante: `/` (mis evaluaciones de su generación: estado, mejor puntaje, nº de intentos; y "Mi historial"), `/evaluacion/[slug]` (intro + presentar), `/evaluacion/[slug]/intentos/[n]` (resultado del intento + "Tus intentos"), `/evaluacion/[slug]/intentos/[n]/respuestas` (revisión pregunta por pregunta), `/resultado/[token]` (público, solo resumen).
 - **Generaciones en mantenimiento** (`lib/mantenimiento.ts`; hoy `gen-2026-03`): su inicio solo muestra el saludo y a Spiky (`public/spiky-mantenimiento.png`) con «Estamos trabajando para brindarte una mejor experiencia», sin evaluaciones ni "Mi historial", aunque tengan evaluaciones publicadas. Para quitarlo, sacar el código de la lista.
-- **"Mi historial"** es un pop-up del inicio (`app/components/historial/`), no una página (`/historial` redirige a `/`): la tarjeta «Evolución» de la antigua página, sin la lista de intentos (promedio y mejor de esos puntajes arriba), con una gráfica de las 17 evaluaciones en el orden del curso (B, M1–M3, A1, M4–M6, A2, M7–M9, B1, M10–M12, B2: cada trimestral lleva su nivel, T1 = A1 … T4 = B2) y su **mejor puntaje** en cada una (`mejoresPorEvaluacion` en `lib/datos/intentos.ts`).
+- **"Mi historial"** es un pop-up del inicio (`app/components/historial/`), no una página (`/historial` redirige a `/`): la tarjeta «Evolución» de la antigua página, sin la lista de intentos (promedio y mejor de esos puntajes arriba), con una gráfica de las 18 evaluaciones en el orden del curso (B, M1–M3, A1, M4–M6, A2, M7–M9, B1, M10–M12, B2, F: cada trimestral lleva su nivel, T1 = A1 … T4 = B2) y su **mejor puntaje** en cada una (`mejoresPorEvaluacion` en `lib/datos/intentos.ts`).
 - API del examen: `POST /api/intentos` (iniciar o retomar), `PUT /api/intentos/[id]/borrador` (autoguardado), `POST /api/intentos/[id]/enviar` (calificar), `GET /api/intentos/[id]/estado` (la pantalla espera a la IA).
 - Reproceso: `GET /api/cron/procesar` (opcional y **sin programar**, ver "IA y correo").
-- Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 17 evaluaciones: bienvenida, mensuales y trimestrales; el admin la edita, la activa/desactiva y la elimina), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados` (+ `/admin/resultados/exportar`, CSV de lo filtrado), `/admin/estudiantes` y `/admin/staff` (solo admin), `/admin/cuenta/contrasena` (cambio obligatorio de la temporal y "Cambiar mi contraseña" del menú del avatar).
+- Staff: `/admin` (resumen), `/admin/generaciones/[id]` (las 18 evaluaciones: bienvenida, mensuales, trimestrales y final; el admin la edita, la activa/desactiva y la elimina), `/admin/evaluaciones/[id]` (editar + preguntas), `/admin/resultados` (+ `/admin/resultados/exportar`, CSV de lo filtrado), `/admin/estudiantes` y `/admin/staff` (solo admin), `/admin/cuenta/contrasena` (cambio obligatorio de la temporal y "Cambiar mi contraseña" del menú del avatar).
 
 ## Reglas del examen del estudiante (Fase 4)
 - **Intento**: empieza al tocar "Comenzar" (no en la intro). Recargar o abrir otra pestaña retoma el mismo intento `en_progreso` (índice único): no crea otro ni gasta otro.
@@ -222,6 +222,11 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
   - Dos pasos en el mismo archivo: el `ALTER TYPE` se confirma solo (Postgres no deja usar un valor nuevo de un enum en la misma transacción) y lo demás va en una transacción. Con psql, el `COMMIT` del paso 1 avisa "there is no transaction in progress": es normal. Se puede correr otra vez sin cambiar nada.
   - Comprobar: `SELECT g.codigo, count(e.id) FROM evaluacion.generaciones g LEFT JOIN evaluacion.evaluaciones e ON e.generacion_id = g.id GROUP BY g.codigo;` (17 en cada una) y `SELECT count(*) FROM evaluacion.evaluaciones WHERE tipo = 'bienvenida';` (= número de generaciones).
   - Sin variables nuevas en Vercel. El portal (`inventario-speakeasy`, Academia → Evaluaciones) lee el mismo schema: desplegarlo también.
+- [ ] `db/008_final.sql` (evaluación final): agrega `'final'` a `tipo_evaluacion` (después de `'trimestral'`, así `ORDER BY tipo` la pone de última), cambia `evaluaciones_check` (bienvenida y final solo con `numero = 1`), `generar_evaluaciones` crea las 18 y le crea su final (`<codigo>-final`, sin publicar y sin preguntas) a cada generación que ya existe; las demás evaluaciones no se tocan.
+  - Orden en producción: 008 → desplegar el código (aquí y en el portal). Va **antes**: el código anterior no se rompe con la final (solo no la muestra en el panel), pero el nuevo espera 18 por generación.
+  - Dos pasos en el mismo archivo, como la 007 (con psql, el aviso "there is no transaction in progress" del paso 1 es normal). Se puede correr otra vez sin cambiar nada. Correr la 007 otra vez después de esta deja `generar_evaluaciones` sin la final: si pasa, correr la 008 de nuevo.
+  - Comprobar: `SELECT g.codigo, count(e.id) FROM evaluacion.generaciones g LEFT JOIN evaluacion.evaluaciones e ON e.generacion_id = g.id GROUP BY g.codigo;` (18 en cada una) y `SELECT count(*) FROM evaluacion.evaluaciones WHERE tipo = 'final';` (= número de generaciones).
+  - Sin variables nuevas en Vercel.
 
 ## Migración de las evaluaciones A1 y A2 (hecha el 21 oct 2026)
 Las evaluaciones viejas de la Generación 1 vivían en otros schemas de la misma BD, con las preguntas en el código de cada proyecto: A1 en `agendamiento` (proyecto `Evaluaciondos-main`) y A2 en `evaluacionados` (`../evaluacion-a2`). Se pasaron a `gen-2026-03` con `scripts/migracion-a1-a2/` (ver el encabezado de `migrar.mts`):

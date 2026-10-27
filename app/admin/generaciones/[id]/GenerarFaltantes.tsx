@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { generarFaltantesAction } from "@/app/admin/acciones/generaciones";
 import { Boton } from "@/app/components/ui/Boton";
 
-// Solo admin: crea las evaluaciones que falten de las 17 (no toca las existentes).
+// Solo admin: crea las evaluaciones que falten de las 18 (no toca las existentes).
 export default function GenerarFaltantes({
   generacionId,
   faltan,

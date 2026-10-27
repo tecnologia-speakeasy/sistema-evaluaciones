@@ -2,23 +2,25 @@ import type { MejorPorEvaluacion } from "@/lib/datos/intentos";
 import type { TipoEvaluacion } from "@/lib/tipos";
 
 // Evolución de sus puntajes (SVG, sin librerías), con el diseño de la antigua
-// página /historial: las 17 evaluaciones en el orden del curso y, en cada una
+// página /historial: las 18 evaluaciones en el orden del curso y, en cada una
 // que ya presentó, su mejor puntaje. Los colores son los del degradado de
 // progreso de a2.
 // En el eje, cada trimestral lleva su nivel: T1 = A1 (la antigua «Evaluación
-// A1»), T2 = A2, T3 = B1 y T4 = B2. La bienvenida y las trimestrales, en rosa.
+// A1»), T2 = A2, T3 = B1 y T4 = B2. La bienvenida, las trimestrales y la final,
+// en rosa.
 
 type Casilla = { tipo: TipoEvaluacion; numero: number; etiqueta: string; destacada: boolean };
 
 const NIVEL_TRIMESTRAL = ["A1", "A2", "B1", "B2"];
 
-// B, M1, M2, M3, A1, M4, M5, M6, A2, M7, M8, M9, B1, M10, M11, M12, B2.
+// B, M1, M2, M3, A1, M4, M5, M6, A2, M7, M8, M9, B1, M10, M11, M12, B2, F.
 const CURSO: Casilla[] = [
   { tipo: "bienvenida", numero: 1, etiqueta: "B", destacada: true },
   ...NIVEL_TRIMESTRAL.flatMap((nivel, t): Casilla[] => [
     ...[1, 2, 3].map((k) => ({ tipo: "mensual" as const, numero: t * 3 + k, etiqueta: `M${t * 3 + k}`, destacada: false })),
     { tipo: "trimestral", numero: t + 1, etiqueta: nivel, destacada: true },
   ]),
+  { tipo: "final", numero: 1, etiqueta: "F", destacada: true },
 ];
 
 const ANCHO = 640;

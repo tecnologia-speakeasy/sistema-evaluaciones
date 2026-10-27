@@ -33,7 +33,7 @@ export function BotonHistorial({ mejores }: { mejores: MejorPorEvaluacion[] }) {
               </p>
             )}
           </div>
-          {/* En celular la gráfica se desliza a los lados: las 17 evaluaciones no caben a lo ancho. */}
+          {/* En celular la gráfica se desliza a los lados: las 18 evaluaciones no caben a lo ancho. */}
           <div className="overflow-x-auto">
             <GraficoHistorial mejores={mejores} />
           </div>
