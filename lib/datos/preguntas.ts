@@ -13,9 +13,9 @@ const json = (v: unknown) => (v === null ? null : JSON.stringify(v));
 
 export async function listarPreguntas(evaluacionId: number): Promise<PreguntaStaff[]> {
   const { rows } = await query<PreguntaStaff>(
-    `SELECT p.id, p.orden, p.seccion, p.tipo, p.categoria, p.enunciado, p.pista,
+    `SELECT p.id, p.orden, p.seccion, p.subseccion, p.tipo, p.categoria, p.enunciado, p.pista,
             p.opciones, p.respuestas_aceptadas, p.rubrica, p.puntaje::float8 AS puntaje,
-            p.activa,
+            p.activa, p.material_id,
             (SELECT count(*)::int FROM respuestas r WHERE r.pregunta_id = p.id) AS respuestas
        FROM preguntas p
       WHERE p.evaluacion_id = $1
@@ -29,7 +29,7 @@ export async function listarPreguntas(evaluacionId: number): Promise<PreguntaSta
 // abiertas si están apagadas, lib/preguntas/abiertas.ts).
 export async function listarPublicas(evaluacionId: number): Promise<PreguntaPublica[]> {
   const { rows } = await query<PreguntaPublica>(
-    `SELECT id, orden, seccion, tipo, enunciado, pista, opciones, espacios
+    `SELECT id, orden, seccion, subseccion, tipo, enunciado, pista, opciones, espacios, material_id
        FROM v_preguntas_publicas
       WHERE evaluacion_id = $1 AND ${sqlSinAbiertas()}
       ORDER BY orden`,
@@ -60,12 +60,12 @@ export async function crearPregunta(evaluacionId: number, f: FilaPregunta): Prom
     await bloquearEvaluacion(tx, evaluacionId);
     const { rows } = await tx.query<{ id: number }>(
       `INSERT INTO preguntas (evaluacion_id, orden, seccion, tipo, categoria, enunciado, pista,
-                              opciones, respuestas_aceptadas, rubrica, puntaje)
-       VALUES ($1, ${SIGUIENTE_ORDEN}, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                              opciones, respuestas_aceptadas, rubrica, puntaje, material_id, subseccion)
+       VALUES ($1, ${SIGUIENTE_ORDEN}, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id`,
       [
         evaluacionId, f.seccion, f.tipo, f.categoria, f.enunciado, f.pista,
-        json(f.opciones), json(f.respuestas_aceptadas), f.rubrica, f.puntaje,
+        json(f.opciones), json(f.respuestas_aceptadas), f.rubrica, f.puntaje, f.material_id, f.subseccion,
       ],
     );
     return rows[0].id;
@@ -90,11 +90,12 @@ export async function actualizarPregunta(id: number, f: FilaPregunta): Promise<v
     await tx.query(
       `UPDATE preguntas
           SET seccion = $2, tipo = $3, categoria = $4, enunciado = $5, pista = $6,
-              opciones = $7, respuestas_aceptadas = $8, rubrica = $9, puntaje = $10
+              opciones = $7, respuestas_aceptadas = $8, rubrica = $9, puntaje = $10,
+              material_id = $11, subseccion = $12
         WHERE id = $1`,
       [
         id, f.seccion, f.tipo, f.categoria, f.enunciado, f.pista,
-        json(f.opciones), json(f.respuestas_aceptadas), f.rubrica, f.puntaje,
+        json(f.opciones), json(f.respuestas_aceptadas), f.rubrica, f.puntaje, f.material_id, f.subseccion,
       ],
     );
   });
@@ -145,9 +146,9 @@ export async function duplicarPregunta(id: number): Promise<number> {
     await bloquearEvaluacion(tx, evaluacionId);
     const { rows } = await tx.query<{ id: number }>(
       `INSERT INTO preguntas (evaluacion_id, orden, seccion, tipo, categoria, enunciado, pista,
-                              opciones, respuestas_aceptadas, rubrica, puntaje)
+                              opciones, respuestas_aceptadas, rubrica, puntaje, material_id, subseccion)
        SELECT evaluacion_id, ${SIGUIENTE_ORDEN}, seccion, tipo, categoria, enunciado, pista,
-              opciones, respuestas_aceptadas, rubrica, puntaje
+              opciones, respuestas_aceptadas, rubrica, puntaje, material_id, subseccion
          FROM preguntas WHERE id = $2
        RETURNING id`,
       [evaluacionId, id],
@@ -187,10 +188,15 @@ export async function reordenarPreguntas(evaluacionId: number, idsActivas: numbe
   });
 }
 
-// clonar_preguntas exige que el destino esté vacío; su error se traduce. Con
-// las abiertas apagadas, las copias de abiertas se quitan en la misma transacción.
+// clonar_preguntas exige que el destino esté vacío; su error se traduce y copia
+// también las lecturas y audios (db/009). Con las abiertas apagadas, las copias
+// de abiertas se quitan en la misma transacción (y los materiales que solo ellas usaban).
 export async function clonarPreguntas(origenId: number, destinoId: number): Promise<number> {
   return transaction(async (tx) => {
+    // Los materiales que el destino ya tenía no se tocan: solo se limpian las copias.
+    const { rows: previos } = await tx.query<{ hasta: number }>(
+      `SELECT COALESCE(max(id), 0) AS hasta FROM materiales`,
+    );
     const { rows } = await tx.query<{ copiadas: number }>(
       `SELECT clonar_preguntas($1, $2) AS copiadas`,
       [origenId, destinoId],
@@ -199,6 +205,12 @@ export async function clonarPreguntas(origenId: number, destinoId: number): Prom
     const { rowCount } = await tx.query(`DELETE FROM preguntas WHERE evaluacion_id = $1 AND tipo = 'open'`, [
       destinoId,
     ]);
+    await tx.query(
+      `DELETE FROM materiales m
+        WHERE m.evaluacion_id = $1 AND m.id > $2
+          AND NOT EXISTS (SELECT 1 FROM preguntas p WHERE p.material_id = m.id)`,
+      [destinoId, previos[0].hasta],
+    );
     return rows[0].copiadas - (rowCount ?? 0);
   });
 }

@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const raiz = path.resolve(aqui, "../..");
-const SUITES = ["intentos.mts", "ia.mts", "admin.mts", "migraciones.mts"];
+const SUITES = ["intentos.mts", "ia.mts", "admin.mts", "materiales.mts", "migraciones.mts"];
 const filtro = process.argv[2];
 
 // Las dependencias de estas pruebas (embedded-postgres, smtp-server, mailparser)

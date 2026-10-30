@@ -351,6 +351,8 @@ await caso("no se crean abiertas: crear, cambiar el tipo y duplicar se rechazan;
     respuestas_aceptadas: null,
     rubrica: "Pasado simple.",
     puntaje: 10,
+    material_id: null,
+    subseccion: null,
   };
   await assert.rejects(Q.crearPregunta(m2.id, abierta), /abiertas están desactivadas/);
   const otra = await ins(m2.id, 5, "translation", "writing", "Estoy en casa.", null, ["I am at home."]);

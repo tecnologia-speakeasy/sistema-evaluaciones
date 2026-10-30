@@ -11,7 +11,9 @@ import {
 } from "@/lib/grading/calificar";
 import { MAX_FALLOS_AUTOMATICOS } from "@/lib/ia/procesar";
 import { GRACIA_S } from "@/lib/intentos/reloj";
+import { materialesDe } from "@/lib/datos/materiales";
 import { sqlSinAbiertas } from "@/lib/preguntas/abiertas";
+import type { Material } from "@/lib/preguntas/materiales";
 import type { PreguntaPublica, TipoPregunta } from "@/lib/preguntas/tipos";
 import type { TipoEvaluacion } from "@/lib/tipos";
 
@@ -122,6 +124,8 @@ export type IntentoEnCurso = {
 export type DatosPresentar = {
   evaluacion: EvaluacionEstudiante;
   preguntas: PreguntaPublica[];
+  /** Lecturas y audios de esas preguntas (db/009). */
+  materiales: Material[];
   enCurso: IntentoEnCurso | null;
 };
 
@@ -143,7 +147,7 @@ export async function evaluacionParaPresentar(
 
   const [preguntas, enCurso] = await Promise.all([
     query<PreguntaPublica>(
-      `SELECT id, orden, seccion, tipo, enunciado, pista, opciones, espacios
+      `SELECT id, orden, seccion, subseccion, tipo, enunciado, pista, opciones, espacios, material_id
          FROM v_preguntas_publicas WHERE evaluacion_id = $1 AND ${sqlSinAbiertas()} ORDER BY orden`,
       [evaluacion.id],
     ),
@@ -156,6 +160,7 @@ export async function evaluacionParaPresentar(
   return {
     evaluacion,
     preguntas: preguntas.rows,
+    materiales: await materialesDe(preguntas.rows),
     enCurso: enCurso.rows[0] ? aEnCurso(enCurso.rows[0]) : null,
   };
 }
@@ -427,6 +432,8 @@ export type DetallePregunta = {
   /** Abiertas ya calificadas por la IA: nota de 0 a 10 y su comentario. */
   nota: number | null;
   comentario: string | null;
+  material_id: number | null;
+  subseccion: string | null;
 };
 
 export type DetalleIntento = {
@@ -457,6 +464,8 @@ export type DetalleIntento = {
   puedeRepetir: boolean;
   enCurso: boolean;
   preguntas: DetallePregunta[];
+  /** Lecturas y audios de esas preguntas. */
+  materiales: Material[];
   intentos: ResumenIntentoEnviado[];
 };
 
@@ -517,7 +526,7 @@ export async function detalleIntento(
               p.respuestas_aceptadas, r.respuesta, r.es_correcta,
               CASE WHEN p.tipo = 'open' AND r.es_correcta IS NOT NULL
                    THEN round(r.puntaje / p.puntaje * 10)::int END AS nota,
-              r.feedback AS comentario
+              r.feedback AS comentario, p.material_id, p.subseccion
          FROM respuestas r JOIN preguntas p ON p.id = r.pregunta_id
         WHERE r.intento_id = $1
         ORDER BY p.orden`,
@@ -560,6 +569,7 @@ export async function detalleIntento(
           ? respuestaCorrectaVisible({ tipo: p.tipo, respuestas_aceptadas })
           : null,
     })),
+    materiales: await materialesDe(preguntas),
     intentos,
   };
 }

@@ -36,7 +36,7 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 - Mobile first: los estudiantes entran sobre todo desde el celular.
 
 ## Modelo de datos (schema `evaluacion`)
-`generaciones` · `estudiantes` · `staff` · `login_intentos` · `codigos_acceso` (002) · `evaluaciones` · `preguntas` · `intentos` · `respuestas`
+`generaciones` · `estudiantes` · `staff` · `login_intentos` · `codigos_acceso` (002) · `evaluaciones` · `materiales` (009) · `preguntas` · `intentos` · `respuestas`
 - `estudiantes`: `email`, `activo` (sin nombre desde la 003; sin `manychat_id` desde la 006).
 - `evaluaciones` (003): `cierre_automatico` (al acabar el tiempo se envía sola; exige `duracion_min`) y `mostrar_correctas`.
 - `intentos` (003): `nombre` (el que escribió al entrar), `respuestas_borrador` (autoguardado mientras responde), `limite_at` (hasta cuándo se aceptan respuestas, fijado al empezar). Índice único: un solo intento `en_progreso` por estudiante y evaluación.
@@ -45,12 +45,14 @@ Fuente de verdad: `../evaluacion-a2/app/components/EnglishExam.jsx` (estilos inl
 - Estados del intento: `en_progreso` → (enviar) `pendiente` → `calificando` (candado tomado) → `listo`. Si la IA falla vuelve a `pendiente`; al 3.er fallo, `error`. Ver "IA y correo".
 - `staff` (005): `debe_cambiar_password` (entró con contraseña temporal) y `sesion_version` (viaja en la cookie; restablecer o cambiar la contraseña la incrementa y cierra las sesiones anteriores).
 - `generaciones.activa`: desactivada = sus estudiantes entran y ven su historial, pero no ven evaluaciones ni empiezan o continúan intentos (ver "Administración").
+- `preguntas` (009 y 010): `material_id` (lectura o audio, ver abajo) y `subseccion` (rótulo opcional dentro de la sección, solo con sección).
 
 Funciones: `generar_evaluaciones(generacion_id, staff_id)` (las 18 desde la 008; idempotente), `clonar_preguntas(origen, destino)`.
 Vistas: `v_preguntas_publicas`, `v_evaluaciones_resumen`, `v_resultados`, `v_dificultad_preguntas`.
 Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amigables):
 - `validar_pregunta`: forma de `opciones` / `respuestas_aceptadas` según el tipo.
 - `validar_intento`: estudiante activo de la generación, generación activa (005), evaluación publicada y en fecha, número de intento y límite.
+- `validar_material_pregunta` (009): la lectura o el audio de una pregunta es de su misma evaluación.
 
 ### Tipos de pregunta
 | tipo | opciones | respuestas_aceptadas | calificación |
@@ -71,6 +73,21 @@ Triggers en BD (no duplicar en la app, solo traducir sus errores a mensajes amig
 - El editor (aquí y en el portal) no pide el puntaje ni lo muestra en cada pregunta; arriba dice cuánto vale cada una. El `puntaje` se sigue guardando (10 si es nueva, o el que ya tenía) para cuando se enciendan.
 - Cada pregunta aporta la parte que obtuvo de su propio puntaje (1 o 0; una abierta, nota/10) y el total es el promedio × 100. Por eso da lo mismo con qué puntaje se guardó una respuesta, también las de antes (p. ej. al "Reintentar IA" un intento viejo).
 - Encendidos: suma de puntajes obtenidos / suma de puntajes posibles × 100. Con todas las preguntas en 10 (la T1 y la T2 migradas, por ejemplo) los dos modos dan lo mismo.
+
+### Lecturas y audios (reading / listening, 009)
+Como las «Reading» y «Recording» del Placement Test: un texto o una grabación con varias preguntas. No es un tipo de pregunta nuevo: cualquier pregunta (en la práctica, selección múltiple) se liga opcionalmente a un **material** de su evaluación (`preguntas.material_id`).
+- `materiales`: `tipo` (`lectura` | `audio`), `titulo` («Reading 1 – A Typical Day»), `texto` (la lectura; en el audio, una indicación opcional) y `audio_url` (URL pública del archivo). Esquema en `lib/preguntas/materiales.ts`; datos en `lib/datos/materiales.ts`; acciones en `app/admin/acciones/materiales.ts`.
+- **Editor** (`/admin/evaluaciones/[id]`): sección «Lecturas y audios» encima de las preguntas (`Materiales.tsx`, `FormMaterial.tsx`) y en cada pregunta el campo «Lectura o audio» (la nueva pregunta propone el material de la última). La lista muestra a qué material va cada pregunta.
+- **Audio**: se sube a Vercel Blob desde el navegador (`@vercel/blob/client`, ruta `app/api/admin/audios`, solo staff; mp3, m4a, wav, ogg, webm, aac hasta 50 MB) o se pega el enlace de un archivo ya publicado. Sin `BLOB_READ_WRITE_TOKEN` solo se puede pegar el enlace. Borrar el material no borra el archivo del Blob.
+- **Examen, vista previa y revisión**: la lectura o el reproductor van encima del enunciado de cada pregunta ligada, con la instrucción «Read the text…» / «Listen to the recording…». El reproductor **no se reinicia** al pasar entre preguntas del mismo audio (`MaterialEstudiante` lleva `key` = id del material y `PreguntaEstudiante` ya no lleva `key`). Sin límite de reproducciones. En la revisión el material va plegado.
+- **Reglas**: eliminar un material deja sus preguntas sin él, salvo que alguna ya tenga respuestas (entonces no se deja; sí se puede corregir el texto o el audio). Clonar una evaluación copia los materiales que usan sus preguntas activas y liga las copias. Al estudiante solo le llegan los materiales de sus preguntas (`materialesDe`).
+- El portal (`inventario-speakeasy`) tiene lo mismo (`lib/evaluaciones-gestion/materiales.ts`, `components/evaluaciones-gestion/materiales.tsx`, ruta de subida `app/api/club-conversacional/gestion-evaluaciones/audios`).
+
+### Subsecciones (Section A, B…, 010)
+Dentro de una sección (la «Part»), una pregunta puede llevar una **subsección** opcional, como la Part 1 del Placement Test (Section A–D). Es solo un rótulo (`preguntas.subseccion`):
+- El estudiante la ve como una etiqueta debajo del título de la sección (examen, vista previa y revisión). La numeración y los pasos siguen siendo los de la sección: en el Placement Test, del 1 al 60 seguidos.
+- En el editor, el campo «Subsección» ofrece las ya usadas en esa sección o una nueva («+ Nueva subsección…», con `SelectorSeccion`); una pregunta nueva propone la de la última. Sin sección queda deshabilitado y, al cambiar de sección, se limpia. La BD exige sección (`preguntas_subseccion_check`).
+- Duplicar y clonar la copian. El portal tiene lo mismo.
 
 ### Normalización de respuestas
 Portar `normalize()` de `../evaluacion-a2/lib/exam.js` tal cual a `lib/grading/normalize.ts` (mayúsculas, tildes, apóstrofes, contracciones, puntuación, sinónimos mom/mother, etc.) y cubrirla con tests.
@@ -222,10 +239,18 @@ Se ejecutan a mano en el VPS, en orden, **antes** de desplegar el código que la
   - Dos pasos en el mismo archivo: el `ALTER TYPE` se confirma solo (Postgres no deja usar un valor nuevo de un enum en la misma transacción) y lo demás va en una transacción. Con psql, el `COMMIT` del paso 1 avisa "there is no transaction in progress": es normal. Se puede correr otra vez sin cambiar nada.
   - Comprobar: `SELECT g.codigo, count(e.id) FROM evaluacion.generaciones g LEFT JOIN evaluacion.evaluaciones e ON e.generacion_id = g.id GROUP BY g.codigo;` (17 en cada una) y `SELECT count(*) FROM evaluacion.evaluaciones WHERE tipo = 'bienvenida';` (= número de generaciones).
   - Sin variables nuevas en Vercel. El portal (`inventario-speakeasy`, Academia → Evaluaciones) lee el mismo schema: desplegarlo también.
-- [ ] `db/008_final.sql` (evaluación final): agrega `'final'` a `tipo_evaluacion` (después de `'trimestral'`, así `ORDER BY tipo` la pone de última), cambia `evaluaciones_check` (bienvenida y final solo con `numero = 1`), `generar_evaluaciones` crea las 18 y le crea su final (`<codigo>-final`, sin publicar y sin preguntas) a cada generación que ya existe; las demás evaluaciones no se tocan.
+- [x] `db/008_final.sql` (evaluación final): agrega `'final'` a `tipo_evaluacion` (después de `'trimestral'`, así `ORDER BY tipo` la pone de última), cambia `evaluaciones_check` (bienvenida y final solo con `numero = 1`), `generar_evaluaciones` crea las 18 y le crea su final (`<codigo>-final`, sin publicar y sin preguntas) a cada generación que ya existe; las demás evaluaciones no se tocan.
   - Orden en producción: 008 → desplegar el código (aquí y en el portal). Va **antes**: el código anterior no se rompe con la final (solo no la muestra en el panel), pero el nuevo espera 18 por generación.
   - Dos pasos en el mismo archivo, como la 007 (con psql, el aviso "there is no transaction in progress" del paso 1 es normal). Se puede correr otra vez sin cambiar nada. Correr la 007 otra vez después de esta deja `generar_evaluaciones` sin la final: si pasa, correr la 008 de nuevo.
   - Comprobar: `SELECT g.codigo, count(e.id) FROM evaluacion.generaciones g LEFT JOIN evaluacion.evaluaciones e ON e.generacion_id = g.id GROUP BY g.codigo;` (18 en cada una) y `SELECT count(*) FROM evaluacion.evaluaciones WHERE tipo = 'final';` (= número de generaciones).
+  - Sin variables nuevas en Vercel.
+- [x] `db/009_materiales.sql` (lecturas y audios): tabla `materiales`, `preguntas.material_id` (ON DELETE SET NULL), trigger `validar_material_pregunta`, `material_id` al final de `v_preguntas_publicas` y `clonar_preguntas` que copia los materiales. Va en una transacción (todo o nada); no se puede correr dos veces (la segunda falla con "already exists" sin tocar nada).
+  - Orden en producción: 008 → 009 → 010 → desplegar el código (aquí y en el portal). Va **antes**: el código anterior no lee lo nuevo, pero el nuevo sí (sin la 009 fallan el editor, el examen y la vista previa).
+  - Comprobar: `SELECT to_regclass('evaluacion.materiales');` (no NULL) y `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name IN ('preguntas', 'v_preguntas_publicas') AND column_name = 'material_id';` (2).
+  - Vercel (aquí y en el portal): para subir audios, crear un Blob store (Storage → Blob, acceso público) y conectarlo al proyecto, que agrega `BLOB_READ_WRITE_TOKEN`. Sin ella todo funciona, pero el audio solo se agrega pegando su enlace.
+- [x] `db/010_subsecciones.sql` (subsecciones, Section A, B…): agrega `preguntas.subseccion` (opcional, solo con sección), la pone al final de `v_preguntas_publicas` y `clonar_preguntas` la copia. Va en una transacción y se puede correr otra vez sin cambiar nada.
+  - Orden en producción: después de la 009 y **antes** de desplegar el código (aquí y en el portal): sin ella fallan el editor, el examen y la vista previa (leen `subseccion`).
+  - Comprobar: `SELECT count(*) FROM information_schema.columns WHERE table_schema = 'evaluacion' AND table_name IN ('preguntas', 'v_preguntas_publicas') AND column_name = 'subseccion';` (2).
   - Sin variables nuevas en Vercel.
 
 ## Migración de las evaluaciones A1 y A2 (hecha el 21 oct 2026)
@@ -242,7 +267,7 @@ Las evaluaciones viejas de la Generación 1 vivían en otros schemas de la misma
   - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI y el SMTP (`simuladores.mjs`).
   - **Dependencias aparte**: `embedded-postgres` (~100 MB), `smtp-server` y `mailparser` van en `tests/integracion/package.json` (con su propio lockfile), **no** en el de la app, así Vercel nunca las instala. El runner las instala la primera vez o si cambia ese lockfile (`tests/integracion/node_modules` está en `.gitignore`). No usar `optionalDependencies`: `npm ci` también las instala, y `--omit=optional` rompería el build (los binarios de Next, Tailwind y lightningcss son opcionales).
   - **Aislamiento**: cada suite corre en su propio proceso con un entorno armado desde cero, nunca el `.env`. Si una suite se corre por fuera del runner, se niega a arrancar (`comun.mts`). Al terminar se borra todo.
-  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada) y `migraciones.mts` (004, 005, 006 y 007 sobre datos de la Fase 4).
+  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada), `materiales.mts` (lecturas y audios: crear, ligar, examen, clonar, eliminar; y subsecciones) y `migraciones.mts` (004 a 010 sobre datos de la Fase 4).
   - **Configuración por defecto**: abiertas apagadas. La prueba que necesita abiertas las enciende ella misma, solo mientras corre (`conAbiertas()`).
   - **Suites nuevas**: van en `tests/integracion/*.mts` y se agregan a `SUITES` en `ejecutar.mjs`. Una migración nueva en `db/` se aplica sola.
 

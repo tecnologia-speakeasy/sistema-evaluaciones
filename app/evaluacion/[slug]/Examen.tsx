@@ -22,6 +22,7 @@ import {
   segundosRestantes,
   textoDuracion,
 } from "@/lib/intentos/reloj";
+import type { Material } from "@/lib/preguntas/materiales";
 import { contarEspacios, posicionesPorSeccion, type PreguntaPublica } from "@/lib/preguntas/tipos";
 
 // Presentar una evaluación, con el UX de ../evaluacion-a2 (EnglishExam.jsx):
@@ -48,6 +49,7 @@ function respondida(p: PreguntaPublica, r: RespuestaEstudiante | undefined): boo
 export default function Examen({
   evaluacion: ev,
   preguntas,
+  materiales,
   enCurso,
   puedeEmpezar,
   nombre,
@@ -55,6 +57,8 @@ export default function Examen({
 }: {
   evaluacion: EvaluacionEstudiante;
   preguntas: PreguntaPublica[];
+  /** Lecturas y audios de las preguntas (db/009). */
+  materiales: Material[];
   enCurso: IntentoEnCurso | null;
   /** Hay un intento en curso o puede empezar otro. */
   puedeEmpezar: boolean;
@@ -85,6 +89,7 @@ export default function Examen({
   }, []);
 
   const posiciones = useMemo(() => posicionesPorSeccion(preguntas), [preguntas]);
+  const materialPorId = useMemo(() => new Map(materiales.map((m) => [m.id, m])), [materiales]);
   const total = preguntas.length;
   const pregunta = preguntas[indice];
   const posicion = posiciones[indice];
@@ -271,12 +276,14 @@ export default function Examen({
         <main className="min-w-0 flex-1">
           <BarraProgreso actual={indice + 1} total={total} contador={`${posicion.numero}/${posicion.largo}`} />
 
+          {/* Sin key por pregunta (es controlada): así la lectura o el audio de
+              varias preguntas seguidas no se vuelve a montar al pasar de una a otra. */}
           <PreguntaEstudiante
-            key={pregunta.id}
             pregunta={pregunta}
             numero={posicion.numero}
             respuesta={respuestaActual ?? null}
             onCambio={cambiarRespuesta}
+            material={pregunta.material_id ? materialPorId.get(pregunta.material_id) : null}
             cronometro={
               restante !== null ? (
                 <AnilloProgreso

@@ -20,6 +20,7 @@ import {
   vistaPreviaDesdeEstado,
   type EstadoFormulario,
 } from "@/lib/preguntas/entrada";
+import { ETIQUETA_MATERIAL, type MaterialStaff } from "@/lib/preguntas/materiales";
 import {
   CATEGORIA_POR_DEFECTO,
   contarEspacios,
@@ -30,7 +31,7 @@ import {
 } from "@/lib/preguntas/tipos";
 import { EspaciosFillBlank } from "./editores/EspaciosFillBlank";
 import { OpcionesMultiple } from "./editores/OpcionesMultiple";
-import { SelectorSeccion } from "./editores/SelectorSeccion";
+import { SelectorSeccion, TEXTOS_SUBSECCION } from "./editores/SelectorSeccion";
 import { Traducciones } from "./editores/Traducciones";
 
 const AYUDA_ENUNCIADO: Record<TipoPregunta, string> = {
@@ -40,7 +41,7 @@ const AYUDA_ENUNCIADO: Record<TipoPregunta, string> = {
   open: "La consigna que verá el estudiante.",
 };
 
-const CAMPOS_COMUNES = ["tipo", "categoria", "puntaje", "seccion", "enunciado"];
+const CAMPOS_COMUNES = ["tipo", "categoria", "puntaje", "seccion", "subseccion", "material_id", "enunciado"];
 const CAMPOS_TIPO: Record<TipoPregunta, string[]> = {
   multiple_choice: ["opciones", "correctas"],
   fill_blank: ["pista", "variantes"],
@@ -53,8 +54,12 @@ export default function FormPregunta({
   pregunta,
   secciones,
   seccionSugerida,
+  subsecciones,
+  subseccionSugerida,
   abiertasActivas,
   pesosPorPregunta,
+  materiales,
+  materialSugerido,
   onListo,
   onCancelar,
 }: {
@@ -63,10 +68,17 @@ export default function FormPregunta({
   pregunta: PreguntaStaff | null;
   secciones: string[];
   seccionSugerida: string;
+  /** Subsecciones ya usadas en cada sección («Section A»…). */
+  subsecciones: Record<string, string[]>;
+  subseccionSugerida: string;
   /** Apagadas: "Abierta" no se ofrece (el servidor también la rechaza). */
   abiertasActivas: boolean;
   /** Apagado: no se pide el puntaje; se guarda el que tenía (10 si es nueva). */
   pesosPorPregunta: boolean;
+  /** Lecturas y audios de la evaluación, para ligar la pregunta (db/009). */
+  materiales: MaterialStaff[];
+  /** Una pregunta nueva arranca ligada al material de la última (o a ninguno). */
+  materialSugerido: number | null;
   onListo: () => void;
   onCancelar: () => void;
 }) {
@@ -74,7 +86,10 @@ export default function FormPregunta({
   const soloAgregar = (pregunta?.respuestas ?? 0) > 0;
   // Una abierta que ya existe se sigue viendo como tal; nuevas, solo si están activas.
   const tipos = TIPOS_PREGUNTA.filter((t) => t !== "open" || abiertasActivas || pregunta?.tipo === "open");
-  const [original] = useState(() => estadoInicial(pregunta, seccionSugerida));
+  const [original] = useState(() => {
+    const inicial = estadoInicial(pregunta, seccionSugerida, subseccionSugerida);
+    return pregunta ? inicial : { ...inicial, material_id: materialSugerido };
+  });
   const [e, setE] = useState<EstadoFormulario>(original);
   const [error, setError] = useState<{ mensaje: string; campo?: string } | null>(null);
   const [respuestaPrevia, setRespuestaPrevia] = useState<RespuestaEstudiante>(null);
@@ -229,11 +244,54 @@ export default function FormPregunta({
             id="p-seccion"
             valor={e.seccion}
             secciones={secciones}
-            onCambio={(seccion) => cambiar({ seccion })}
+            // Otra sección: la subsección de antes ya no aplica.
+            onCambio={(seccion) => cambiar({ seccion, subseccion: seccion === e.seccion ? e.subseccion : "" })}
             deshabilitado={soloAgregar}
             invalida={!!errorDe("seccion")}
           />
         </Campo>
+
+        <Campo
+          etiqueta="Subsección"
+          htmlFor="p-subseccion"
+          error={errorDe("subseccion")}
+          ayuda="Opcional, dentro de la sección: «Section A», «Section B»… Se ve debajo del título de la sección y no cambia la numeración."
+        >
+          <SelectorSeccion
+            // Al cambiar de sección arranca de nuevo, con las subsecciones de esa.
+            key={e.seccion}
+            id="p-subseccion"
+            valor={e.subseccion}
+            secciones={subsecciones[e.seccion.trim()] ?? []}
+            textos={TEXTOS_SUBSECCION}
+            onCambio={(subseccion) => cambiar({ subseccion })}
+            deshabilitado={soloAgregar || !e.seccion.trim()}
+            invalida={!!errorDe("subseccion")}
+          />
+        </Campo>
+
+        {materiales.length > 0 && (
+          <Campo
+            etiqueta="Lectura o audio"
+            htmlFor="p-material"
+            error={errorDe("material_id")}
+            ayuda="Opcional. Si la pregunta es sobre un texto o una grabación, el estudiante lo verá encima."
+          >
+            <Selector
+              id="p-material"
+              value={e.material_id ?? ""}
+              disabled={soloAgregar}
+              onChange={(x) => cambiar({ material_id: x.target.value ? Number(x.target.value) : null })}
+            >
+              <option value="">Ninguno</option>
+              {materiales.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {ETIQUETA_MATERIAL[m.tipo]} · {m.titulo}
+                </option>
+              ))}
+            </Selector>
+          </Campo>
+        )}
 
         <Campo
           etiqueta="Enunciado"
@@ -366,6 +424,7 @@ export default function FormPregunta({
             numero={1}
             respuesta={respuestaPrevia}
             onCambio={setRespuestaPrevia}
+            material={materiales.find((m) => m.id === e.material_id) ?? null}
           />
         </div>
       </div>

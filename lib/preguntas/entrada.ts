@@ -20,6 +20,13 @@ const comunes = {
     .trim()
     .max(120, "La sección es demasiado larga")
     .transform((v) => v || null),
+  /** «Section A» dentro de la sección (db/010). Opcional; exige sección. */
+  subseccion: z
+    .string()
+    .trim()
+    .max(120, "La subsección es demasiado larga")
+    .optional()
+    .transform((v) => v || null),
   categoria: z.enum(["grammar", "writing"], { error: "Elige la categoría" }),
   enunciado: z
     .string({ error: "Escribe el enunciado" })
@@ -35,6 +42,8 @@ const comunes = {
     .number({ error: "Escribe el puntaje" })
     .positive("El puntaje debe ser mayor que 0")
     .max(999.99, "El puntaje máximo es 999.99"),
+  /** Lectura o audio de la evaluación al que se liga (db/009); el trigger exige que sea de ella. */
+  material_id: z.number().int().positive().nullable().default(null),
 };
 
 const respuestaTexto = z
@@ -73,13 +82,17 @@ export const entradaPreguntaSchema = z.discriminatedUnion("tipo", [
     ...comunes,
     rubrica: z.string().trim().max(4000, "La rúbrica es demasiado larga"),
   }),
-]);
+]).refine((p) => !p.subseccion || p.seccion, {
+  path: ["subseccion"],
+  error: "Elige primero la sección: la subsección va dentro de ella.",
+});
 
 export type EntradaPregunta = z.input<typeof entradaPreguntaSchema>;
 export type EntradaPreguntaValida = z.output<typeof entradaPreguntaSchema>;
 
 export type FilaPregunta = {
   seccion: string | null;
+  subseccion: string | null;
   tipo: TipoPregunta;
   categoria: Categoria;
   enunciado: string;
@@ -88,16 +101,19 @@ export type FilaPregunta = {
   respuestas_aceptadas: string[] | string[][] | null;
   rubrica: string | null;
   puntaje: number;
+  material_id: number | null;
 };
 
 export function aFila(p: EntradaPreguntaValida): FilaPregunta {
   const base = {
     seccion: p.seccion,
+    subseccion: p.subseccion,
     tipo: p.tipo,
     categoria: p.categoria,
     enunciado: p.enunciado,
     pista: p.pista,
     puntaje: p.puntaje,
+    material_id: p.material_id,
   };
   switch (p.tipo) {
     case "multiple_choice": {
@@ -123,6 +139,7 @@ export type EstadoFormulario = {
   tipo: TipoPregunta;
   categoria: Categoria;
   seccion: string;
+  subseccion: string;
   enunciado: string;
   pista: string;
   puntaje: string;
@@ -131,17 +148,21 @@ export type EstadoFormulario = {
   variantes: string[][];
   traducciones: string[];
   rubrica: string;
+  /** Lectura o audio ligado (id), o null. */
+  material_id: number | null;
 };
 
 export function estadoInicial(
   p: PreguntaStaff | null,
   seccionSugerida = "",
+  subseccionSugerida = "",
 ): EstadoFormulario {
   if (!p) {
     return {
       tipo: "multiple_choice",
       categoria: CATEGORIA_POR_DEFECTO.multiple_choice,
       seccion: seccionSugerida,
+      subseccion: seccionSugerida ? subseccionSugerida : "",
       enunciado: "",
       pista: "",
       puntaje: "10",
@@ -150,6 +171,7 @@ export function estadoInicial(
       variantes: [[]],
       traducciones: [],
       rubrica: "",
+      material_id: null,
     };
   }
   const opciones = p.opciones ?? ["", ""];
@@ -158,6 +180,7 @@ export function estadoInicial(
     tipo: p.tipo,
     categoria: p.categoria,
     seccion: p.seccion ?? "",
+    subseccion: p.subseccion ?? "",
     enunciado: p.enunciado,
     pista: p.pista ?? "",
     puntaje: String(p.puntaje),
@@ -169,6 +192,7 @@ export function estadoInicial(
     variantes: p.tipo === "fill_blank" ? (aceptadas as string[][]) : [[]],
     traducciones: p.tipo === "translation" ? (aceptadas as string[]) : [],
     rubrica: p.rubrica ?? "",
+    material_id: p.material_id,
   };
 }
 
@@ -186,11 +210,13 @@ export function ajustarVariantes(variantes: string[][], enunciado: string): stri
 export function entradaDesdeEstado(e: EstadoFormulario): EntradaPregunta {
   const comunesEntrada = {
     seccion: e.seccion,
+    subseccion: e.subseccion,
     categoria: e.categoria,
     enunciado: e.enunciado,
     // La pista solo se muestra en preguntas de completar (como en a2).
     pista: e.tipo === "fill_blank" ? e.pista : "",
     puntaje: e.puntaje.trim() === "" ? Number.NaN : Number(e.puntaje.replace(",", ".")),
+    material_id: e.material_id,
   };
   switch (e.tipo) {
     case "multiple_choice":
@@ -253,5 +279,7 @@ export function vistaPreviaDesdeEstado(e: EstadoFormulario): PreguntaPublica {
     opciones:
       e.tipo === "multiple_choice" ? e.opciones.map((o) => o.trim()).filter(Boolean) : null,
     espacios: e.tipo === "fill_blank" ? listasNecesarias(e.enunciado) : null,
+    material_id: e.material_id,
+    subseccion: e.seccion.trim() ? e.subseccion.trim() || null : null,
   };
 }

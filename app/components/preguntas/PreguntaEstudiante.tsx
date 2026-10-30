@@ -1,12 +1,14 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
+import type { Material, TipoMaterial } from "@/lib/preguntas/materiales";
 import {
   contarEspacios,
   partirEnunciado,
   type PreguntaPublica,
   type TipoPregunta,
 } from "@/lib/preguntas/tipos";
+import { MaterialEstudiante } from "./MaterialEstudiante";
 
 // Una pregunta tal como la ve el estudiante. Réplica de la pantalla del examen
 // de ../evaluacion-a2 (EnglishExam.jsx, objeto `xs`): mismos tamaños, colores y
@@ -25,12 +27,19 @@ export const INSTRUCCION_POR_TIPO: Record<TipoPregunta, string> = {
   open: "Write your answer in English.",
 };
 
+// Selección múltiple sobre una lectura o un audio (db/009): la instrucción habla del texto.
+const INSTRUCCION_CON_MATERIAL: Record<TipoMaterial, string> = {
+  lectura: "Read the text and choose the correct answer.",
+  audio: "Listen to the recording and choose the correct answer.",
+};
+
 export function PreguntaEstudiante({
   pregunta,
   numero,
   respuesta,
   onCambio,
   cronometro,
+  material,
 }: {
   pregunta: PreguntaPublica;
   /** Número dentro de su sección (a2 reinicia la numeración en cada Part). */
@@ -39,10 +48,19 @@ export function PreguntaEstudiante({
   onCambio: (r: RespuestaEstudiante) => void;
   /** Celular: el cronómetro circular encima de la tarjeta morada (xs.mTimer). */
   cronometro?: ReactNode;
+  /** Lectura o audio ligado: va entre el título y el enunciado. */
+  material?: Material | null;
 }) {
   return (
     <div>
-      <EncabezadoPregunta pregunta={pregunta} numero={numero} cronometro={cronometro} />
+      <EncabezadoPregunta
+        pregunta={pregunta}
+        numero={numero}
+        cronometro={cronometro}
+        tipoMaterial={material?.tipo}
+        // key = id: entre preguntas de la misma grabación el audio no se reinicia.
+        material={material ? <MaterialEstudiante key={material.id} material={material} /> : null}
+      />
 
       {pregunta.tipo === "multiple_choice" && (
         <OpcionesMultiple
@@ -89,19 +107,33 @@ export function EncabezadoPregunta({
   pregunta,
   numero,
   cronometro,
+  tipoMaterial,
+  material,
 }: {
-  pregunta: Pick<PreguntaPublica, "seccion" | "tipo" | "enunciado">;
+  pregunta: Pick<PreguntaPublica, "seccion" | "subseccion" | "tipo" | "enunciado">;
   numero: number;
   cronometro?: ReactNode;
+  /** Si la pregunta va sobre una lectura o un audio. */
+  tipoMaterial?: TipoMaterial;
+  /** La lectura o el audio, ya armado: va entre el título y el enunciado. */
+  material?: ReactNode;
 }) {
   const titulo = pregunta.seccion ?? `Ejercicio ${numero}`;
-  const instruccion = INSTRUCCION_POR_TIPO[pregunta.tipo];
+  // «Section A»: rótulo dentro de la sección (solo existe con sección).
+  const subseccion = pregunta.seccion ? pregunta.subseccion : null;
   const esMultiple = pregunta.tipo === "multiple_choice";
+  const instruccion =
+    esMultiple && tipoMaterial ? INSTRUCCION_CON_MATERIAL[tipoMaterial] : INSTRUCCION_POR_TIPO[pregunta.tipo];
   return (
     <>
       {/* Escritorio: xs.ejTitle + xs.ejQuestion */}
       <div className="hidden md:block">
         <h1 className="mb-2.5 text-[26px] font-extrabold text-titulo">{titulo}</h1>
+        {subseccion && (
+          <p className="mb-3 w-fit rounded-full bg-lavanda px-3 py-1 text-[13px] font-bold text-violeta">
+            {subseccion}
+          </p>
+        )}
         {esMultiple && (
           <p className="mb-[26px] text-base leading-normal text-tinta">{instruccion}</p>
         )}
@@ -118,8 +150,15 @@ export function EncabezadoPregunta({
           </div>
         )}
         <h2 className="mb-2 text-[22px] font-extrabold text-white">{titulo}</h2>
+        {subseccion && (
+          <p className="mx-auto mb-2 w-fit rounded-full bg-white/20 px-3 py-0.5 text-[13px] font-bold text-white">
+            {subseccion}
+          </p>
+        )}
         {esMultiple && <p className="text-[15px] leading-normal text-white/90">{instruccion}</p>}
       </div>
+
+      {material}
 
       {/* xs.instr */}
       <p className="mb-4 text-[15px] font-bold text-tinta">

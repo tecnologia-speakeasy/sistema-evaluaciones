@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { staffParaPagina } from "@/lib/auth/guards";
 import { candidatasParaClonar, obtenerEvaluacion } from "@/lib/datos/evaluaciones";
+import { listarMateriales } from "@/lib/datos/materiales";
 import { listarPreguntas } from "@/lib/datos/preguntas";
 import { abiertasActivas } from "@/lib/preguntas/abiertas";
 import { pesosPorPregunta } from "@/lib/preguntas/pesos";
@@ -33,9 +34,10 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const id = idUrlSchema.safeParse((await params).id);
   if (!id.success) notFound();
 
-  const [evaluacion, preguntas] = await Promise.all([
+  const [evaluacion, preguntas, materiales] = await Promise.all([
     obtenerEvaluacion(id.data),
     listarPreguntas(id.data),
+    listarMateriales(id.data),
   ]);
   if (!evaluacion) notFound();
   // Clonar solo se ofrece si no tiene ninguna pregunta (lo exige clonar_preguntas).
@@ -99,9 +101,11 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <EditorPreguntas
         evaluacionId={evaluacion.id}
         preguntas={preguntas}
+        materiales={materiales}
         candidatasClonar={candidatas}
         abiertasActivas={abiertasActivas()}
         pesosPorPregunta={pesosPorPregunta()}
+        subidaAudios={!!process.env.BLOB_READ_WRITE_TOKEN}
       />
     </>
   );

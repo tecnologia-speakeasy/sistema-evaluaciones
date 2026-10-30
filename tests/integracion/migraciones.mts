@@ -1,4 +1,5 @@
-// db/004_ia.sql, db/005_admin.sql, db/006_sin_manychat.sql, db/007_bienvenida.sql y db/008_final.sql
+// db/004_ia.sql, db/005_admin.sql, db/006_sin_manychat.sql, db/007_bienvenida.sql, db/008_final.sql, db/009_materiales.sql
+// y db/010_subsecciones.sql
 // sobre una base "de producción" con 001 + 002 + 003 e intentos de la Fase 4. Usa una base aparte (migra004) del Postgres
 // temporal y la borra al final. Se corre con `npm run test:integracion`.
 import assert from "node:assert/strict";
@@ -258,6 +259,109 @@ try {
     const [g] = await q<{ n: number }>("SELECT count(*)::int AS n FROM evaluaciones WHERE tipo = 'final'");
     const [gens] = await q<{ n: number }>("SELECT count(*)::int AS n FROM generaciones");
     assert.equal(g.n, gens.n);
+  });
+
+  // 009 sobre la misma base: las preguntas de antes quedan sin material; la vista
+  // pública y clonar_preguntas siguen funcionando. Primero, preguntas "de producción".
+  await q(
+    `INSERT INTO preguntas (evaluacion_id, orden, tipo, categoria, enunciado, opciones, respuestas_aceptadas)
+     VALUES ($1, 1, 'multiple_choice', 'grammar', 'She ___ happy.', '["is","are"]', '["is"]'),
+            ($1, 2, 'translation', 'writing', 'Hola', NULL, '["Hello"]')`,
+    [ev.id],
+  );
+  const preguntasAntes = await q("SELECT id, evaluacion_id, orden, enunciado FROM preguntas ORDER BY id");
+  await q(sqlDe("009_materiales.sql"));
+  await q("SET search_path TO evaluacion");
+
+  await caso("009: las preguntas de antes no cambian y quedan sin lectura ni audio", async () => {
+    assert.ok(preguntasAntes.length > 0);
+    assert.deepEqual(await q("SELECT id, evaluacion_id, orden, enunciado FROM preguntas ORDER BY id"), preguntasAntes);
+    const [r] = await q<{ n: number }>("SELECT count(*)::int AS n FROM preguntas WHERE material_id IS NOT NULL");
+    assert.equal(r.n, 0);
+    const vista = await q<{ material_id: number | null }>("SELECT material_id FROM v_preguntas_publicas LIMIT 1");
+    assert.deepEqual(vista, [{ material_id: null }]);
+  });
+  await caso("009: clonar_preguntas copia la lectura que usan sus preguntas y liga las copias", async () => {
+    const [origen] = await q<{ evaluacion_id: number; n: number }>(
+      `SELECT evaluacion_id, count(*)::int AS n FROM preguntas WHERE activa GROUP BY evaluacion_id ORDER BY evaluacion_id LIMIT 1`,
+    );
+    const [mat] = await q<{ id: number }>(
+      `INSERT INTO materiales (evaluacion_id, tipo, titulo, texto) VALUES ($1, 'lectura', 'Reading 1', 'Texto') RETURNING id`,
+      [origen.evaluacion_id],
+    );
+    await q(`UPDATE preguntas SET material_id = $1 WHERE id = (SELECT min(id) FROM preguntas WHERE evaluacion_id = $2 AND activa)`, [
+      mat.id,
+      origen.evaluacion_id,
+    ]);
+    const [destino] = await q<{ id: number }>(
+      `SELECT e.id FROM evaluaciones e WHERE NOT EXISTS (SELECT 1 FROM preguntas p WHERE p.evaluacion_id = e.id) ORDER BY e.id LIMIT 1`,
+    );
+    const [c1] = await q<{ n: number }>("SELECT clonar_preguntas($1, $2) AS n", [origen.evaluacion_id, destino.id]);
+    assert.equal(c1.n, origen.n);
+    const copias = await q<{ id: number; titulo: string; ligadas: number }>(
+      `SELECT m.id, m.titulo, (SELECT count(*)::int FROM preguntas p WHERE p.material_id = m.id) AS ligadas
+         FROM materiales m WHERE m.evaluacion_id = $1`,
+      [destino.id],
+    );
+    assert.equal(copias.length, 1);
+    assert.notEqual(copias[0].id, mat.id);
+    assert.deepEqual([copias[0].titulo, copias[0].ligadas], ["Reading 1", 1]);
+  });
+  await caso("009: el trigger no deja ligar una pregunta a un material de otra evaluación", async () => {
+    const [m] = await q<{ id: number; evaluacion_id: number }>("SELECT id, evaluacion_id FROM materiales ORDER BY id LIMIT 1");
+    await assert.rejects(
+      q(`UPDATE preguntas SET material_id = $1 WHERE id = (SELECT min(id) FROM preguntas WHERE evaluacion_id <> $2)`, [
+        m.id,
+        m.evaluacion_id,
+      ]),
+      /no es de esta evaluación/,
+    );
+  });
+  await caso("009 es atómica: correrla otra vez falla sin dejar nada a medias", async () => {
+    const [antes] = await q<{ n: number }>("SELECT count(*)::int AS n FROM materiales");
+    await assert.rejects(q(sqlDe("009_materiales.sql")), /already exists/);
+    await q("ROLLBACK").catch(() => {});
+    await q("SET search_path TO evaluacion");
+    const [despues] = await q<{ n: number }>("SELECT count(*)::int AS n FROM materiales");
+    assert.equal(despues.n, antes.n);
+  });
+
+  // 010 sobre la misma base: las preguntas de antes quedan sin subsección.
+  const seccionesAntes = await q("SELECT id, seccion, material_id FROM preguntas ORDER BY id");
+  await q(sqlDe("010_subsecciones.sql"));
+  await q("SET search_path TO evaluacion");
+
+  await caso("010: las preguntas de antes no cambian y quedan sin subsección", async () => {
+    assert.deepEqual(await q("SELECT id, seccion, material_id FROM preguntas ORDER BY id"), seccionesAntes);
+    const [r] = await q<{ n: number }>("SELECT count(*)::int AS n FROM preguntas WHERE subseccion IS NOT NULL");
+    assert.equal(r.n, 0);
+    const vista = await q("SELECT subseccion FROM v_preguntas_publicas LIMIT 1");
+    assert.deepEqual(vista, [{ subseccion: null }]);
+  });
+  await caso("010: subsección solo con sección y no en blanco (CHECK); clonar la copia junto con la lectura", async () => {
+    const [p] = await q<{ id: number; evaluacion_id: number }>(
+      "SELECT id, evaluacion_id FROM preguntas WHERE material_id IS NOT NULL ORDER BY id LIMIT 1",
+    );
+    await assert.rejects(q("UPDATE preguntas SET subseccion = 'Section A' WHERE id = $1", [p.id]), /preguntas_subseccion_check/);
+    await q("UPDATE preguntas SET seccion = 'Part 1', subseccion = 'Section A' WHERE id = $1", [p.id]);
+    await assert.rejects(q("UPDATE preguntas SET subseccion = '  ' WHERE id = $1", [p.id]), /preguntas_subseccion_check/);
+    const [destino] = await q<{ id: number }>(
+      `SELECT e.id FROM evaluaciones e WHERE NOT EXISTS (SELECT 1 FROM preguntas p WHERE p.evaluacion_id = e.id) ORDER BY e.id LIMIT 1`,
+    );
+    await q("SELECT clonar_preguntas($1, $2)", [p.evaluacion_id, destino.id]);
+    const copia = await q(
+      `SELECT p.seccion, p.subseccion, m.titulo, m.evaluacion_id = p.evaluacion_id AS material_propio
+         FROM preguntas p LEFT JOIN materiales m ON m.id = p.material_id
+        WHERE p.evaluacion_id = $1 AND p.subseccion IS NOT NULL`,
+      [destino.id],
+    );
+    assert.deepEqual(copia, [{ seccion: "Part 1", subseccion: "Section A", titulo: "Reading 1", material_propio: true }]);
+  });
+  await caso("010 se puede correr otra vez sin cambiar nada", async () => {
+    const antes = await q("SELECT id, seccion, subseccion, material_id FROM preguntas ORDER BY id");
+    await q(sqlDe("010_subsecciones.sql"));
+    await q("SET search_path TO evaluacion");
+    assert.deepEqual(await q("SELECT id, seccion, subseccion, material_id FROM preguntas ORDER BY id"), antes);
   });
 } finally {
   await c.end();

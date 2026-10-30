@@ -72,6 +72,11 @@ const MENSAJES_TRIGGER: {
     mensaje: () =>
       "Esta evaluación ya tiene preguntas (también cuentan las desactivadas). Solo se puede clonar en una evaluación vacía.",
   },
+  {
+    patron: /^Material: la lectura o el audio elegido no es de esta evaluación/,
+    campo: "material_id",
+    mensaje: () => "Esa lectura o audio no es de esta evaluación.",
+  },
 ];
 
 // Violaciones de UNIQUE (23505), CHECK (23514) y FK (23503) por nombre.
@@ -120,6 +125,22 @@ const MENSAJES_CONSTRAINT: Record<string, ErrorTraducido> = {
   },
   respuestas_pregunta_id_fkey: {
     mensaje: "Esta pregunta ya tiene respuestas: desactívala en vez de borrarla.",
+  },
+  // Lecturas y audios (db/009).
+  materiales_contenido_check: {
+    mensaje: "La lectura necesita su texto y el audio un enlace que empiece por https://.",
+  },
+  materiales_titulo_check: {
+    campo: "titulo",
+    mensaje: "Escribe el título.",
+  },
+  preguntas_material_id_fkey: {
+    campo: "material_id",
+    mensaje: "Esa lectura o audio ya no existe. Recarga la página.",
+  },
+  preguntas_subseccion_check: {
+    campo: "subseccion",
+    mensaje: "La subsección va dentro de una sección: elige primero la sección.",
   },
 };
 

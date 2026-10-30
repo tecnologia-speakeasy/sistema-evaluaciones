@@ -34,6 +34,7 @@ async function Contenido({ params }: { params: Promise<{ slug: string }> }) {
       key={clave}
       evaluacion={datos.evaluacion}
       preguntas={datos.preguntas}
+      materiales={datos.materiales}
       enCurso={datos.enCurso}
       puedeEmpezar={puedePresentar(datos.evaluacion)}
       nombre={estudiante.nombre}

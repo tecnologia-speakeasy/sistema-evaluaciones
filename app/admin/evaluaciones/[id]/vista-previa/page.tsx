@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { staffParaPagina } from "@/lib/auth/guards";
 import { obtenerEvaluacion } from "@/lib/datos/evaluaciones";
+import { materialesDe } from "@/lib/datos/materiales";
 import { listarPublicas } from "@/lib/datos/preguntas";
 import { idUrlSchema } from "@/lib/validacion";
 import { Cargando } from "@/app/admin/components/Cargando";
@@ -35,6 +36,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   return (
     <VistaPrevia
       preguntas={preguntas}
+      materiales={await materialesDe(preguntas)}
       duracionMin={evaluacion.duracion_min}
       volverA={`/admin/evaluaciones/${evaluacion.id}`}
     />

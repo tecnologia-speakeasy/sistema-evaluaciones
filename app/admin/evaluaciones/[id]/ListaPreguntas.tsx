@@ -32,6 +32,7 @@ import { Dialogo } from "@/app/components/ui/Dialogo";
 import { Insignia } from "@/app/components/ui/InsigniaEstado";
 import { Menu, type ItemMenu } from "@/app/components/ui/Menu";
 import { Tarjeta } from "@/app/components/ui/Tarjeta";
+import { ETIQUETA_MATERIAL, type MaterialStaff } from "@/lib/preguntas/materiales";
 import { ETIQUETA_CATEGORIA, ETIQUETA_TIPO, type PreguntaStaff } from "@/lib/preguntas/tipos";
 
 // Lista ordenable de preguntas activas + lista de desactivadas.
@@ -49,6 +50,7 @@ export default function ListaPreguntas({
   desactivadas,
   abiertasActivas,
   pesosPorPregunta,
+  materiales,
   onEditar,
 }: {
   evaluacionId: number;
@@ -57,9 +59,14 @@ export default function ListaPreguntas({
   abiertasActivas: boolean;
   /** Apagado: todas valen lo mismo, no se muestra el puntaje de cada una. */
   pesosPorPregunta: boolean;
+  /** Para mostrar a qué lectura o audio va ligada cada una. */
+  materiales: MaterialStaff[];
   onEditar: (p: PreguntaStaff) => void;
 }) {
   const [orden, setOrden] = useState(activas);
+  // El orden es local (se arrastra); el contenido, el último del servidor: así una
+  // pregunta recién editada se ve (y se vuelve a editar) con sus datos nuevos.
+  const vigentes = new Map(activas.map((p) => [p.id, p]));
   const [error, setError] = useState<string | null>(null);
   const [confirmarBorrar, setConfirmarBorrar] = useState<PreguntaStaff | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -98,9 +105,14 @@ export default function ListaPreguntas({
 
   // Abiertas apagadas: las que ya existen no las ve el estudiante ni se duplican.
   const oculta = (p: PreguntaStaff) => p.tipo === "open" && !abiertasActivas;
+  const material = (p: PreguntaStaff) => {
+    const m = p.material_id ? materiales.find((x) => x.id === p.material_id) : undefined;
+    return m ? `${ETIQUETA_MATERIAL[m.tipo]}: ${m.titulo}` : null;
+  };
   const acciones = (p: PreguntaStaff) => ({
     oculta: oculta(p),
     conPuntaje: pesosPorPregunta,
+    material: material(p),
     editar: () => onEditar(p),
     duplicar: () => ejecutar(() => duplicarPreguntaAction(p.id)),
     desactivar: () => ejecutar(() => cambiarActivaAction(p.id, false)),
@@ -125,7 +137,7 @@ export default function ListaPreguntas({
       >
         <SortableContext items={orden.map((p) => p.id)} strategy={verticalListSortingStrategy}>
           <ol className="flex flex-col gap-3">
-            {orden.map((p, i) => (
+            {orden.map((p) => vigentes.get(p.id) ?? p).map((p, i) => (
               <FilaOrdenable key={p.id} pregunta={p} posicion={i + 1} acciones={acciones(p)} />
             ))}
           </ol>
@@ -185,6 +197,8 @@ type Acciones = {
   oculta: boolean;
   /** PESOS_POR_PREGUNTA: mostrar su puntaje. */
   conPuntaje: boolean;
+  /** "Lectura: Reading 1…" si va ligada a una lectura o un audio. */
+  material: string | null;
   editar: () => void;
   duplicar: () => void;
   desactivar: () => void;
@@ -287,13 +301,22 @@ function Fila({
           <Insignia tono="lavanda">{ETIQUETA_TIPO[p.tipo]}</Insignia>
           <Insignia tono="gris">{ETIQUETA_CATEGORIA[p.categoria]}</Insignia>
           {acciones.conPuntaje && <Insignia tono="gris">{p.puntaje} pts</Insignia>}
+          {acciones.material && (
+            <Insignia tono="violeta" className="max-w-[260px] truncate">
+              {acciones.material}
+            </Insignia>
+          )}
           {conRespuestas && (
             <Insignia tono="rosa">
               {p.respuestas} {p.respuestas === 1 ? "respuesta" : "respuestas"}
             </Insignia>
           )}
           {acciones.oculta && <Insignia tono="rojo">No la ven los estudiantes</Insignia>}
-          {p.seccion && <span className="text-[13px] font-semibold text-gris">{p.seccion}</span>}
+          {p.seccion && (
+            <span className="text-[13px] font-semibold text-gris">
+              {p.subseccion ? `${p.seccion} · ${p.subseccion}` : p.seccion}
+            </span>
+          )}
         </div>
         <p className="line-clamp-2 text-[15px] leading-snug font-semibold text-tinta">
           {p.enunciado}

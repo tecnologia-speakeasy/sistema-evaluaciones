@@ -1,5 +1,7 @@
 import { Fragment } from "react";
+import type { Material } from "@/lib/preguntas/materiales";
 import { contarEspacios, partirEnunciado, type TipoPregunta } from "@/lib/preguntas/tipos";
+import { MaterialEstudiante } from "./MaterialEstudiante";
 import { EncabezadoPregunta } from "./PreguntaEstudiante";
 
 // Una pregunta ya respondida, en la MISMA pantalla del examen pero de solo
@@ -10,6 +12,7 @@ import { EncabezadoPregunta } from "./PreguntaEstudiante";
 export type PreguntaRevisada = {
   id: number;
   seccion: string | null;
+  subseccion: string | null;
   tipo: TipoPregunta;
   enunciado: string;
   pista: string | null;
@@ -44,11 +47,25 @@ function LineaCorrecta({ correcta }: { correcta: string | string[] | null }) {
   );
 }
 
-export function PreguntaRevision({ pregunta: p, numero }: { pregunta: PreguntaRevisada; numero: number }) {
+export function PreguntaRevision({
+  pregunta: p,
+  numero,
+  material,
+}: {
+  pregunta: PreguntaRevisada;
+  numero: number;
+  /** Lectura (plegada) o audio de la pregunta, si tiene. */
+  material?: Material | null;
+}) {
   const tono = tonoDe(p);
   return (
     <div>
-      <EncabezadoPregunta pregunta={p} numero={numero} />
+      <EncabezadoPregunta
+        pregunta={p}
+        numero={numero}
+        tipoMaterial={material?.tipo}
+        material={material ? <MaterialEstudiante key={material.id} material={material} plegable /> : null}
+      />
       {p.tipo === "multiple_choice" ? (
         <Opciones p={p} />
       ) : p.tipo === "fill_blank" ? (

@@ -8,6 +8,7 @@ import {
 import { Aviso } from "@/app/components/ui/Aviso";
 import { Boton, BotonEnlace } from "@/app/components/ui/Boton";
 import { Encabezado } from "@/app/components/ui/Encabezado";
+import type { Material } from "@/lib/preguntas/materiales";
 import { posicionesPorSeccion, type PreguntaPublica } from "@/lib/preguntas/tipos";
 
 // Pantalla del examen de ../evaluacion-a2 (xs.page, xs.topbar, xs.progressRow,
@@ -24,10 +25,13 @@ function duracionTexto(min: number | null) {
 
 export default function VistaPrevia({
   preguntas,
+  materiales,
   duracionMin,
   volverA,
 }: {
   preguntas: PreguntaPublica[];
+  /** Lecturas y audios de las preguntas (db/009). */
+  materiales: Material[];
   duracionMin: number | null;
   volverA: string;
 }) {
@@ -90,12 +94,13 @@ export default function VistaPrevia({
             </span>
           </div>
 
+          {/* Sin key por pregunta, como en el examen: el audio sigue entre las de la misma grabación. */}
           <PreguntaEstudiante
-            key={p.id}
             pregunta={p}
             numero={pos.numero}
             respuesta={respuestas[p.id] ?? null}
             onCambio={(r) => setRespuestas((prev) => ({ ...prev, [p.id]: r }))}
+            material={p.material_id ? materiales.find((m) => m.id === p.material_id) : null}
           />
 
           {/* xs.navRow */}

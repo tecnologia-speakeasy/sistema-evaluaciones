@@ -36,6 +36,10 @@ export type PreguntaPublica = {
   opciones: string[] | null;
   /** fill_blank: cuántos campos mostrar. */
   espacios: number | null;
+  /** Lectura o audio que va encima (lib/preguntas/materiales.ts), o null. */
+  material_id: number | null;
+  /** Rótulo dentro de la sección («Section A»), o null (db/010). */
+  subseccion: string | null;
 };
 
 // Pregunta completa, solo para el staff.
@@ -54,6 +58,8 @@ export type PreguntaStaff = {
   activa: boolean;
   /** Cuántas respuestas de estudiantes tiene (si > 0, solo se pueden agregar variantes). */
   respuestas: number;
+  material_id: number | null;
+  subseccion: string | null;
 };
 
 // Mismo patrón que el trigger validar_pregunta: 3 o más guiones bajos = un espacio.
@@ -69,6 +75,8 @@ export function partirEnunciado(enunciado: string): string[] {
 
 // Como a2 con sus "Parts": las preguntas consecutivas con la misma sección forman
 // un bloque; la numeración y el contador "n/total" reinician en cada bloque.
+// La subsección no corta el bloque: en el Placement Test la numeración sigue de
+// la Section A a la B.
 export type PosicionEnSeccion = {
   /** Número dentro de la sección, desde 1. */
   numero: number;

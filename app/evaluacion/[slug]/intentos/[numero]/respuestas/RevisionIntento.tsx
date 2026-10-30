@@ -7,6 +7,7 @@ import { PasosSeccion } from "@/app/components/examen/PasosSeccion";
 import { PreguntaRevision, type PreguntaRevisada } from "@/app/components/preguntas/PreguntaRevision";
 import { BotonEnlace } from "@/app/components/ui/Boton";
 import { Encabezado } from "@/app/components/ui/Encabezado";
+import type { Material } from "@/lib/preguntas/materiales";
 import { posicionesPorSeccion } from "@/lib/preguntas/tipos";
 
 // Revisión de un intento como en ../evaluacion-a2: la MISMA pantalla del examen
@@ -15,6 +16,7 @@ import { posicionesPorSeccion } from "@/lib/preguntas/tipos";
 // evaluación" y "Cerrar". Se puede ir a cualquier pregunta.
 export default function RevisionIntento({
   preguntas,
+  materiales,
   nombre,
   generacion,
   titulo,
@@ -23,7 +25,9 @@ export default function RevisionIntento({
   repetir,
   avisoCorrectas,
 }: {
-  preguntas: PreguntaRevisada[];
+  preguntas: (PreguntaRevisada & { material_id: number | null })[];
+  /** Lecturas y audios de esas preguntas. */
+  materiales: Material[];
   nombre: string;
   generacion: string;
   titulo: string;
@@ -36,6 +40,7 @@ export default function RevisionIntento({
 }) {
   const [indice, setIndice] = useState(0);
   const posiciones = useMemo(() => posicionesPorSeccion(preguntas), [preguntas]);
+  const materialPorId = useMemo(() => new Map(materiales.map((m) => [m.id, m])), [materiales]);
   const total = preguntas.length;
   const pregunta = preguntas[indice];
   const posicion = posiciones[indice];
@@ -79,7 +84,12 @@ export default function RevisionIntento({
                   {avisoCorrectas}
                 </p>
               )}
-              <PreguntaRevision key={pregunta.id} pregunta={pregunta} numero={posicion.numero} />
+              <PreguntaRevision
+                key={pregunta.id}
+                pregunta={pregunta}
+                numero={posicion.numero}
+                material={pregunta.material_id ? materialPorId.get(pregunta.material_id) : null}
+              />
 
               <div className="mt-9 flex justify-between gap-3">
                 <button

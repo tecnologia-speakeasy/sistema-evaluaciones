@@ -104,9 +104,9 @@ describe("estado del formulario", () => {
     const p: PreguntaStaff = {
       id: 1, orden: 1, seccion: null, tipo: "multiple_choice", categoria: "grammar",
       enunciado: "x", pista: null, opciones: ["a", "b", "c"], respuestas_aceptadas: ["c", "a"],
-      rubrica: null, puntaje: 5, activa: true, respuestas: 0,
+      rubrica: null, puntaje: 5, activa: true, respuestas: 0, material_id: 7, subseccion: null,
     };
-    expect(estadoInicial(p)).toMatchObject({ correctas: [0, 2], puntaje: "5" });
+    expect(estadoInicial(p)).toMatchObject({ correctas: [0, 2], puntaje: "5", material_id: 7 });
   });
 
   it("vista previa: sin respuestas, con espacios para completar", () => {
@@ -163,5 +163,40 @@ describe("posicionesPorSeccion (numeración por Part, como a2)", () => {
   });
   it("lista vacía", () => {
     expect(posicionesPorSeccion([])).toEqual([]);
+  });
+  it("la subsección no corta la numeración (Section A → B sigue contando)", () => {
+    const preguntas = [
+      { seccion: "Part 1", subseccion: "Section A" },
+      { seccion: "Part 1", subseccion: "Section B" },
+      { seccion: "Part 2", subseccion: null },
+    ];
+    expect(posicionesPorSeccion(preguntas).map((p) => `${p.numero}/${p.largo}`)).toEqual(["1/2", "2/2", "1/1"]);
+  });
+});
+
+describe("subsección (Part 1 → Section A, db/010)", () => {
+  const mc = { tipo: "multiple_choice" as const, ...comunes, enunciado: "x", opciones: ["a", "b"], correctas: [0] };
+
+  it("es opcional: sin ella o en blanco se guarda NULL; se recorta", () => {
+    expect(aFila(entradaPreguntaSchema.parse({ ...mc, seccion: "Part 1" })).subseccion).toBeNull();
+    expect(aFila(entradaPreguntaSchema.parse({ ...mc, seccion: "Part 1", subseccion: "  " })).subseccion).toBeNull();
+    expect(aFila(entradaPreguntaSchema.parse({ ...mc, seccion: "Part 1", subseccion: " Section A " })).subseccion).toBe(
+      "Section A",
+    );
+  });
+
+  it("exige sección, y el error va al campo subsección", () => {
+    const r = entradaPreguntaSchema.safeParse({ ...mc, subseccion: "Section A" });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].path).toEqual(["subseccion"]);
+  });
+
+  it("formulario: la nueva sugiere la subsección (solo con sección) y la vista previa la muestra", () => {
+    const e = estadoInicial(null, "Part 1", "Section B");
+    expect(e).toMatchObject({ seccion: "Part 1", subseccion: "Section B" });
+    expect(estadoInicial(null, "", "Section B").subseccion).toBe("");
+    expect(entradaDesdeEstado(e).subseccion).toBe("Section B");
+    expect(vistaPreviaDesdeEstado(e).subseccion).toBe("Section B");
+    expect(vistaPreviaDesdeEstado({ ...e, seccion: " " }).subseccion).toBeNull();
   });
 });

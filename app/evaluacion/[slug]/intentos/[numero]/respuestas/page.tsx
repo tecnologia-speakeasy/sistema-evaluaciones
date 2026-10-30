@@ -48,6 +48,7 @@ async function Contenido({ params }: { params: Promise<{ slug: string; numero: s
       preguntas={d.preguntas.map((p) => ({
         id: p.id,
         seccion: p.seccion,
+        subseccion: p.subseccion,
         tipo: p.tipo,
         enunciado: p.enunciado,
         pista: p.pista,
@@ -57,7 +58,9 @@ async function Contenido({ params }: { params: Promise<{ slug: string; numero: s
         correcta: p.correcta,
         nota: p.nota,
         comentario: p.comentario,
+        material_id: p.material_id,
       }))}
+      materiales={d.materiales}
       nombre={estudiante.nombre}
       generacion={estudiante.generacion_nombre}
       titulo={d.evaluacion.titulo}
