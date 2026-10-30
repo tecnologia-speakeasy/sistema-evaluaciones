@@ -8,6 +8,7 @@ import { query } from "@/lib/db";
 import * as I from "@/lib/datos/intentos";
 import * as Q from "@/lib/datos/preguntas";
 import * as P from "@/lib/ia/procesar";
+import { NIVELES_BLOQUE, POR_NIVEL, ubicarPregunta } from "@/lib/placement/diagnostico";
 
 const { caso, fin } = casos();
 const sql = async <T extends object = Record<string, unknown>>(t: string, p: unknown[] = []) => (await query<T>(t, p)).rows;
@@ -367,6 +368,101 @@ await caso("no se crean abiertas: crear, cambiar el tipo y duplicar se rechazan;
   assert.ok(await Q.crearPregunta(m2.id, { ...abierta, tipo: "translation", rubrica: null, respuestas_aceptadas: ["I was tired."] }));
   // Y encendidas, las abiertas vuelven a crearse.
   assert.ok(await conAbiertas(() => Q.crearPregunta(destino.id, abierta)));
+});
+
+// ---------------------------------------------------------------------------
+// Bienvenida con la forma del English Placement Test (desde la G2): el nivel lo
+// calcula lib/placement/ y la IA solo escribe los textos.
+// ---------------------------------------------------------------------------
+
+const [bienvenida] = await sql<{ id: number }>(
+  `SELECT id FROM evaluaciones WHERE generacion_id = $1 AND tipo = 'bienvenida'`,
+  [gen.id],
+);
+const materialPlacement = (tipo: "lectura" | "audio", titulo: string) =>
+  sql<{ id: number }>(
+    `INSERT INTO materiales (evaluacion_id, tipo, titulo, texto, audio_url) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [bienvenida.id, tipo, titulo, tipo === "lectura" ? "Tom wakes up at seven." : null, tipo === "audio" ? "https://audios.test/r.mp3" : null],
+  ).then((r) => r[0].id);
+const materialesPlacement = {
+  reading: await Promise.all(NIVELES_BLOQUE.map((_, k) => materialPlacement("lectura", `Reading ${k + 1}`))),
+  listening: await Promise.all(NIVELES_BLOQUE.map((_, k) => materialPlacement("audio", `Recording ${k + 1}`))),
+};
+const PARTE = { grammar: "PART 1 – GRAMMAR & VOCABULARY", reading: "PART 2 – READING", listening: "PART 3 – LISTENING" };
+const preguntaPlacement = async (n: number) => {
+  const { nivel, habilidad } = ubicarPregunta(n)!;
+  const k = NIVELES_BLOQUE.indexOf(nivel);
+  const [p] = await sql<{ id: number }>(
+    `INSERT INTO preguntas (evaluacion_id, orden, seccion, subseccion, tipo, categoria, enunciado, opciones,
+                            respuestas_aceptadas, material_id)
+     VALUES ($1, $2, $3, $4, 'multiple_choice', 'grammar', $5, '["a","b"]', '["a"]', $6) RETURNING id`,
+    [
+      bienvenida.id,
+      n,
+      PARTE[habilidad],
+      habilidad === "grammar" ? `Section ${"ABCD"[k]}` : null,
+      `Question ${n}`,
+      habilidad === "grammar" ? null : materialesPlacement[habilidad][k],
+    ],
+  );
+  return p.id;
+};
+const qPlacement: number[] = [];
+for (let n = 1; n <= 87; n++) qPlacement.push(await preguntaPlacement(n));
+await sql(`UPDATE evaluaciones SET publicada = TRUE WHERE id = $1`, [bienvenida.id]);
+
+// Por nivel, cuántas acierta en cada habilidad (las primeras de cada grupo):
+// A1 completo, A2 17/22 (aprueba) y B1 15/22 (le falta 1) → A2, cerca de B1.
+const aciertosPlacement = {
+  A1: { grammar: 15, reading: 4, listening: 3 },
+  A2: { grammar: 12, reading: 3, listening: 2 },
+  B1: { grammar: 10, reading: 3, listening: 2 },
+  B2: { grammar: 0, reading: 0, listening: 0 },
+};
+const respuestasPlacement = () =>
+  Object.fromEntries(
+    qPlacement.map((id, i) => {
+      const { nivel, habilidad } = ubicarPregunta(i + 1)!;
+      const desde = { grammar: 1, reading: 61, listening: 77 }[habilidad];
+      return [id, (i + 1 - desde) % POR_NIVEL[habilidad] < aciertosPlacement[nivel][habilidad] ? "a" : "b"];
+    }),
+  );
+
+await caso("bienvenida incompleta (87 de 88): sin nivel, el feedback general", async () => {
+  await openai.reiniciar();
+  const pia = await estudiante(`pia-${sufijo}@ia.test`);
+  const r = await presentar(pia, bienvenida.id, respuestasPlacement());
+  assert.equal(await P.procesarIntento(r.id), "listo");
+  assert.deepEqual((await openai.llamadas()).map((l) => l.tipo), ["feedback"]);
+  assert.doesNotMatch(String((await intento(r.id)).feedback), /Nivel estimado/);
+});
+
+await caso("bienvenida con la forma del Placement Test: nivel calculado y los textos de la IA, en pantalla y correo", async () => {
+  qPlacement.push(await preguntaPlacement(88));
+  await openai.reiniciar();
+  const raul = await estudiante(`raul-${sufijo}@ia.test`);
+  const r = await presentar(raul, bienvenida.id, respuestasPlacement());
+  assert.equal(await P.procesarIntento(r.id), "listo");
+  const llamadas = await openai.llamadas();
+  assert.deepEqual(llamadas.map((l) => l.tipo), ["placement"], "una sola llamada a OpenAI");
+  const prompt = llamadas[0].datos.messages![1].content;
+  assert.match(prompt, /"nivel_estimado": "A2 – Elemental"/);
+  assert.match(prompt, /"16\. \(Grammar & Vocabulary\) Question 16 → a"/);
+  assert.match(prompt, /"64\. \(Reading\) \[Reading 1\] Question 64 → a"/);
+  assert.match(prompt, /"88\. \(Listening\) \[Recording 4\] Question 88 → b"/);
+
+  const i = await intento(r.id);
+  assert.equal(i.puntaje_total, 61, "54 de 88");
+  const f = String(i.feedback);
+  assert.match(f, /^Hola Ana, esta prueba nos ayuda a encontrar tu punto de partida\.\n\nTu resultado\nNivel estimado: A2 – Elemental\n/);
+  assert.match(f, /Puntuación general: 54 de 88 \(61 %\)/);
+  assert.match(f, /• B1 – Intermedio: 15\/22 \(68 %\), en desarrollo\. Grammar & Vocabulary 10\/15 · Reading 3\/4 · Listening 2\/3/);
+  assert.match(f, /Estás cerca de la transición a B1 – Intermedio: te faltó 1 respuesta correcta/);
+  assert.match(f, /Nivel de inicio recomendado: B1 – Intermedio\nAprovecha el material de estudio/);
+
+  const [correo] = correosPara(raul.email);
+  assert.equal(correo.subject, "Tu resultado de Evaluación de bienvenida · Speak Easy");
+  assert.match(correo.text, /Nivel estimado: A2 – Elemental/);
 });
 
 fin();

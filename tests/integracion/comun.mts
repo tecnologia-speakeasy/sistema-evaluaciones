@@ -44,7 +44,7 @@ export type Llamada = {
   ruta: string;
   auth: string | null;
   respuesta?: string;
-  tipo?: "abiertas" | "feedback";
+  tipo?: "abiertas" | "feedback" | "placement";
   modelo?: string;
   datos: {
     messages?: { role: string; content: string }[];

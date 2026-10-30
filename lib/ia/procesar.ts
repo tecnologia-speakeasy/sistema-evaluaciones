@@ -3,8 +3,12 @@ import { query, transaction, type Tx } from "@/lib/db";
 import { correoResultado } from "@/lib/email/correo-resultado";
 import { enviarCorreo, smtpConfigurado } from "@/lib/email/enviar";
 import { resumirIntento } from "@/lib/grading/calificar";
+import { diagnosticar } from "@/lib/placement/diagnostico";
+import { armarFeedbackPlacement, leerFeedbackPlacement, promptFeedbackPlacement } from "@/lib/placement/feedback";
 import { abiertasActivas } from "@/lib/preguntas/abiertas";
+import type { TipoMaterial } from "@/lib/preguntas/materiales";
 import type { TipoPregunta } from "@/lib/preguntas/tipos";
+import type { TipoEvaluacion } from "@/lib/tipos";
 import { llamarOpenAI } from "./openai";
 import {
   leerFeedback,
@@ -46,20 +50,25 @@ type Fila = {
   categoria: "grammar" | "writing";
   puntaje_pregunta: number;
   seccion: string | null;
+  subseccion: string | null;
   enunciado: string;
   pista: string | null;
   rubrica: string | null;
+  material: TipoMaterial | null;
+  material_titulo: string | null;
   respuesta: string | string[] | null;
   es_correcta: boolean | null;
   puntaje: number | null;
 };
+
+type IntentoTomado = { nombre: string; titulo: string; tipo: TipoEvaluacion; feedback: string | null };
 
 export async function procesarIntento(
   intentoId: number,
   { forzar = false }: { forzar?: boolean } = {},
 ): Promise<ResultadoProceso> {
   // Tomar el candado. Sin `forzar` (staff) no pasa del tope de fallos automáticos.
-  const { rows: tomado } = await query<{ nombre: string; titulo: string; feedback: string | null }>(
+  const { rows: tomado } = await query<IntentoTomado>(
     `UPDATE intentos i
         SET estado = 'calificando', procesando_hasta = now() + make_interval(mins => $2)
        FROM evaluaciones e
@@ -67,7 +76,7 @@ export async function procesarIntento(
         AND (i.estado IN ('pendiente', 'error') OR i.estado = 'calificando')
         AND (i.procesando_hasta IS NULL OR i.procesando_hasta < now())
         AND ($3 OR i.ia_intentos < $4)
-      RETURNING i.nombre, e.titulo, i.feedback`,
+      RETURNING i.nombre, e.titulo, e.tipo, i.feedback`,
     [intentoId, CANDADO_MIN, forzar, MAX_FALLOS_AUTOMATICOS],
   );
   const intento = tomado[0];
@@ -76,9 +85,11 @@ export async function procesarIntento(
   try {
     const { rows: filas } = await query<Fila>(
       `SELECT r.id AS respuesta_id, p.id AS pregunta_id, p.tipo, p.categoria,
-              p.puntaje::float8 AS puntaje_pregunta, p.seccion, p.enunciado, p.pista, p.rubrica,
+              p.puntaje::float8 AS puntaje_pregunta, p.seccion, p.subseccion, p.enunciado, p.pista, p.rubrica,
+              m.tipo AS material, m.titulo AS material_titulo,
               r.respuesta, r.es_correcta, r.puntaje::float8 AS puntaje
          FROM respuestas r JOIN preguntas p ON p.id = r.pregunta_id
+         LEFT JOIN materiales m ON m.id = p.material_id
         WHERE r.intento_id = $1
         ORDER BY p.orden`,
       [intentoId],
@@ -126,26 +137,9 @@ export async function procesarIntento(
     // cuenta: el intento queda con lo demás y la IA solo escribe el feedback.
     const cuentan = conAbiertas ? filas : filas.filter((f) => !(f.tipo === "open" && f.es_correcta === null));
 
-    // 2. Feedback general (como a2), saludando con el nombre que escribió.
+    // 2. Feedback (como a2), saludando con el nombre que escribió.
     const resumen = puntajes(cuentan);
-    const feedback =
-      intento.feedback ??
-      leerFeedback(
-        await llamarOpenAI(
-          promptFeedback(
-            intento.nombre,
-            intento.titulo,
-            resumirParaFeedback(
-              cuentan.map((f) => ({
-                ...f,
-                nota: f.tipo === "open" && f.puntaje !== null ? Math.round((f.puntaje / f.puntaje_pregunta) * 10) : null,
-              })),
-              resumen.puntaje_total,
-            ),
-          ),
-          { temperatura: 0.5 },
-        ),
-      );
+    const feedback = intento.feedback ?? (await escribirFeedback(intentoId, intento, cuentan, resumen.puntaje_total));
 
     await query(
       `UPDATE intentos
@@ -169,6 +163,45 @@ export async function procesarIntento(
 
   await notificarIntento(intentoId);
   return "listo";
+}
+
+// La bienvenida con la forma del English Placement Test (desde la G2) lleva el
+// nivel estimado: lo calcula lib/placement/ con las reglas de Speak Easy y la
+// IA solo lo comunica. Cualquier otra evaluación (o una bienvenida con otra
+// forma), el feedback general de a2.
+async function escribirFeedback(
+  intentoId: number,
+  intento: IntentoTomado,
+  filas: Fila[],
+  puntajeTotal: number | null,
+): Promise<string> {
+  if (intento.tipo === "bienvenida") {
+    const placement = diagnosticar(filas);
+    if (placement.ok) {
+      const d = placement.diagnostico;
+      const salida = await llamarOpenAI(promptFeedbackPlacement(intento.nombre, intento.titulo, d, filas), {
+        temperatura: 0.5,
+      });
+      return armarFeedbackPlacement(d, leerFeedbackPlacement(salida));
+    }
+    console.warn(`[ia] intento ${intentoId}: sin nivel del Placement Test, la bienvenida ${placement.motivo}`);
+  }
+  return leerFeedback(
+    await llamarOpenAI(
+      promptFeedback(
+        intento.nombre,
+        intento.titulo,
+        resumirParaFeedback(
+          filas.map((f) => ({
+            ...f,
+            nota: f.tipo === "open" && f.puntaje !== null ? Math.round((f.puntaje / f.puntaje_pregunta) * 10) : null,
+          })),
+          puntajeTotal,
+        ),
+      ),
+      { temperatura: 0.5 },
+    ),
+  );
 }
 
 function puntajes(filas: Fila[]) {

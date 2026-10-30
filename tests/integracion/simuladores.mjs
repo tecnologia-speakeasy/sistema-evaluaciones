@@ -54,7 +54,8 @@ function simuladorHttp(atender) {
 }
 
 // OpenAI: responde según el prompt. Abiertas: nota según el largo de la respuesta
-// (vacía = 0, ≥ 8 palabras = 8, si no 4). Feedback: saluda con el nombre.
+// (vacía = 0, ≥ 8 palabras = 8, si no 4). Feedback (general o del Placement
+// Test): saluda con el nombre.
 function atenderOpenAI(req, datos, json, llamada) {
   if (req.url !== "/v1/chat/completions") return json(404, { error: "ruta" });
   const usuario = datos.messages.find((m) => m.role === "user")?.content ?? "";
@@ -72,6 +73,15 @@ function atenderOpenAI(req, datos, json, llamada) {
           comentario: "Buen uso del presente simple; cuida la concordancia.",
         };
       }),
+    };
+  } else if (usuario.includes('{ "saludo": "<texto>"')) {
+    llamada.tipo = "placement";
+    const nombre = /primer nombre \(([^)]+)\)/.exec(usuario)?.[1] ?? "estudiante";
+    contenido = {
+      saludo: `Hola ${nombre}, esta prueba nos ayuda a encontrar tu punto de partida.`,
+      fortalezas: "Manejas bien el verbo to be y el presente simple.",
+      por_reforzar: "Te recomiendo practicar el pasado simple.",
+      recomendacion: "Aprovecha el material de estudio y el Club conversacional. Un abrazo",
     };
   } else {
     llamada.tipo = "feedback";

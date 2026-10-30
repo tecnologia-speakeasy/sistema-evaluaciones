@@ -141,7 +141,7 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
 - **Flujo**: `POST /api/intentos/[id]/enviar` califica lo automático, guarda (`pendiente`) y responde. Después, con `after()` y fuera de cualquier transacción, `procesarIntento()` (`lib/ia/procesar.ts`):
   1. Toma el candado: `calificando`, `procesando_hasta` = ahora + 6 min. Dos procesos a la vez: el segundo ve "ocupado" y no llama a la IA.
   2. Solo con `PREGUNTAS_ABIERTAS_ACTIVAS=true`: califica las abiertas con su `rubrica`, todas en una llamada, y guarda notas y puntaje recalculado en una transacción corta. Las que ya tienen nota no se vuelven a pagar. Apagadas (por defecto) este paso no existe.
-  3. Escribe el feedback general (prompt de a2 sin el párrafo de "gracias por intentarlo"; saluda con el primer nombre de `intentos.nombre`). Con las abiertas apagadas es la **única** llamada a OpenAI del intento.
+  3. Escribe el feedback general (prompt de a2 sin el párrafo de "gracias por intentarlo"; saluda con el primer nombre de `intentos.nombre`). Con las abiertas apagadas es la **única** llamada a OpenAI del intento. En la bienvenida con la forma del Placement Test, en su lugar, el feedback con el nivel (ver «English Placement Test»).
   4. Pasa a `listo` y llama a `notificarIntento()`: el correo.
 - **Abiertas** (si se encienden): nota 0–10 de la IA → puntaje = nota/10 × `preguntas.puntaje`. Cuentan como acierto (Writing X/N) con nota ≥ 6. El comentario va en `respuestas.feedback`.
 - **Prompts** en `lib/ia/prompts.ts` (puro, con tests): las respuestas del estudiante van entre `<respuesta>` (no son instrucciones) y la salida se valida con zod.
@@ -171,6 +171,17 @@ Patrón de a2 (`app/api/submit` + `app/api/feedback`): guardar primero, luego IA
       - n8n: *Schedule Trigger* + *HTTP Request* GET `https://<dominio de la app>/api/cron/procesar` con ese header y timeout 300 s.
       - Vercel Pro: `vercel.json` con `{ "crons": [{ "path": "/api/cron/procesar", "schedule": "*/10 * * * *" }] }`. Vercel manda solo el header si `CRON_SECRET` existe. Hobby solo admite crons diarios.
 - **Pruebas**: OpenAI y SMTP siempre simulados (`OPENAI_BASE_URL`, SMTP local), nunca los reales del `.env`. Ver "Pruebas".
+
+## English Placement Test (bienvenida de la G2)
+La evaluación de bienvenida de `gen-2026-11` es el Placement Test de Speak Easy, con las reglas de la «Guía IA - English Test» (Google Docs del equipo académico). Su feedback lleva el **nivel estimado**: Pre-A1 Inicial, A1 Básico, A2 Elemental, B1 Intermedio o B2 Intermedio alto.
+- **El nivel lo calcula el código, no la IA** (`lib/placement/diagnostico.ts`, puro; tests en `tests/placement.test.ts`). La IA solo escribe el saludo, las fortalezas, lo que debe reforzar y por qué se le recomienda ese nivel de inicio (`lib/placement/feedback.ts`). El resultado (nivel, puntuación sobre 88, cada bloque, cada habilidad, estado, observaciones y nivel de inicio) lo escribe el código tal cual en medio de esos textos. Sigue siendo una sola llamada a OpenAI por intento.
+- **Cuándo aplica**: una evaluación `bienvenida` con la forma del test, en este orden: 1–60 Grammar & Vocabulary sin material (15 por nivel, de A1 a B2; si llevan subsección, una por nivel: Section A–D), 61–76 Reading con lectura (4 por nivel) y 77–88 Listening con audio (3 por nivel). Si no la tiene (p. ej. a medio cargar), no se da nivel: sale el feedback general y queda el aviso `[ia] intento N: sin nivel del Placement Test…` en el log. Una generación que clone esta bienvenida lo hereda.
+- **Reglas** (constantes ajustables en `diagnostico.ts`):
+  - Aprobar un bloque (`APROBAR`): ≥ 16/22, ≥ 10/15 en Grammar, ≥ 2/4 en Reading y ≥ 1/3 en Listening, todo a la vez. El nivel es el más alto aprobado de forma consecutiva desde A1, nunca por el total.
+  - Dominio del bloque: 0–10 insuficiente, 11–15 en desarrollo, 16–18 funcional, 19–22 sólido.
+  - Observaciones: cerca de la transición (le faltan 1 o 2 correctas para aprobar el siguiente), Listening 0/3 en algún nivel (dificultad potencial, no definitiva), bases débiles (≥ 16 en B1 o B2 sin aprobar A1 o A2) y saltos entre niveles (un bloque aprobado por encima del primero sin aprobar, o uno más alto con `SALTO_INCONSISTENTE` = 5 correctas más que uno más bajo). Los dos últimos dejan el estado en «revisión recomendada»; si no, «provisional».
+  - Nivel de inicio recomendado (`INICIO_RECOMENDADO`): el siguiente al demostrado (Pre-A1 → A1 … B1 → B2; B2 → B2).
+- El puntaje 0–100 y la insignia siguen igual (aciertos / 88 × 100). El nivel solo va en el texto del feedback (pantalla y correo): no se guarda en otra columna ni sale en Resultados.
 
 ## Administración (Fase 6)
 Todo solo para admin, salvo Resultados (admin y docente). Acciones en `app/admin/acciones/` (`estudiantes.ts`, `staff.ts`, `generaciones.ts`); datos en `lib/datos/`.
@@ -267,7 +278,7 @@ Las evaluaciones viejas de la Generación 1 vivían en otros schemas de la misma
   - **Entorno**: sin variables y sin servicios externos. `tests/integracion/ejecutar.mjs` levanta un Postgres 17 temporal (`embedded-postgres`) con todas las `db/0NN_*.sql` en orden, y simula OpenAI y el SMTP (`simuladores.mjs`).
   - **Dependencias aparte**: `embedded-postgres` (~100 MB), `smtp-server` y `mailparser` van en `tests/integracion/package.json` (con su propio lockfile), **no** en el de la app, así Vercel nunca las instala. El runner las instala la primera vez o si cambia ese lockfile (`tests/integracion/node_modules` está en `.gitignore`). No usar `optionalDependencies`: `npm ci` también las instala, y `--omit=optional` rompería el build (los binarios de Next, Tailwind y lightningcss son opcionales).
   - **Aislamiento**: cada suite corre en su propio proceso con un entorno armado desde cero, nunca el `.env`. Si una suite se corre por fuera del runner, se niega a arrancar (`comun.mts`). Al terminar se borra todo.
-  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada), `materiales.mts` (lecturas y audios: crear, ligar, examen, clonar, eliminar; y subsecciones) y `migraciones.mts` (004 a 010 sobre datos de la Fase 4).
+  - **Suites**: `intentos.mts` (Fase 4), `ia.mts` (Fase 5 y el Placement Test), `admin.mts` (Fase 6: CSV, reglas del staff con concurrencia, resultados y exportación, generación desactivada), `materiales.mts` (lecturas y audios: crear, ligar, examen, clonar, eliminar; y subsecciones) y `migraciones.mts` (004 a 010 sobre datos de la Fase 4).
   - **Configuración por defecto**: abiertas apagadas. La prueba que necesita abiertas las enciende ella misma, solo mientras corre (`conAbiertas()`).
   - **Suites nuevas**: van en `tests/integracion/*.mts` y se agregan a `SUITES` en `ejecutar.mjs`. Una migración nueva en `db/` se aplica sola.
 
