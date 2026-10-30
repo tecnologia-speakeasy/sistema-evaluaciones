@@ -1,8 +1,12 @@
+import type { TipoMaterial } from "./materiales";
+
 // Tipos de pregunta compartidos por el servidor, el dashboard y la vista del estudiante.
 
 export const TIPOS_PREGUNTA = ["multiple_choice", "fill_blank", "translation", "open"] as const;
 export type TipoPregunta = (typeof TIPOS_PREGUNTA)[number];
-export type Categoria = "grammar" | "writing";
+// Reading y Listening desde la 011 (las lecturas y los audios del Placement Test).
+export const CATEGORIAS = ["grammar", "writing", "reading", "listening"] as const;
+export type Categoria = (typeof CATEGORIAS)[number];
 
 export const ETIQUETA_TIPO: Record<TipoPregunta, string> = {
   multiple_choice: "Selección múltiple",
@@ -14,7 +18,15 @@ export const ETIQUETA_TIPO: Record<TipoPregunta, string> = {
 export const ETIQUETA_CATEGORIA: Record<Categoria, string> = {
   grammar: "Grammar",
   writing: "Writing",
+  reading: "Reading",
+  listening: "Listening",
 };
+
+// Preguntas ya calificadas de un intento en cada categoría (grammar_total…), sobre
+// `respuestas r JOIN preguntas p`: la N de "Grammar X/N" (una abierta pendiente no cuenta).
+export const SQL_TOTALES_POR_CATEGORIA = CATEGORIAS.map(
+  (c) => `count(*) FILTER (WHERE p.categoria = '${c}' AND r.es_correcta IS NOT NULL)::int AS ${c}_total`,
+).join(", ");
 
 // Como en a2: selección múltiple cuenta para Grammar; lo que se escribe, para Writing.
 export const CATEGORIA_POR_DEFECTO: Record<TipoPregunta, Categoria> = {
@@ -23,6 +35,12 @@ export const CATEGORIA_POR_DEFECTO: Record<TipoPregunta, Categoria> = {
   translation: "writing",
   open: "writing",
 };
+
+// La que propone el editor: la de una lectura es Reading y la de un audio,
+// Listening; sin material, la del tipo. El staff la puede cambiar.
+export function categoriaSugerida(tipo: TipoPregunta, material: TipoMaterial | null): Categoria {
+  return material === "lectura" ? "reading" : material === "audio" ? "listening" : CATEGORIA_POR_DEFECTO[tipo];
+}
 
 // Lo ÚNICO que llega al navegador del estudiante: las columnas de v_preguntas_publicas.
 // Sin respuestas_aceptadas ni rubrica (regla de seguridad 1).

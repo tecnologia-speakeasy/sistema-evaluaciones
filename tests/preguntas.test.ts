@@ -9,7 +9,7 @@ import {
   vistaPreviaDesdeEstado,
   type EstadoFormulario,
 } from "../lib/preguntas/entrada";
-import { contarEspacios, posicionesPorSeccion, type PreguntaStaff } from "../lib/preguntas/tipos";
+import { categoriaSugerida, contarEspacios, posicionesPorSeccion, type PreguntaStaff } from "../lib/preguntas/tipos";
 import { entradaVariantesSchema, unirVariantes } from "../lib/preguntas/variantes";
 import { ErrorNegocio } from "../lib/errores";
 
@@ -198,5 +198,22 @@ describe("subsección (Part 1 → Section A, db/010)", () => {
     expect(entradaDesdeEstado(e).subseccion).toBe("Section B");
     expect(vistaPreviaDesdeEstado(e).subseccion).toBe("Section B");
     expect(vistaPreviaDesdeEstado({ ...e, seccion: " " }).subseccion).toBeNull();
+  });
+});
+
+describe("categoría (Grammar, Writing, Reading, Listening)", () => {
+  it("la de una lectura es Reading y la de un audio, Listening; sin material, la del tipo", () => {
+    expect(categoriaSugerida("multiple_choice", "lectura")).toBe("reading");
+    expect(categoriaSugerida("multiple_choice", "audio")).toBe("listening");
+    expect(categoriaSugerida("multiple_choice", null)).toBe("grammar");
+    expect(categoriaSugerida("translation", null)).toBe("writing");
+  });
+
+  it("el formulario acepta las cuatro y nada más", () => {
+    const base = { tipo: "multiple_choice", ...comunes, enunciado: "x", opciones: ["a", "b"], correctas: [0] };
+    for (const categoria of ["grammar", "writing", "reading", "listening"]) {
+      expect(entradaPreguntaSchema.safeParse({ ...base, categoria }).success, categoria).toBe(true);
+    }
+    expect(entradaPreguntaSchema.safeParse({ ...base, categoria: "speaking" }).success).toBe(false);
   });
 });

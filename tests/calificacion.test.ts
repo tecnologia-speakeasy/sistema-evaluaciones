@@ -6,6 +6,7 @@ import {
   type PreguntaParaCalificar,
 } from "../lib/grading/calificar";
 import { normalize } from "../lib/grading/normalize";
+import type { Categoria } from "../lib/preguntas/tipos";
 import { celebracionPorPuntaje } from "../lib/celebracion";
 import { formatearReloj, segundosRestantes, textoDuracion } from "../lib/intentos/reloj";
 
@@ -105,7 +106,7 @@ describe("calificarPregunta", () => {
 });
 
 describe("resumirIntento", () => {
-  const item = (categoria: "grammar" | "writing", puntaje: number, es_correcta: boolean | null) => ({
+  const item = (categoria: Categoria, puntaje: number, es_correcta: boolean | null) => ({
     pregunta: { categoria, puntaje },
     calificacion: { respuesta: "x", es_correcta, puntaje: es_correcta === null ? null : es_correcta ? puntaje : 0 },
   });
@@ -117,6 +118,8 @@ describe("resumirIntento", () => {
       puntaje_total: 67,
       grammar_score: 1,
       writing_score: 1,
+      reading_score: 0,
+      listening_score: 0,
     });
     // 10 preguntas: 10 puntos cada una.
     const diez = Array.from({ length: 10 }, (_, i) => item("grammar", i === 0 ? 20 : 10, i < 7));
@@ -138,6 +141,8 @@ describe("resumirIntento", () => {
       puntaje_total: 50,
       grammar_score: 1,
       writing_score: 1,
+      reading_score: 0,
+      listening_score: 0,
     });
     expect(resumirIntento([item("grammar", 1, true), item("grammar", 1, true), item("grammar", 1, false)], true).puntaje_total).toBe(67);
   });
@@ -149,8 +154,20 @@ describe("resumirIntento", () => {
         puntaje_total: null,
         grammar_score: 1,
         writing_score: 0,
+        reading_score: 0,
+        listening_score: 0,
       });
     }
+  });
+
+  it("Reading y Listening: aciertos aparte de Grammar; todas valen lo mismo en el puntaje", () => {
+    const r = resumirIntento([
+      item("grammar", 10, true),
+      item("reading", 10, true),
+      item("reading", 10, false),
+      item("listening", 10, true),
+    ]);
+    expect(r).toEqual({ pendiente: false, puntaje_total: 75, grammar_score: 1, writing_score: 0, reading_score: 1, listening_score: 1 });
   });
 
   it("sin preguntas: 0", () => {

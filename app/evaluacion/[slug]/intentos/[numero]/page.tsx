@@ -49,6 +49,8 @@ function Celebracion({ d }: { d: DetalleIntento }) {
   const filas = [
     ["Writing score", d.writing_score, d.writing_total],
     ["Grammar score", d.grammar_score, d.grammar_total],
+    ["Reading score", d.reading_score, d.reading_total],
+    ["Listening score", d.listening_score, d.listening_total],
   ] as const;
   const secundario =
     "flex-1 rounded-xl border-[1.5px] border-white/45 bg-white/12 px-3 py-[13px] text-[15px] font-semibold whitespace-nowrap text-white hover:bg-white/18";

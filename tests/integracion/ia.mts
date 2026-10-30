@@ -54,8 +54,8 @@ async function presentar(est: { id: number; nombre: string }, evId: number, resp
 const intento = async (id: number) =>
   (
     await sql<Record<string, unknown>>(
-      `SELECT estado, puntaje_total, grammar_score, writing_score, feedback, email_enviado,
-              ia_intentos, ia_error, envio_error, procesando_hasta, token FROM intentos WHERE id = $1`,
+      `SELECT estado, puntaje_total, grammar_score, writing_score, reading_score, listening_score, feedback,
+              email_enviado, ia_intentos, ia_error, envio_error, procesando_hasta, token FROM intentos WHERE id = $1`,
       [id],
     )
   )[0];
@@ -395,12 +395,13 @@ const preguntaPlacement = async (n: number) => {
   const [p] = await sql<{ id: number }>(
     `INSERT INTO preguntas (evaluacion_id, orden, seccion, subseccion, tipo, categoria, enunciado, opciones,
                             respuestas_aceptadas, material_id)
-     VALUES ($1, $2, $3, $4, 'multiple_choice', 'grammar', $5, '["a","b"]', '["a"]', $6) RETURNING id`,
+     VALUES ($1, $2, $3, $4, 'multiple_choice', $5, $6, '["a","b"]', '["a"]', $7) RETURNING id`,
     [
       bienvenida.id,
       n,
       PARTE[habilidad],
       habilidad === "grammar" ? `Section ${"ABCD"[k]}` : null,
+      habilidad, // la categoría: grammar, reading o listening
       `Question ${n}`,
       habilidad === "grammar" ? null : materialesPlacement[habilidad][k],
     ],
@@ -453,16 +454,28 @@ await caso("bienvenida con la forma del Placement Test: nivel calculado y los te
 
   const i = await intento(r.id);
   assert.equal(i.puntaje_total, 61, "54 de 88");
+  assert.deepEqual([i.grammar_score, i.reading_score, i.listening_score, i.writing_score], [37, 10, 7, 0]);
   const f = String(i.feedback);
   assert.match(f, /^Hola Ana, esta prueba nos ayuda a encontrar tu punto de partida\.\n\nTu resultado\nNivel estimado: A2 – Elemental\n/);
   assert.match(f, /Puntuación general: 54 de 88 \(61 %\)/);
-  assert.match(f, /• B1 – Intermedio: 15\/22 \(68 %\), en desarrollo\. Grammar & Vocabulary 10\/15 · Reading 3\/4 · Listening 2\/3/);
+  assert.doesNotMatch(f, /Resultado por nivel|Por habilidad|15\/22/);
   assert.match(f, /Estás cerca de la transición a B1 – Intermedio: te faltó 1 respuesta correcta/);
   assert.match(f, /Nivel de inicio recomendado: B1 – Intermedio\nAprovecha el material de estudio/);
 
   const [correo] = correosPara(raul.email);
   assert.equal(correo.subject, "Tu resultado de Evaluación de bienvenida · Speak Easy");
   assert.match(correo.text, /Nivel estimado: A2 – Elemental/);
+  assert.match(correo.text, /Grammar: 37\/60\nReading: 10\/16\nListening: 7\/12\n/);
+  assert.doesNotMatch(correo.text, /Writing/);
+
+  // En su resultado y en el enlace público: Grammar, Reading y Listening (Writing, 0 de 0, no se muestra).
+  const [{ slug }] = await sql<{ slug: string }>(`SELECT slug FROM evaluaciones WHERE id = $1`, [bienvenida.id]);
+  for (const d of [await I.detalleIntento(slug, 1, raul.id), await I.resultadoPublico(String(i.token))]) {
+    assert.deepEqual(
+      [d!.grammar_score, d!.grammar_total, d!.reading_score, d!.reading_total, d!.listening_score, d!.listening_total, d!.writing_total],
+      [37, 60, 10, 16, 7, 12, 0],
+    );
+  }
 });
 
 fin();

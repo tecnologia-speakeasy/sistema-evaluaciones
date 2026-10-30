@@ -1,5 +1,5 @@
-// db/004_ia.sql, db/005_admin.sql, db/006_sin_manychat.sql, db/007_bienvenida.sql, db/008_final.sql, db/009_materiales.sql
-// y db/010_subsecciones.sql
+// db/004_ia.sql, db/005_admin.sql, db/006_sin_manychat.sql, db/007_bienvenida.sql, db/008_final.sql, db/009_materiales.sql,
+// db/010_subsecciones.sql y db/011_reading_listening.sql
 // sobre una base "de producción" con 001 + 002 + 003 e intentos de la Fase 4. Usa una base aparte (migra004) del Postgres
 // temporal y la borra al final. Se corre con `npm run test:integracion`.
 import assert from "node:assert/strict";
@@ -362,6 +362,65 @@ try {
     await q(sqlDe("010_subsecciones.sql"));
     await q("SET search_path TO evaluacion");
     assert.deepEqual(await q("SELECT id, seccion, subseccion, material_id FROM preguntas ORDER BY id"), antes);
+  });
+
+  // 011 sobre la misma base: «She ___ happy.» quedó ligada a «Reading 1» (009) y
+  // en Grammar, como las de la bienvenida de la G2. El intento listo la acertó.
+  const [listo] = await q<{ id: number }>("SELECT id FROM intentos WHERE token = 'f4-listo'");
+  await q(
+    `INSERT INTO respuestas (intento_id, pregunta_id, respuesta, es_correcta, puntaje)
+     SELECT $1, p.id, '"x"', TRUE, 10 FROM preguntas p WHERE p.evaluacion_id = $2`,
+    [listo.id, ev.id],
+  );
+  await q("UPDATE intentos SET grammar_score = 1, writing_score = 1 WHERE id = $1", [listo.id]);
+  const puntajes = () =>
+    q(
+      `SELECT token, puntaje_total, grammar_score, writing_score, reading_score, listening_score
+         FROM intentos WHERE token LIKE 'f4-%' ORDER BY id`,
+    );
+  await q(sqlDe("011_reading_listening.sql"));
+  await q("SET search_path TO evaluacion");
+
+  await caso("011: las de una lectura pasan a Reading y las de un audio a Listening; las demás no cambian", async () => {
+    const [m] = await q<{ id: number }>(
+      `INSERT INTO materiales (evaluacion_id, tipo, titulo, audio_url) VALUES ($1, 'audio', 'Recording 1', 'https://a.test/1.mp3') RETURNING id`,
+      [ev.id],
+    );
+    const porCategoria = () =>
+      q(
+        `SELECT p.enunciado, m.tipo AS material, p.categoria FROM preguntas p LEFT JOIN materiales m ON m.id = p.material_id
+          WHERE p.evaluacion_id = $1 ORDER BY p.orden`,
+        [ev.id],
+      );
+    assert.deepEqual(await porCategoria(), [
+      { enunciado: "She ___ happy.", material: "lectura", categoria: "reading" },
+      { enunciado: "Hola", material: null, categoria: "writing" },
+    ]);
+    const [{ n }] = await q<{ n: number }>(
+      "SELECT count(*)::int AS n FROM preguntas WHERE material_id IS NOT NULL AND categoria NOT IN ('reading', 'listening')",
+    );
+    assert.equal(n, 0, "las copias de clonar también");
+    // Las categorías nuevas ya se pueden usar.
+    await q(
+      `INSERT INTO preguntas (evaluacion_id, orden, tipo, categoria, enunciado, opciones, respuestas_aceptadas, material_id)
+       VALUES ($1, 3, 'multiple_choice', 'listening', 'What time?', '["7","8"]', '["7"]', $2)`,
+      [ev.id, m.id],
+    );
+  });
+  await caso("011: sus intentos se recuentan (Grammar → Reading); el puntaje y Writing no cambian; los demás, sin tocar", async () => {
+    assert.deepEqual(await puntajes(), [
+      { token: "f4-listo", puntaje_total: 80, grammar_score: 0, writing_score: 1, reading_score: 1, listening_score: 0 },
+      { token: "f4-pendiente", puntaje_total: null, grammar_score: null, writing_score: null, reading_score: null, listening_score: null },
+      { token: "f4-curso", puntaje_total: null, grammar_score: null, writing_score: null, reading_score: null, listening_score: null },
+    ]);
+    const [r] = await q("SELECT reading_score, listening_score FROM v_resultados WHERE token = 'f4-listo'");
+    assert.deepEqual(r, { reading_score: 1, listening_score: 0 });
+  });
+  await caso("011 se puede correr otra vez sin cambiar nada", async () => {
+    const antes = [await puntajes(), await q("SELECT id, categoria FROM preguntas ORDER BY id")];
+    await q(sqlDe("011_reading_listening.sql"));
+    await q("SET search_path TO evaluacion");
+    assert.deepEqual([await puntajes(), await q("SELECT id, categoria FROM preguntas ORDER BY id")], antes);
   });
 } finally {
   await c.end();

@@ -22,8 +22,10 @@ import {
 } from "@/lib/preguntas/entrada";
 import { ETIQUETA_MATERIAL, type MaterialStaff } from "@/lib/preguntas/materiales";
 import {
-  CATEGORIA_POR_DEFECTO,
+  CATEGORIAS,
+  categoriaSugerida,
   contarEspacios,
+  ETIQUETA_CATEGORIA,
   ETIQUETA_TIPO,
   TIPOS_PREGUNTA,
   type PreguntaStaff,
@@ -86,9 +88,16 @@ export default function FormPregunta({
   const soloAgregar = (pregunta?.respuestas ?? 0) > 0;
   // Una abierta que ya existe se sigue viendo como tal; nuevas, solo si están activas.
   const tipos = TIPOS_PREGUNTA.filter((t) => t !== "open" || abiertasActivas || pregunta?.tipo === "open");
+  // La categoría que propone un material: Reading (lectura) o Listening (audio).
+  const tipoMaterial = (id: number | null) => materiales.find((m) => m.id === id)?.tipo ?? null;
   const [original] = useState(() => {
     const inicial = estadoInicial(pregunta, seccionSugerida, subseccionSugerida);
-    return pregunta ? inicial : { ...inicial, material_id: materialSugerido };
+    if (pregunta) return inicial;
+    return {
+      ...inicial,
+      material_id: materialSugerido,
+      categoria: categoriaSugerida(inicial.tipo, tipoMaterial(materialSugerido)),
+    };
   });
   const [e, setE] = useState<EstadoFormulario>(original);
   const [error, setError] = useState<{ mensaje: string; campo?: string } | null>(null);
@@ -110,7 +119,7 @@ export default function FormPregunta({
     setE((x) => ({
       ...x,
       tipo,
-      categoria: CATEGORIA_POR_DEFECTO[tipo],
+      categoria: categoriaSugerida(tipo, tipoMaterial(x.material_id)),
       variantes: ajustarVariantes(x.variantes, x.enunciado),
     }));
     setRespuestaPrevia(null);
@@ -213,8 +222,11 @@ export default function FormPregunta({
               disabled={soloAgregar}
               onChange={(x) => cambiar({ categoria: x.target.value as EstadoFormulario["categoria"] })}
             >
-              <option value="grammar">Grammar</option>
-              <option value="writing">Writing</option>
+              {CATEGORIAS.map((c) => (
+                <option key={c} value={c}>
+                  {ETIQUETA_CATEGORIA[c]}
+                </option>
+              ))}
             </Selector>
           </Campo>
           {pesosPorPregunta && (
@@ -275,13 +287,16 @@ export default function FormPregunta({
             etiqueta="Lectura o audio"
             htmlFor="p-material"
             error={errorDe("material_id")}
-            ayuda="Opcional. Si la pregunta es sobre un texto o una grabación, el estudiante lo verá encima."
+            ayuda="Opcional. Si la pregunta es sobre un texto o una grabación, el estudiante lo verá encima. Al elegirlo, la categoría pasa a Reading o Listening."
           >
             <Selector
               id="p-material"
               value={e.material_id ?? ""}
               disabled={soloAgregar}
-              onChange={(x) => cambiar({ material_id: x.target.value ? Number(x.target.value) : null })}
+              onChange={(x) => {
+                const material_id = x.target.value ? Number(x.target.value) : null;
+                cambiar({ material_id, categoria: categoriaSugerida(e.tipo, tipoMaterial(material_id)) });
+              }}
             >
               <option value="">Ninguno</option>
               {materiales.map((m) => (

@@ -5,7 +5,7 @@ import { formatearFechaHora } from "@/lib/fechas";
 import { codigoEvaluacion, etiquetaEstado, type EstadoIntento } from "@/lib/resultados";
 
 // Intentos filtrados: tabla desde 1024px y tarjetas en celular/tableta.
-// Grammar y Writing son aciertos (como v_resultados). "Ver" abre el resultado
+// Grammar, Writing, Reading y Listening son aciertos (como v_resultados). "Ver" abre el resultado
 // público (/resultado/[token]); un intento en curso todavía no tiene.
 
 const TONO: Record<EstadoIntento, TonoInsignia> = {
@@ -55,6 +55,8 @@ export default function TablaResultados({ filas }: { filas: FilaResultado[] }) {
               <th scope="col" className="px-4 py-3 text-right font-semibold">Puntaje</th>
               <th scope="col" className="px-4 py-3 text-right font-semibold">Grammar</th>
               <th scope="col" className="px-4 py-3 text-right font-semibold">Writing</th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold">Reading</th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold">Listening</th>
               <th scope="col" className="px-4 py-3 text-right font-semibold" title="Cambios de pestaña">
                 Pestañas
               </th>
@@ -83,6 +85,8 @@ export default function TablaResultados({ filas }: { filas: FilaResultado[] }) {
                 <td className="px-4 py-3 text-right text-[15px] font-extrabold text-titulo">{nada(f.puntaje_total)}</td>
                 <td className="px-4 py-3 text-right">{nada(f.grammar_score)}</td>
                 <td className="px-4 py-3 text-right">{nada(f.writing_score)}</td>
+                <td className="px-4 py-3 text-right">{nada(f.reading_score)}</td>
+                <td className="px-4 py-3 text-right">{nada(f.listening_score)}</td>
                 <td className={`px-4 py-3 text-right ${f.cambios_pestana > 0 ? "font-semibold text-error-texto" : ""}`}>
                   {f.cambios_pestana}
                 </td>
@@ -116,7 +120,8 @@ export default function TablaResultados({ filas }: { filas: FilaResultado[] }) {
                 </p>
               </div>
               <p className="mt-2 text-[13px] text-gris-oscuro">
-                Grammar {nada(f.grammar_score)} · Writing {nada(f.writing_score)} ·{" "}
+                Grammar {nada(f.grammar_score)} · Writing {nada(f.writing_score)} · Reading{" "}
+                {nada(f.reading_score)} · Listening {nada(f.listening_score)} ·{" "}
                 <span className={f.cambios_pestana > 0 ? "font-semibold text-error-texto" : ""}>
                   {f.cambios_pestana} {f.cambios_pestana === 1 ? "cambio" : "cambios"} de pestaña
                 </span>

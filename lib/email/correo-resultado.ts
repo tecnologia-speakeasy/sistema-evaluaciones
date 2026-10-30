@@ -3,8 +3,9 @@ import { INSIGNIAS_CORREO } from "./insignias";
 import { COLOR, escaparHtml, plantillaCorreo, type AdjuntoEmbebido, type Correo } from "./plantilla";
 
 // Correo con el resultado de un intento (resultadoEmail de a2, con la plantilla
-// de Speak Easy): la insignia del rango, su título, el puntaje, Grammar/Writing
-// y la retroalimentación de la IA. Sin enlaces: no depende de ninguna URL.
+// de Speak Easy): la insignia del rango, su título, el puntaje, los aciertos por
+// categoría (Grammar, Writing, Reading y Listening: solo las que tiene) y la
+// retroalimentación de la IA. Sin enlaces: no depende de ninguna URL.
 // La insignia va embebida (cid:), como el logo; solo la del puntaje.
 
 /** Content-ID de la insignia adjunta. */
@@ -15,6 +16,8 @@ export type DatosCorreoResultado = {
   puntaje: number;
   grammar: { aciertos: number; total: number };
   writing: { aciertos: number; total: number };
+  reading: { aciertos: number; total: number };
+  listening: { aciertos: number; total: number };
   feedback: string;
 };
 
@@ -28,6 +31,8 @@ export function correoResultado(d: DatosCorreoResultado): Correo {
     [
       ["Grammar", d.grammar],
       ["Writing", d.writing],
+      ["Reading", d.reading],
+      ["Listening", d.listening],
     ] as const
   ).filter(([, v]) => v.total > 0);
 
@@ -39,17 +44,14 @@ export function correoResultado(d: DatosCorreoResultado): Correo {
   </tr>`
     : "";
 
+  // En bloques que bajan de línea si no caben (hasta 4 en el celular).
   const tablaPuntajes = filas.length
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 6px;">
-  <tr>
-    ${filas
-      .map(
-        ([etiqueta, v]) =>
-          `<td style="padding:0 8px;"><div style="background-color:${COLOR.lavanda};border-radius:10px;padding:8px 14px;font-size:14px;color:${COLOR.tinta};white-space:nowrap;">${etiqueta} <strong>${v.aciertos}</strong><strong style="color:#e9407e;">/${v.total}</strong></div></td>`,
-      )
-      .join("")}
-  </tr>
-</table>`
+    ? `<div style="margin:0 auto 6px;text-align:center;">${filas
+        .map(
+          ([etiqueta, v]) =>
+            `<div style="display:inline-block;margin:4px 6px;background-color:${COLOR.lavanda};border-radius:10px;padding:8px 14px;font-size:14px;color:${COLOR.tinta};white-space:nowrap;">${etiqueta} <strong>${v.aciertos}</strong><strong style="color:#e9407e;">/${v.total}</strong></div>`,
+        )
+        .join("")}</div>`
     : "";
 
   const contenidoHtml = `

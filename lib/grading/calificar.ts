@@ -1,5 +1,5 @@
 import { pesosPorPregunta } from "@/lib/preguntas/pesos";
-import type { TipoPregunta } from "@/lib/preguntas/tipos";
+import type { Categoria, TipoPregunta } from "@/lib/preguntas/tipos";
 import { normalize } from "./normalize";
 
 // Calificación en el servidor (regla de seguridad 2). Puro: sin BD.
@@ -12,7 +12,7 @@ import { normalize } from "./normalize";
 export type PreguntaParaCalificar = {
   id: number;
   tipo: TipoPregunta;
-  categoria: "grammar" | "writing";
+  categoria: Categoria;
   puntaje: number;
   /** JSONB tal cual: string[] (mc / translation), string[][] (fill_blank), null (open). */
   respuestas_aceptadas: unknown;
@@ -65,6 +65,8 @@ export type ResumenIntento = {
   /** Aciertos por categoría (como a2: "X/N"). */
   grammar_score: number;
   writing_score: number;
+  reading_score: number;
+  listening_score: number;
 };
 
 // puntaje_total, de 0 a 100:
@@ -83,13 +85,15 @@ export function resumirIntento(
     (s, c) => s + (c.calificacion.puntaje ?? 0) / (pesos ? 1 : c.pregunta.puntaje),
     0,
   );
-  const aciertos = (categoria: "grammar" | "writing") =>
+  const aciertos = (categoria: Categoria) =>
     calificadas.filter((c) => c.pregunta.categoria === categoria && c.calificacion.es_correcta === true).length;
   return {
     pendiente,
     puntaje_total: pendiente ? null : posibles > 0 ? Math.round((obtenidos / posibles) * 100) : 0,
     grammar_score: aciertos("grammar"),
     writing_score: aciertos("writing"),
+    reading_score: aciertos("reading"),
+    listening_score: aciertos("listening"),
   };
 }
 

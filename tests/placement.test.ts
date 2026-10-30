@@ -231,13 +231,9 @@ describe("Placement Test: feedback", () => {
     const f = armarFeedbackPlacement(d, textos);
     expect(f.startsWith("Hola Ana.\n\nTu resultado\nNivel estimado: A2 – Elemental\n")).toBe(true);
     expect(f).toContain("Puntuación general: 54 de 88 (61 %)");
-    expect(f).toContain("Estado del diagnóstico: provisional");
-    expect(f).toContain(
-      "• A2 – Elemental: 17/22 (77 %), funcional. Grammar & Vocabulary 12/15 · Reading 3/4 · Listening 2/3",
-    );
-    expect(f).toContain("• B2 – Intermedio alto: 0/22 (0 %), insuficiente.");
-    expect(f).toContain("Por habilidad\n• Grammar & Vocabulary: 37/60\n• Reading: 10/16\n• Listening: 7/12");
-    expect(f).toContain("Observaciones\n• Estás cerca de la transición a B1 – Intermedio");
+    expect(f).toContain("Estado del diagnóstico: provisional\n\nObservaciones\n• Estás cerca de la transición a B1 – Intermedio");
+    // Sin el detalle por nivel ni por habilidad.
+    expect(f).not.toMatch(/Resultado por nivel|Por habilidad|17\/22|37\/60/);
     expect(f).toContain("Fortalezas\nDominas el to be.");
     expect(f).toContain("Aspectos por reforzar\nRefuerza el pasado.");
     expect(f.endsWith("Nivel de inicio recomendado: B1 – Intermedio\nUn abrazo.")).toBe(true);

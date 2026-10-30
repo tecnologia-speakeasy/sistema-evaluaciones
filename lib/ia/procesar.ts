@@ -7,7 +7,7 @@ import { diagnosticar } from "@/lib/placement/diagnostico";
 import { armarFeedbackPlacement, leerFeedbackPlacement, promptFeedbackPlacement } from "@/lib/placement/feedback";
 import { abiertasActivas } from "@/lib/preguntas/abiertas";
 import type { TipoMaterial } from "@/lib/preguntas/materiales";
-import type { TipoPregunta } from "@/lib/preguntas/tipos";
+import { SQL_TOTALES_POR_CATEGORIA, type Categoria, type TipoPregunta } from "@/lib/preguntas/tipos";
 import type { TipoEvaluacion } from "@/lib/tipos";
 import { llamarOpenAI } from "./openai";
 import {
@@ -47,7 +47,7 @@ type Fila = {
   respuesta_id: string;
   pregunta_id: number;
   tipo: TipoPregunta;
-  categoria: "grammar" | "writing";
+  categoria: Categoria;
   puntaje_pregunta: number;
   seccion: string | null;
   subseccion: string | null;
@@ -144,9 +144,17 @@ export async function procesarIntento(
     await query(
       `UPDATE intentos
           SET feedback = $2, estado = 'listo', procesando_hasta = NULL, ia_error = NULL,
-              puntaje_total = $3, grammar_score = $4, writing_score = $5
+              puntaje_total = $3, grammar_score = $4, writing_score = $5, reading_score = $6, listening_score = $7
         WHERE id = $1`,
-      [intentoId, feedback, resumen.puntaje_total, resumen.grammar_score, resumen.writing_score],
+      [
+        intentoId,
+        feedback,
+        resumen.puntaje_total,
+        resumen.grammar_score,
+        resumen.writing_score,
+        resumen.reading_score,
+        resumen.listening_score,
+      ],
     );
   } catch (e) {
     const mensaje = (e instanceof Error ? e.message : String(e)).slice(0, 500);
@@ -216,8 +224,10 @@ function puntajes(filas: Fila[]) {
 async function guardarPuntajes(tx: Tx, intentoId: number, filas: Fila[]) {
   const r = puntajes(filas);
   await tx.query(
-    `UPDATE intentos SET puntaje_total = $2, grammar_score = $3, writing_score = $4 WHERE id = $1`,
-    [intentoId, r.puntaje_total, r.grammar_score, r.writing_score],
+    `UPDATE intentos SET puntaje_total = $2, grammar_score = $3, writing_score = $4, reading_score = $5,
+                         listening_score = $6
+      WHERE id = $1`,
+    [intentoId, r.puntaje_total, r.grammar_score, r.writing_score, r.reading_score, r.listening_score],
   );
 }
 
@@ -242,26 +252,30 @@ export async function notificarIntento(intentoId: number): Promise<ResultadoEnvi
     puntaje_total: number;
     grammar_score: number;
     writing_score: number;
+    reading_score: number;
+    listening_score: number;
     feedback: string;
     email: string;
     titulo: string;
     grammar_total: number;
     writing_total: number;
+    reading_total: number;
+    listening_total: number;
   }>(
     `WITH tomado AS (
        UPDATE intentos i SET email_enviado = TRUE
         WHERE i.id = $1 AND i.estado = 'listo' AND i.feedback IS NOT NULL AND NOT i.email_enviado
-        RETURNING i.id, i.puntaje_total, i.grammar_score, i.writing_score,
-                  i.feedback, i.estudiante_id, i.evaluacion_id)
+        RETURNING i.id, i.puntaje_total, i.grammar_score, i.writing_score, i.reading_score,
+                  i.listening_score, i.feedback, i.estudiante_id, i.evaluacion_id)
      SELECT t.puntaje_total, coalesce(t.grammar_score, 0) AS grammar_score,
-            coalesce(t.writing_score, 0) AS writing_score, t.feedback, s.email, e.titulo,
-            c.grammar_total, c.writing_total
+            coalesce(t.writing_score, 0) AS writing_score, coalesce(t.reading_score, 0) AS reading_score,
+            coalesce(t.listening_score, 0) AS listening_score, t.feedback, s.email, e.titulo,
+            c.grammar_total, c.writing_total, c.reading_total, c.listening_total
        FROM tomado t
        JOIN estudiantes s  ON s.id = t.estudiante_id
        JOIN evaluaciones e ON e.id = t.evaluacion_id
        CROSS JOIN LATERAL (
-         SELECT count(*) FILTER (WHERE p.categoria = 'grammar' AND r.es_correcta IS NOT NULL)::int AS grammar_total,
-                count(*) FILTER (WHERE p.categoria = 'writing' AND r.es_correcta IS NOT NULL)::int AS writing_total
+         SELECT ${SQL_TOTALES_POR_CATEGORIA}
            FROM respuestas r JOIN preguntas p ON p.id = r.pregunta_id
           WHERE r.intento_id = t.id) c`,
     [intentoId],
@@ -284,6 +298,8 @@ export async function notificarIntento(intentoId: number): Promise<ResultadoEnvi
         puntaje: d.puntaje_total,
         grammar: { aciertos: d.grammar_score, total: d.grammar_total },
         writing: { aciertos: d.writing_score, total: d.writing_total },
+        reading: { aciertos: d.reading_score, total: d.reading_total },
+        listening: { aciertos: d.listening_score, total: d.listening_total },
         feedback: d.feedback,
       }),
     );

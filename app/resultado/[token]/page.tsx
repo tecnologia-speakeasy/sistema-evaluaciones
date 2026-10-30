@@ -44,6 +44,8 @@ function Resumen({ r }: { r: ResultadoPublico }) {
   const filas = [
     ["Writing score", r.writing_score, r.writing_total],
     ["Grammar score", r.grammar_score, r.grammar_total],
+    ["Reading score", r.reading_score, r.reading_total],
+    ["Listening score", r.listening_score, r.listening_total],
   ] as const;
 
   return (

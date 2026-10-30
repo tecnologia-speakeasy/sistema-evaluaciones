@@ -14,7 +14,7 @@ import { GRACIA_S } from "@/lib/intentos/reloj";
 import { materialesDe } from "@/lib/datos/materiales";
 import { sqlSinAbiertas } from "@/lib/preguntas/abiertas";
 import type { Material } from "@/lib/preguntas/materiales";
-import type { PreguntaPublica, TipoPregunta } from "@/lib/preguntas/tipos";
+import { SQL_TOTALES_POR_CATEGORIA, type Categoria, type PreguntaPublica, type TipoPregunta } from "@/lib/preguntas/tipos";
 import type { TipoEvaluacion } from "@/lib/tipos";
 
 // Intentos del estudiante (Fase 4). Sin autorización: la hacen las rutas y
@@ -377,7 +377,8 @@ async function finalizar(
   await tx.query(
     `UPDATE intentos
         SET estado = $2, puntaje_total = $3, grammar_score = $4, writing_score = $5,
-            respuestas_borrador = $6::jsonb, cambios_pestana = GREATEST(cambios_pestana, $7),
+            reading_score = $6, listening_score = $7,
+            respuestas_borrador = $8::jsonb, cambios_pestana = GREATEST(cambios_pestana, $9),
             completed_at = now()
       WHERE id = $1`,
     [
@@ -386,6 +387,8 @@ async function finalizar(
       resumen.puntaje_total,
       resumen.grammar_score,
       resumen.writing_score,
+      resumen.reading_score,
+      resumen.listening_score,
       JSON.stringify(finales),
       cambiosPestana,
     ],
@@ -421,7 +424,7 @@ export type DetallePregunta = {
   id: number;
   seccion: string | null;
   tipo: TipoPregunta;
-  categoria: "grammar" | "writing";
+  categoria: Categoria;
   enunciado: string;
   pista: string | null;
   opciones: string[] | null;
@@ -444,8 +447,12 @@ export type DetalleIntento = {
   puntaje_total: number | null;
   grammar_score: number;
   writing_score: number;
+  reading_score: number;
+  listening_score: number;
   grammar_total: number;
   writing_total: number;
+  reading_total: number;
+  listening_total: number;
   completado: string | null;
   token: string;
   /** Retroalimentación de la IA (null mientras está pendiente). */
@@ -482,6 +489,8 @@ export async function detalleIntento(
     puntaje_total: number | null;
     grammar_score: number | null;
     writing_score: number | null;
+    reading_score: number | null;
+    listening_score: number | null;
     completado: string | null;
     token: string;
     feedback: string | null;
@@ -498,7 +507,8 @@ export async function detalleIntento(
     en_curso: boolean;
   }>(
     `SELECT i.id, i.numero_intento, i.estado, i.nombre, i.puntaje_total, i.grammar_score,
-            i.writing_score, ${sqlALocal("i.completed_at")} AS completado, i.token, i.feedback,
+            i.writing_score, i.reading_score, i.listening_score,
+            ${sqlALocal("i.completed_at")} AS completado, i.token, i.feedback,
             e.id AS evaluacion_id, e.slug, e.titulo, e.tipo, e.numero AS eval_numero,
             e.mostrar_correctas, e.intentos_permitidos,
             (e.fecha_cierre IS NOT NULL AND e.fecha_cierre < now()) AS cerrada,
@@ -535,6 +545,7 @@ export async function detalleIntento(
     intentosEnviados(f.evaluacion_id, estudianteId),
   ]);
 
+  const totalDe = (c: Categoria) => preguntas.filter((p) => p.categoria === c && p.es_correcta !== null).length;
   return {
     id: f.id,
     numero: f.numero_intento,
@@ -543,9 +554,13 @@ export async function detalleIntento(
     puntaje_total: f.puntaje_total,
     grammar_score: f.grammar_score ?? 0,
     writing_score: f.writing_score ?? 0,
+    reading_score: f.reading_score ?? 0,
+    listening_score: f.listening_score ?? 0,
     // Solo las ya calificadas: una abierta pendiente no cuenta todavía.
-    grammar_total: preguntas.filter((p) => p.categoria === "grammar" && p.es_correcta !== null).length,
-    writing_total: preguntas.filter((p) => p.categoria === "writing" && p.es_correcta !== null).length,
+    grammar_total: totalDe("grammar"),
+    writing_total: totalDe("writing"),
+    reading_total: totalDe("reading"),
+    listening_total: totalDe("listening"),
     completado: f.completado,
     token: f.token,
     feedback: f.feedback,
@@ -617,8 +632,12 @@ export type ResultadoPublico = {
   puntaje_total: number | null;
   grammar_score: number;
   writing_score: number;
+  reading_score: number;
+  listening_score: number;
   grammar_total: number;
   writing_total: number;
+  reading_total: number;
+  listening_total: number;
   feedback: string | null;
   titulo: string;
   completado: string | null;
@@ -631,13 +650,13 @@ export async function resultadoPublico(token: string): Promise<ResultadoPublico 
   const { rows } = await query<ResultadoPublico>(
     `SELECT i.nombre, i.estado, i.puntaje_total,
             coalesce(i.grammar_score, 0) AS grammar_score, coalesce(i.writing_score, 0) AS writing_score,
-            t.grammar_total, t.writing_total, i.feedback, e.titulo,
+            coalesce(i.reading_score, 0) AS reading_score, coalesce(i.listening_score, 0) AS listening_score,
+            t.grammar_total, t.writing_total, t.reading_total, t.listening_total, i.feedback, e.titulo,
             ${sqlALocal("i.completed_at")} AS completado
        FROM intentos i
        JOIN evaluaciones e ON e.id = i.evaluacion_id
        CROSS JOIN LATERAL (
-         SELECT count(*) FILTER (WHERE p.categoria = 'grammar' AND r.es_correcta IS NOT NULL)::int AS grammar_total,
-                count(*) FILTER (WHERE p.categoria = 'writing' AND r.es_correcta IS NOT NULL)::int AS writing_total
+         SELECT ${SQL_TOTALES_POR_CATEGORIA}
            FROM respuestas r JOIN preguntas p ON p.id = r.pregunta_id
           WHERE r.intento_id = i.id) t
       WHERE i.token = $1 AND i.estado <> 'en_progreso'`,

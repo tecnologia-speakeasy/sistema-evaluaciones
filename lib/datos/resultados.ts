@@ -43,6 +43,9 @@ export type FilaResultado = {
   puntaje_total: number | null;
   grammar_score: number | null;
   writing_score: number | null;
+  /** null en los intentos de antes de la 011. */
+  reading_score: number | null;
+  listening_score: number | null;
   cambios_pestana: number;
   email_enviado: boolean;
   token: string;
@@ -52,7 +55,8 @@ export type FilaResultado = {
 };
 
 const COLUMNAS = `intento_id, generacion, slug, tipo, numero, nombre, email::text AS email, numero_intento,
-  estado, puntaje_total, grammar_score, writing_score, cambios_pestana, email_enviado, token,
+  estado, puntaje_total, grammar_score, writing_score, reading_score, listening_score, cambios_pestana,
+  email_enviado, token,
   ${sqlALocal("started_at")} AS inicio, ${sqlALocal("completed_at")} AS envio`;
 const ORDEN = `ORDER BY coalesce(completed_at, started_at) DESC, intento_id DESC`;
 
@@ -102,6 +106,8 @@ export async function exportarResultados(f: FiltrosResultados): Promise<{ csv: s
       "Puntaje",
       "Grammar (aciertos)",
       "Writing (aciertos)",
+      "Reading (aciertos)",
+      "Listening (aciertos)",
       "Cambios de pestaña",
       "Inicio",
       "Envío",
@@ -118,6 +124,8 @@ export async function exportarResultados(f: FiltrosResultados): Promise<{ csv: s
       r.puntaje_total,
       r.grammar_score,
       r.writing_score,
+      r.reading_score,
+      r.listening_score,
       r.cambios_pestana,
       hora(r.inicio),
       hora(r.envio),

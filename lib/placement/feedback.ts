@@ -127,7 +127,7 @@ Escribe para el estudiante, en español, estos cuatro textos:
 Cómo escribir:
 - Tono humano, claro, motivador y académico, como un profesor que le habla a su estudiante: de tú, personal, respetuoso y sin frases rebuscadas. En Speak Easy los estudiantes destacan la calidad humana y la paciencia: cuida las palabras para no hacerlo sentir mal.
 - Sin frases ultra positivas: dejan de sentirse naturales.
-- No repitas la tabla de puntajes ni los números de cada bloque: se le muestran aparte.
+- No escribas puntajes ni los números de cada nivel o habilidad (aciertos, porcentajes): habla de temas, no de cifras.
 - Nunca digas "reprobaste", "tu inglés es malo", "no sabes inglés" ni nada parecido.
 - No digas que es una certificación oficial ni del Marco Común Europeo, no menciones C1 ni C2 y no hables de writing ni de speaking: no se evaluaron.
 - No inventes competencias que el examen no midió ni resultados que no estén en los datos, y no digas cuál era la respuesta correcta de las preguntas que falló.
@@ -148,7 +148,11 @@ export function leerFeedbackPlacement(s: unknown): TextosPlacement {
   return p.data;
 }
 
-/** El feedback que se guarda (pantalla y correo): los textos de la IA con el resultado en medio. */
+/**
+ * El feedback que se guarda (pantalla y correo): los textos de la IA con el
+ * resultado en medio (nivel, puntuación y estado, sin el detalle por nivel ni
+ * por habilidad; Grammar, Reading y Listening ya salen en el resultado).
+ */
 export function armarFeedbackPlacement(d: Diagnostico, t: TextosPlacement): string {
   const lista = (titulo: string, items: string[]) => [titulo, ...items.map((i) => `• ${i}`)].join("\n");
   const obs = observaciones(d);
@@ -160,19 +164,6 @@ export function armarFeedbackPlacement(d: Diagnostico, t: TextosPlacement): stri
       `Puntuación general: ${d.correctas} de ${TOTAL_PLACEMENT} (${d.porcentaje} %)`,
       `Estado del diagnóstico: ${ESTADO[d.estado]}`,
     ].join("\n"),
-    lista(
-      "Resultado por nivel",
-      d.bloques.map(
-        (b) =>
-          `${etiquetaNivel(b.nivel)}: ${de(b.correctas, POR_BLOQUE)} (${Math.round((b.correctas / POR_BLOQUE) * 100)} %), ` +
-          `${b.dominio.toLowerCase()}. ` +
-          HABILIDADES.map((h) => `${NOMBRE_HABILIDAD[h]} ${de(b.habilidades[h], POR_NIVEL[h])}`).join(" · "),
-      ),
-    ),
-    lista(
-      "Por habilidad",
-      HABILIDADES.map((h) => `${NOMBRE_HABILIDAD[h]}: ${de(d.habilidades[h].correctas, d.habilidades[h].total)}`),
-    ),
     obs.length ? lista("Observaciones", obs) : null,
     `Fortalezas\n${t.fortalezas}`,
     `Aspectos por reforzar\n${t.por_reforzar}`,

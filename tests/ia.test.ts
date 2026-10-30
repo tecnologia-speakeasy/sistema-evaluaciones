@@ -114,6 +114,8 @@ describe("correo del resultado", () => {
     puntaje: 80,
     grammar: { aciertos: 2, total: 2 },
     writing: { aciertos: 2, total: 3 },
+    reading: { aciertos: 0, total: 0 },
+    listening: { aciertos: 0, total: 0 },
     feedback: "Hola Lucía,\nbuen trabajo <script>alert(1)</script>",
   };
 
@@ -163,5 +165,18 @@ describe("correo del resultado", () => {
   it("sin preguntas de una categoría, no la muestra", () => {
     const c = correoResultado({ ...base, writing: { aciertos: 0, total: 0 } });
     expect(c.html).not.toContain("Writing");
+    expect(c.html).not.toMatch(/Reading|Listening/);
+  });
+
+  it("Reading y Listening (lecturas y audios), como Grammar", () => {
+    const c = correoResultado({
+      ...base,
+      writing: { aciertos: 0, total: 0 },
+      reading: { aciertos: 9, total: 16 },
+      listening: { aciertos: 8, total: 12 },
+    });
+    expect(c.html).toMatch(/Reading <strong>9<\/strong><strong[^>]*>\/16</);
+    expect(c.html).toMatch(/Listening <strong>8<\/strong><strong[^>]*>\/12</);
+    expect(c.texto).toContain("Grammar: 2/2\nReading: 9/16\nListening: 8/12");
   });
 });

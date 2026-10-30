@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   CATEGORIA_POR_DEFECTO,
+  CATEGORIAS,
   contarEspacios,
   type Categoria,
   type PreguntaPublica,
@@ -27,7 +28,7 @@ const comunes = {
     .max(120, "La subsección es demasiado larga")
     .optional()
     .transform((v) => v || null),
-  categoria: z.enum(["grammar", "writing"], { error: "Elige la categoría" }),
+  categoria: z.enum(CATEGORIAS, { error: "Elige la categoría" }),
   enunciado: z
     .string({ error: "Escribe el enunciado" })
     .trim()
