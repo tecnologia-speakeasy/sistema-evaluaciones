@@ -1,5 +1,6 @@
 import { escribirCsv } from "@/lib/csv";
-import { query } from "@/lib/db";
+import { query, transaction } from "@/lib/db";
+import { ErrorNegocio } from "@/lib/errores";
 import { sqlALocal } from "@/lib/fechas";
 import { codigoEvaluacion, etiquetaEstado, type EstadoIntento, type FiltrosResultados } from "@/lib/resultados";
 import type { TipoEvaluacion } from "@/lib/tipos";
@@ -71,12 +72,12 @@ export async function buscarResultados(
     params,
   );
   const total = rows[0]?.total ?? (f.pagina > 1 ? await contar(f) : 0);
-  return {
-    // Cada fila trae además el total (count OVER ()); no estorba.
-    filas: rows,
-    total,
-    paginas: Math.max(1, Math.ceil(total / POR_PAGINA_RESULTADOS)),
-  };
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA_RESULTADOS));
+  // Página fuera de rango (p. ej. después de eliminar los de la última): se
+  // muestra la última que hay.
+  if (rows.length === 0 && total > 0) return buscarResultados({ ...f, pagina: paginas });
+  // Cada fila trae además el total (count OVER ()); no estorba.
+  return { filas: rows, total, paginas };
 }
 
 // Si la página pedida está fuera de rango, igual hace falta el total.
@@ -84,6 +85,62 @@ async function contar(f: FiltrosResultados): Promise<number> {
   const { sql, params } = donde(f);
   const { rows } = await query<{ n: number }>(`SELECT count(*)::int AS n FROM v_resultados ${sql}`, params);
   return rows[0]?.n ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Eliminar intentos (solo admin; uno o varios a la vez). Irreversible: se van
+// sus respuestas (FK en cascada), su puntaje, su feedback y su enlace
+// /resultado/[token]; el correo que ya recibió el estudiante no se recoge.
+// Como validar_intento cuenta los intentos que tiene, el estudiante recupera
+// ese intento si la evaluación tiene tope. Y como numera el siguiente con
+// "cuántos tiene + 1", los que le quedan en esa evaluación se renumeran 1, 2, 3…
+// (si no, el siguiente chocaría con uno que ya existe).
+// No se elimina uno que la IA está calificando (candado vigente).
+// ---------------------------------------------------------------------------
+
+export const MAX_ELIMINAR_INTENTOS = 100;
+
+export async function eliminarIntentos(ids: number[]): Promise<number> {
+  return transaction(async (tx) => {
+    const { rows } = await tx.query<{ id: number; evaluacion_id: number; estudiante_id: number; nombre: string; ocupado: boolean }>(
+      `SELECT id, evaluacion_id, estudiante_id, nombre,
+              (estado = 'calificando' AND coalesce(procesando_hasta > now(), FALSE)) AS ocupado
+         FROM intentos WHERE id = ANY($1::int[])
+        ORDER BY id
+        FOR UPDATE`,
+      [ids],
+    );
+    const ocupados = rows.filter((r) => r.ocupado);
+    if (ocupados.length > 0) {
+      throw new ErrorNegocio(
+        ocupados.length === 1
+          ? `El intento de ${ocupados[0].nombre} se está calificando en este momento. Intenta de nuevo en unos minutos.`
+          : `${ocupados.length} de esos intentos se están calificando en este momento. Intenta de nuevo en unos minutos.`,
+      );
+    }
+    // Los que ya no existen (otra persona los borró) simplemente no cuentan.
+    if (rows.length === 0) return 0;
+    await tx.query(`DELETE FROM intentos WHERE id = ANY($1::int[])`, [rows.map((r) => r.id)]);
+
+    const pares = new Map(rows.map((r) => [`${r.evaluacion_id}:${r.estudiante_id}`, r]));
+    for (const { evaluacion_id, estudiante_id } of pares.values()) {
+      const { rows: quedan } = await tx.query<{ id: number; numero_intento: number }>(
+        `SELECT id, numero_intento FROM intentos
+          WHERE evaluacion_id = $1 AND estudiante_id = $2
+          ORDER BY numero_intento
+          FOR UPDATE`,
+        [evaluacion_id, estudiante_id],
+      );
+      // De menor a mayor, cada número nuevo ya está libre (nunca supera al actual),
+      // así el índice único no choca a mitad de camino.
+      for (const [i, q] of quedan.entries()) {
+        if (q.numero_intento !== i + 1) {
+          await tx.query(`UPDATE intentos SET numero_intento = $2 WHERE id = $1`, [q.id, i + 1]);
+        }
+      }
+    }
+    return rows.length;
+  });
 }
 
 // CSV para Excel en español (separador ;, UTF-8 con BOM); horas de Colombia.

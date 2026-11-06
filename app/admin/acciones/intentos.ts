@@ -1,11 +1,15 @@
 "use server";
 
+import { refresh } from "next/cache";
+import { z } from "zod";
 import { requireStaff } from "@/lib/auth/guards";
 import { aResultadoError } from "@/lib/acciones";
+import { eliminarIntentos, MAX_ELIMINAR_INTENTOS } from "@/lib/datos/resultados";
 import { notificarIntento, procesarIntento } from "@/lib/ia/procesar";
 import { idSchema } from "@/lib/validacion";
 
-// Intentos (Fase 5): admin y docente ("resultados" es de los dos roles).
+// Intentos (Fase 5): admin y docente ("resultados" es de los dos roles), salvo
+// eliminar, que es solo del admin.
 // La IA tarda 10–30 s: la página que usa estas acciones fija maxDuration.
 // No refrescan la página: la fila muestra el resultado y la lista se actualiza
 // después (si se refrescara de una vez, la fila desaparecería con el aviso).
@@ -38,4 +42,26 @@ export async function reintentarEnvioAction(intentoId: unknown): Promise<Resulta
     const r = aResultadoError(e);
     return { ok: false, error: r.ok ? "" : r.error };
   }
+}
+
+const idsSchema = z
+  .array(idSchema)
+  .min(1, "Elige al menos un intento.")
+  .max(MAX_ELIMINAR_INTENTOS, `Máximo ${MAX_ELIMINAR_INTENTOS} intentos a la vez.`);
+
+export type ResultadoEliminarIntentos = { ok: true; eliminados: number } | { ok: false; error: string };
+
+// "Eliminar" en Resultados (uno o varios): solo admin. Irreversible (ver
+// eliminarIntentos en lib/datos/resultados.ts).
+export async function eliminarIntentosAction(ids: unknown): Promise<ResultadoEliminarIntentos> {
+  let eliminados: number;
+  try {
+    await requireStaff(["admin"]);
+    eliminados = await eliminarIntentos([...new Set(idsSchema.parse(ids))]);
+  } catch (e) {
+    const r = aResultadoError(e);
+    return { ok: false, error: r.ok ? "" : r.error };
+  }
+  refresh();
+  return { ok: true, eliminados };
 }

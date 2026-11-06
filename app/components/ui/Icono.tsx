@@ -17,7 +17,8 @@ export type NombreIcono =
   | "llave"
   | "descargar"
   | "subir"
-  | "buscar";
+  | "buscar"
+  | "basura";
 
 const TRAZOS: Record<NombreIcono, ReactNode> = {
   // Capas apiladas
@@ -117,6 +118,16 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
     <>
       <circle cx="11" cy="11" r="6.5" />
       <path d="m20 20-4.4-4.4" />
+    </>
+  ),
+  // Caneca (eliminar)
+  basura: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9 7V4.5h6V7" />
+      <path d="m6 7 1 13h10l1-13" />
+      <path d="M10 11v5.5" />
+      <path d="M14 11v5.5" />
     </>
   ),
 };

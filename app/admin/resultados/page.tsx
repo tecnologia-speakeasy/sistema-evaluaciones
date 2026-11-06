@@ -23,7 +23,8 @@ export const maxDuration = 300;
 
 // Resultados (admin y docente): arriba los intentos por revisar (Fase 5) y
 // debajo todos los intentos de v_resultados con filtros en la URL, paginación y
-// exportación a CSV de lo filtrado (./exportar).
+// exportación a CSV de lo filtrado (./exportar). El admin además elimina
+// intentos (uno o varios).
 export default function Resultados({ searchParams }: PageProps<"/admin/resultados">) {
   return (
     <Suspense fallback={<Cargando />}>
@@ -33,7 +34,7 @@ export default function Resultados({ searchParams }: PageProps<"/admin/resultado
 }
 
 async function Contenido({ searchParams }: { searchParams: PageProps<"/admin/resultados">["searchParams"] }) {
-  await staffParaPagina();
+  const staff = await staffParaPagina();
   const f = leerFiltros(await searchParams);
   const [revisar, generaciones, resultado] = await Promise.all([
     intentosPorRevisar(),
@@ -102,7 +103,8 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/admin/res
           <strong className="text-tinta">{resultado.total.toLocaleString("es-CO")}</strong>{" "}
           {resultado.total === 1 ? "intento" : "intentos"}
         </p>
-        <TablaResultados filas={resultado.filas} />
+        {/* `key`: al cambiar de filtros o de página la selección arranca vacía. */}
+        <TablaResultados key={urlFiltros(f)} filas={resultado.filas} puedeEliminar={staff.rol === "admin"} />
         <Paginacion
           pagina={Math.min(f.pagina, resultado.paginas)}
           paginas={resultado.paginas}

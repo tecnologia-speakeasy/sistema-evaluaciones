@@ -1,6 +1,7 @@
 // Integración de la Fase 6 (administración): importación de estudiantes por CSV,
 // estudiantes uno a uno, reglas del staff (incluida la concurrencia), resultados
-// con filtros y exportación, generación desactivada y eliminar una generación. Se corre con `npm run test:integracion`.
+// con filtros y exportación, generación desactivada, eliminar una generación y eliminar intentos. Se corre con
+// `npm run test:integracion`.
 import assert from "node:assert/strict";
 import { casos } from "./comun.mjs";
 import { query } from "@/lib/db";
@@ -505,6 +506,74 @@ await caso("eliminar: el resumen cuenta sus intentos; se va con sus respuestas y
   assert.equal(await existe("intentos", intentoY1), true, "los demás no se tocan");
   assert.equal(await E.resumenEliminarEstudiante(idSuelto), null);
   await assert.rejects(E.eliminarEstudiante(idSuelto), /no existe/);
+});
+
+await caso("eliminar intentos: con sus respuestas; renumera los que quedan y el estudiante recupera el intento", async () => {
+  const g = await generacion("Borrar");
+  const [ev] = await sql<{ id: number; slug: string }>(
+    `UPDATE evaluaciones SET publicada = TRUE, intentos_permitidos = 3
+      WHERE generacion_id = $1 AND tipo = 'mensual' AND numero = 1 RETURNING id, slug`,
+    [g],
+  );
+  const [p] = await sql<{ id: number }>(
+    `INSERT INTO preguntas (evaluacion_id, orden, tipo, categoria, enunciado, opciones, respuestas_aceptadas)
+     VALUES ($1, 1, 'multiple_choice', 'grammar', 'She ___ happy.', '["is","are"]', '["is"]') RETURNING id`,
+    [ev.id],
+  );
+  const ana = await estudiante(g, "borrar-ana");
+  const beto = await estudiante(g, "borrar-beto");
+  let n = 0;
+  const nuevo = async (est: number) => {
+    const [i] = await sql<{ id: number }>(
+      `INSERT INTO intentos (evaluacion_id, estudiante_id, token, nombre) VALUES ($1, $2, $3, 'X') RETURNING id`,
+      [ev.id, est, `tok-borrar-${sufijo}-${++n}`],
+    );
+    await sql(`UPDATE intentos SET estado = 'listo', puntaje_total = 100, completed_at = now() WHERE id = $1`, [i.id]);
+    await sql(`INSERT INTO respuestas (intento_id, pregunta_id, respuesta, es_correcta, puntaje) VALUES ($1, $2, '"is"', TRUE, 10)`, [
+      i.id,
+      p.id,
+    ]);
+    return i.id;
+  };
+  const numeros = async (est: number) =>
+    (
+      await sql<{ id: number; numero_intento: number }>(
+        `SELECT id, numero_intento FROM intentos WHERE evaluacion_id = $1 AND estudiante_id = $2 ORDER BY numero_intento`,
+        [ev.id, est],
+      )
+    ).map((r) => [r.id, r.numero_intento]);
+
+  const a1 = await nuevo(ana);
+  const a2 = await nuevo(ana);
+  const a3 = await nuevo(ana);
+  const b1 = await nuevo(beto);
+  await assert.rejects(nuevo(ana), /intentos permitidos/, "ya gastó sus 3");
+
+  // Uno: se va con sus respuestas; los demás bajan un número y recupera el intento.
+  assert.equal(await R.eliminarIntentos([a1]), 1);
+  assert.deepEqual(await numeros(ana), [[a2, 1], [a3, 2]]);
+  const [res] = await sql<{ n: number }>(`SELECT count(*)::int AS n FROM respuestas WHERE intento_id = $1`, [a1]);
+  assert.equal(res.n, 0);
+  const a4 = await nuevo(ana);
+  assert.deepEqual(await numeros(ana), [[a2, 1], [a3, 2], [a4, 3]]);
+
+  // Varios a la vez, de dos estudiantes; los que ya no existen no cuentan.
+  assert.equal(await R.eliminarIntentos([a2, b1, a1, 999_999]), 2);
+  assert.deepEqual(await numeros(ana), [[a3, 1], [a4, 2]]);
+  assert.deepEqual(await numeros(beto), []);
+
+  // Mientras la IA lo califica (candado vigente) no se deja, y no se borra nada.
+  await sql(`UPDATE intentos SET estado = 'calificando', procesando_hasta = now() + interval '5 minutes' WHERE id = $1`, [a3]);
+  await assert.rejects(R.eliminarIntentos([a3, a4]), /se está calificando/);
+  assert.deepEqual(await numeros(ana), [[a3, 1], [a4, 2]]);
+  // Con el candado vencido, sí.
+  await sql(`UPDATE intentos SET procesando_hasta = now() - interval '1 minute' WHERE id = $1`, [a3]);
+  assert.equal(await R.eliminarIntentos([a3]), 1);
+  assert.deepEqual(await numeros(ana), [[a4, 1]]);
+
+  // Una página que quedó fuera de rango muestra la última que hay.
+  const r = await R.buscarResultados(leerFiltros({ evaluacion: ev.slug, pagina: "7" }));
+  assert.deepEqual([r.total, r.paginas, r.filas.map((f) => [f.intento_id, f.numero_intento])], [1, 1, [[a4, 1]]]);
 });
 
 fin();
